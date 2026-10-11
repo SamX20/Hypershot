@@ -233,6 +233,7 @@ body.touch #room{top:66px}
     <div class="row">
       <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option></select></div>
       <div><label>النمط</label><select id="modeSel"><option value="ctf">امسك العلم</option><option value="tdm">فريق ضد فريق</option><option value="koth">ملك التلة</option></select></div>
+      <div><label>الوقت</label><select id="timeSel"><option value="day">☀️ نهار</option><option value="night">🌙 ليل</option></select></div>
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px"><input type="checkbox" id="hq" style="width:auto"> جودة عالية (توهّج نيون — أطفئه إذا اللعبة بطيئة)</label>
@@ -308,6 +309,10 @@ const THEME={
   yard:  {bg:0x10131c,fog:[50,160],floor:'concrete',floorA:'#2a2d33',floorB:'#3a3e46',hemi:[0xc8d0ff,0x332a22,1.1]},
   towers:{bg:0x0d0718,fog:[45,150],floor:'tiles', floorA:'#140d24',floorB:'#3a2466',hemi:[0xb090ff,0x221133,0.95]},
 }[MAP_ID];
+// time of day is a per-player visual preference (doesn't affect gameplay, so it isn't part of the room config)
+let DAY=true; try{ DAY=localStorage.getItem('hs_time')!=='night'; }catch(e){}
+if(DAY) Object.assign(THEME,{bg:0xbfe0fa,fog:[80,240],hemi:[0xe6f2ff,0x8a7b66,1.5]},
+  {neon:{floorA:'#7f8aa3',floorB:'#56638a'},yard:{floorA:'#9b9a93',floorB:'#7c7b75'},towers:{floorA:'#a99fbd',floorB:'#7d6aa3'}}[MAP_ID]);
 function B(x,y,z,w,h,d,c=NEUTRAL,tm=-1){const b={x0:x-w/2,x1:x+w/2,y0:y,y1:y+h,z0:z-d/2,z1:z+d/2,c,tm}; BOXES.push(b); return b;}
 function M(x,y,z,w,h,d,team=false,c=NEUTRAL){
   B(x,y,z,w,h,d,team?TEAM_COLOR[1]:c,team?1:-1);
@@ -1036,7 +1041,7 @@ function sfx(k,v=1){
 ===================================================================== */
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1:1.5)); renderer.setSize(innerWidth,innerHeight); renderer.autoClear=false;
-renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=DAY?1.0:1.15;
 document.getElementById('game').appendChild(renderer.domElement);
 const LOWFX=matchMedia('(pointer: coarse)').matches;
 const scene=new THREE.Scene(); scene.background=new THREE.Color(THEME.bg); scene.fog=new THREE.Fog(THEME.bg,THEME.fog[0],THEME.fog[1]);
@@ -1048,7 +1053,7 @@ function setHQ(on){
   if(on&&!composer){
     composer=new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene,camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.85,0.55,0.72));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),DAY?0.3:0.85,0.5,DAY?0.92:0.72));
     composer.addPass(new OutputPass());
   } else if(!on&&composer){ composer.dispose(); composer=null; }
 }
@@ -1061,7 +1066,26 @@ fitVm();
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight); if(composer) composer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); fitVm();});
 
 scene.add(new THREE.HemisphereLight(...THEME.hemi));
-const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(20,60,10); scene.add(sun);
+const sun=new THREE.DirectionalLight(DAY?0xfff1d6:0xffffff,DAY?2.4:0.7); sun.position.set(DAY?40:20,DAY?80:60,DAY?25:10); scene.add(sun);
+const SHADOWS=DAY&&!LOWFX;
+if(SHADOWS){
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.05;
+  Object.assign(sun.shadow.camera,{left:-75,right:75,top:75,bottom:-75,near:1,far:220}); sun.shadow.camera.updateProjectionMatrix();
+}
+if(DAY){ // gradient sky dome, sun disc and a few clouds
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(300,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+    uniforms:{top:{value:new THREE.Color(0x3b8be0)},hor:{value:new THREE.Color(0xd7ecff)}},
+    vertexShader:'varying vec3 vp; void main(){vp=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 top; uniform vec3 hor; varying vec3 vp; void main(){float h=clamp(vp.y,0.0,1.0); gl_FragColor=vec4(mix(hor,top,pow(h,0.55)),1.0);}'}));
+  scene.add(sky);
+  const sd=sun.position.clone().normalize();
+  const disc=new THREE.Mesh(new THREE.SphereGeometry(9,16,12),new THREE.MeshBasicMaterial({color:0xfff6dc,fog:false})); disc.position.copy(sd.multiplyScalar(270)); scene.add(disc);
+  const cm=new THREE.MeshBasicMaterial({color:0xffffff,fog:false,transparent:true,opacity:0.9});
+  for(let i=0;i<14;i++){ const g=new THREE.Group(), a=i/14*Math.PI*2+rand(-0.2,0.2), r=rand(150,230);
+    for(let j=0;j<5;j++){const s=new THREE.Mesh(new THREE.SphereGeometry(rand(6,11),10,8),cm); s.position.set(rand(-14,14),rand(-2,3),rand(-6,6)); s.scale.y=0.55; g.add(s);}
+    g.position.set(Math.cos(a)*r,rand(55,95),Math.sin(a)*r); scene.add(g); }
+}
 [[FLAG_HOME[0][0],0],[FLAG_HOME[1][0],1],[0,-1]].forEach(([x,tm])=>{const l=new THREE.PointLight(tm<0?0xa060ff:TEAM_COLOR[tm],30,45,1.6); l.position.set(x,7,0); scene.add(l);
   if(tm>=0) TEAMREG.push(()=>l.color.setHex(TEAM_COLOR[tm]));});
 
@@ -1138,15 +1162,16 @@ function worldUV(geo,ox,oy,oz,tile=4){
 for(const [bi,b] of BOXES.entries()){
   if(b.crate) continue;
   const w=b.x1-b.x0,h=b.y1-b.y0,d=b.z1-b.z0, col=new THREE.Color(b.c), T=PANEL_TEX[bi%2];
-  const base=b.tm>=0?col.clone().multiplyScalar(0.45):col.clone().lerp(new THREE.Color(0xffffff),0.25);
-  const mat=new THREE.MeshStandardMaterial({color:base,roughness:0.75,metalness:0.45,map:T.map,bumpMap:T.bumpMap,bumpScale:3,roughnessMap:T.roughnessMap,
-    emissive:col,emissiveMap:T.emissiveMap,emissiveIntensity:b.tm>=0?1.4:0.9});
+  const base=b.tm>=0?col.clone().multiplyScalar(DAY?0.75:0.45):col.clone().lerp(new THREE.Color(0xffffff),DAY?0.6:0.25);
+  const mat=new THREE.MeshStandardMaterial({color:base,roughness:0.75,metalness:DAY?0.25:0.45,map:T.map,bumpMap:T.bumpMap,bumpScale:3,roughnessMap:T.roughnessMap,
+    emissive:col,emissiveMap:T.emissiveMap,emissiveIntensity:(b.tm>=0?1.4:0.9)*(DAY?0.45:1)});
   const cx=(b.x0+b.x1)/2,cy=b.y0+h/2,cz=(b.z0+b.z1)/2;
   const m=new THREE.Mesh(worldUV(new THREE.BoxGeometry(w,h,d),cx,cy,cz),mat); m.position.set((b.x0+b.x1)/2,b.y0+h/2,(b.z0+b.z1)/2); scene.add(m);
   const edgeCol=b.tm>=0?TEAM_COLOR[b.tm]:(b.c===PURPLE?0xb07bff:0x5f73ff);
   const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:0.85}));
   e.position.copy(m.position); scene.add(e);
-  if(b.tm>=0) TEAMREG.push(()=>{const c=new THREE.Color(TEAM_COLOR[b.tm]); mat.color.copy(c).multiplyScalar(0.45); mat.emissive.copy(c); e.material.color.copy(c);});
+  if(DAY) e.material.opacity=0.45;
+  if(b.tm>=0) TEAMREG.push(()=>{const c=new THREE.Color(TEAM_COLOR[b.tm]); mat.color.copy(c).multiplyScalar(DAY?0.75:0.45); mat.emissive.copy(c); e.material.color.copy(c);});
 }
 // ---------- destructible crates ----------
 const CRATE_TEX=(()=>{
@@ -1280,9 +1305,9 @@ for(const p of PADS){
 // stars & decorative pillars
 {
   const g=new THREE.BufferGeometry(), a=[]; for(let i=0;i<800;i++){const th=Math.random()*Math.PI*2,ph=Math.random()*Math.PI*0.45,r=220; a.push(Math.cos(th)*Math.sin(ph)*r,Math.cos(ph)*r*0.8+10,Math.sin(th)*Math.sin(ph)*r);}
-  g.setAttribute('position',new THREE.Float32BufferAttribute(a,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x9fb4ff,size:0.8,fog:false})));
+  g.setAttribute('position',new THREE.Float32BufferAttribute(a,3)); if(!DAY) scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x9fb4ff,size:0.8,fog:false})));
   for(let i=0;i<26;i++){const ang=i/26*Math.PI*2, rx=95*Math.cos(ang), rz=60*Math.sin(ang), h=rand(10,40);
-    const m=new THREE.Mesh(new THREE.BoxGeometry(3,h,3),new THREE.MeshBasicMaterial({color:i%2?0x2a1a6a:0x0f2a5a})); m.position.set(rx,h/2,rz); scene.add(m);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(3,h,3),DAY?new THREE.MeshStandardMaterial({color:i%2?0x9aa8c4:0xc2ccdc,roughness:0.6,metalness:0.3}):new THREE.MeshBasicMaterial({color:i%2?0x2a1a6a:0x0f2a5a})); m.position.set(rx,h/2,rz); scene.add(m);
     const top=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.4,3.2),new THREE.MeshBasicMaterial({color:i%3?0x00e5ff:0xff3bd5})); top.position.set(rx,h,rz); scene.add(top);}
 }
 // pickups
@@ -1615,7 +1640,8 @@ class Client{
         continue;
       }
       seen.add(p.i); let av=this.avatars.get(p.i);
-      if(!av||av.team!==p.t){ if(av) scene.remove(av.g); av=makeAvatar(p.t,p.n,p.t===this.team); this.avatars.set(p.i,av); scene.add(av.g); av.pos.set(p.x,p.y,p.z); }
+      if(!av||av.team!==p.t){ if(av) scene.remove(av.g); av=makeAvatar(p.t,p.n,p.t===this.team); this.avatars.set(p.i,av); scene.add(av.g);
+        if(SHADOWS) av.g.traverse(o=>{ if(o.isMesh&&!(o.material&&o.material.transparent)) o.castShadow=true; }); av.pos.set(p.x,p.y,p.z); }
       av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.team=p.t; av.name=p.n;
       if(av.wasAlive&&!p.al){ addPoof(av.pos,TEAM_COLOR[p.t]); deathBurst(av); }
       if(!av.wasAlive&&p.al) av.pos.copy(av.target);
@@ -2025,6 +2051,8 @@ function joinRoom(code){
 }
 // map / mode / difficulty live in the URL; changing them reloads the page and starts automatically
 $('mapSel').value=MAP_ID; $('modeSel').value=MODE; $('diffSel').value=DIFF;
+$('timeSel').value=DAY?'day':'night';
+$('timeSel').addEventListener('change',e=>{ try{ localStorage.setItem('hs_time',e.target.value); localStorage.setItem('hs_name',$('name').value.trim()); }catch(err){} location.reload(); });
 function startWithConfig(kind){
   const m=$('mapSel').value, md=$('modeSel').value, df=$('diffSel').value;
   if(m===MAP_ID&&md===MODE&&df===DIFF) return startLocal(kind==='host');
@@ -2046,6 +2074,7 @@ $('lobby').querySelector('.sub').textContent=`${MODES[MODE].name} • ${MAPS[MAP
 ===================================================================== */
 let last=performance.now(), miniT=0;
 camera.position.set(0,25,45); camera.lookAt(0,0,0);
+if(SHADOWS) scene.traverse(o=>{ if(o.isMesh&&!(o.material&&o.material.transparent)&&o.geometry.type!=='SphereGeometry'){o.castShadow=true;o.receiveShadow=true;} });
 function frame(){
   requestAnimationFrame(frame);
   const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; const t=now/1000;
