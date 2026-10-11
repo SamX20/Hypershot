@@ -2,7 +2,9 @@
 <html lang="ar">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Hyper Shot</title>
 <style>
 :root{--red:#ff3b5c;--blue:#2fa8ff;--cyan:#00e5ff;--bg:#070a18;--panel:rgba(10,14,32,.82);--text:#e8ecff}
@@ -153,6 +155,50 @@ body.touch #ammo{font-size:26px}
 body.touch #feed{top:150px;width:240px;font-size:12px}
 body.touch #room{top:66px}
 @media (max-width:900px){#feed{top:130px;width:260px}#mini{transform:scale(.75);transform-origin:top left}#abil{bottom:90px}}
+/* ---------- phones ---------- */
+body.touch,body.touch *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+body.touch input,body.touch select{-webkit-user-select:auto;user-select:auto}
+.lob button,.lob select,.lob input{touch-action:manipulation}
+body.touch #msg{font-size:17px;white-space:normal;width:92vw}
+body.touch #streak{font-size:30px}
+body.touch .tb{-webkit-tap-highlight-color:transparent}
+/* portrait: joystick owns the left half, every button lives on the right half */
+@media (orientation:portrait){
+  body.touch #joy{width:50%;height:60%}
+  body.touch #tFire{right:14px;bottom:112px;width:84px;height:84px}
+  body.touch #tDash{right:14px;bottom:30px;width:56px;height:56px}
+  body.touch #tJump{right:80px;bottom:26px;width:62px;height:62px}
+  body.touch #tSlide{right:108px;bottom:104px;width:54px;height:54px}
+  body.touch #tGren{right:108px;bottom:174px;width:50px;height:50px}
+  body.touch #tShield{right:14px;bottom:212px;width:50px;height:50px}
+  body.touch #tReload{right:70px;bottom:224px;width:44px;height:44px}
+  body.touch #tWeap{right:124px;bottom:240px;width:46px;height:46px}
+  body.touch #tScope{right:124px;bottom:300px;width:46px;height:46px}
+  body.touch #top{transform:translateX(-50%) scale(.78);transform-origin:top center;top:6px}
+  body.touch #mini{top:72px;left:8px;transform:scale(.6);transform-origin:top left}
+  body.touch #bl{top:146px;left:10px;width:150px}
+  body.touch #br{top:146px;left:auto;right:10px}
+  body.touch #feed{top:72px;right:8px;width:200px}
+  body.touch .fi{font-size:11px;padding:3px 7px}
+  body.touch #tTab{top:62px}
+  body.touch #room{top:200px;font-size:11px}
+}
+/* landscape phones: keep the top-right corner for the kill feed, stack minimap / HP / ammo on the left */
+@media (orientation:landscape){
+  body.touch #mini{transform:scale(.6);transform-origin:top left;top:8px;left:8px}
+  body.touch #bl{top:86px;left:10px;width:150px}
+  body.touch #br{top:84px;left:172px;right:auto}
+  body.touch #feed{top:8px;right:8px;width:230px;max-height:92px;overflow:hidden}
+  body.touch #msg{top:36%;width:60vw}
+  body.touch .fi{font-size:11px;padding:3px 7px}
+}
+/* lobby on narrow screens */
+@media (max-width:560px){
+  .logo{font-size:38px;letter-spacing:2px}
+  .lob{padding:18px 16px 14px}
+  .lob .row{flex-wrap:wrap}
+  .lob .row>*{flex:1 1 calc(50% - 10px);min-width:0}
+}
 #pause{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);direction:rtl;cursor:pointer}
 #pause div{background:var(--panel);padding:20px 34px;border-radius:14px;font-size:20px;text-align:center}
 #pause small{display:block;opacity:.7;font-size:13px;margin-top:8px}
@@ -1573,9 +1619,11 @@ const KEYS={}; let mouseDown=false, rightDown=false, SENS=0.0022, playing=false;
 const detectTouch=()=>navigator.maxTouchPoints>0&&(matchMedia('(pointer: coarse)').matches||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 let TOUCH=detectTouch();
 const JOY={x:0,y:0};
-function setTouch(v){ TOUCH=v; document.body.classList.toggle('touch',v); }
+function setTouch(v){ TOUCH=v; document.body.classList.toggle('touch',v); const l=$('sens')?.previousElementSibling; if(l) l.textContent=v?'حساسية اللمس':'حساسية الماوس'; }
 setTouch(TOUCH);
-addEventListener('touchstart',()=>{ if(!TOUCH) setTouch(true); },{passive:true,capture:true});
+addEventListener('touchstart',()=>{ if(!TOUCH) setTouch(true);
+  if(AC&&AC.state!=='running') AC.resume().catch(()=>{}); // iOS Safari keeps audio suspended until a touch
+},{passive:true,capture:true});
 class Client{
   constructor(send){
     this.send=send; this.id=0; this.team=0;
@@ -1961,6 +2009,7 @@ function enterGame(){
   if(TOUCH){
     playing=true; $('touch').classList.remove('hidden'); $('pause').classList.add('hidden');
     try{ const el=document.documentElement; (el.requestFullscreen||el.webkitRequestFullscreen).call(el).then?.(()=>screen.orientation?.lock?.('landscape').catch(()=>{})).catch?.(()=>{}); }catch(e){}
+    if(innerHeight>innerWidth) setTimeout(()=>showMsg('📱🔄 لف الموبايل بالعرض لتجربة أحسن',3500),3800);
     return;
   }
   lock();
