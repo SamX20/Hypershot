@@ -250,7 +250,7 @@ body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
 body.touch #mini{left:62px}
 
 /* ---------- HUD v2 (Hyper Shot style) ---------- */
-#ranks{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
+#ranks{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
 .rk{width:58px;display:flex;flex-direction:column;align-items:center;animation:fin .25s}
 .rk .av{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#2b3a7a,#0c1230);border:3px solid var(--tc);box-shadow:0 2px 10px rgba(0,0,0,.5);position:relative;overflow:hidden}
 .rk .av svg{position:absolute;inset:0;width:100%;height:100%}
@@ -262,7 +262,7 @@ body.touch #mini{left:62px}
 .rk.me .av{box-shadow:0 0 0 2px #fff,0 0 16px var(--tc)} .rk.me .nm{color:#ffd54a}
 .rk.dead{opacity:.45}
 .rk-wrap{position:relative}
-#top{top:88px;transform:translateX(-50%) scale(.82);transform-origin:top center}
+#top{top:6px;transform:translateX(-50%) scale(.82);transform-origin:top center}
 #kstreak{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
 #kstreak .kico{width:34px;height:34px;filter:drop-shadow(0 0 6px #ffb000)}
 #kstreak .kb{width:14px;height:34vh;border-radius:8px;background:rgba(10,14,36,.6);border:2px solid rgba(255,190,40,.6);position:relative;overflow:hidden}
@@ -2355,8 +2355,9 @@ class Client{
     const tn=t=>`<span style="color:${TEAM_CSS[t]}">${TEAM_NAME[t]}</span>`;
     switch(m.k){
       case 'kill': feed([[m.a||'☠',TEAM_CSS[m.at]],['['+m.w+']',null,'w'],[m.v,TEAM_CSS[m.vt]]]);
-        if(m.vi===this.id){this.killer=m.ai&&m.ai!==this.id?m.a:''; this.streak=0;}
-        else if(m.ai===this.id){ this.streak++; const S={2:'قتل مزدوج!',3:'قتل ثلاثي!',4:'مجزرة!',5:'لا يُوقَف! 🔥',7:'أسطوري! 👑'};
+        if(m.vt===this.team){ const av=this.avatars.get(m.vi), pos=m.vi===this.id?this.me:av&&av.pos; if(pos) DEATH_MARKS.push({x:pos.x,z:pos.z,t:performance.now()}); }
+        if(m.vi===this.id){this.killer=m.ai&&m.ai!==this.id?m.a:''; this.streak=0; this.streakT=0;}
+        else if(m.ai===this.id){ this.streak++; this.streakT=STREAK_WIN; /* each kill refills the timer; when it runs out the streak resets */ const S={2:'قتل مزدوج!',3:'قتل ثلاثي!',4:'مجزرة!',5:'لا يُوقَف! 🔥',7:'أسطوري! 👑'};
           if(S[this.streak]){ streakBanner(S[this.streak]); sfx('streak'); } }
         break;
       case 'take': sfx('flag');
@@ -2412,6 +2413,7 @@ class Client{
   update(dt){
     const me=this.me;
     for(const k in this.cd) this.cd[k]=Math.max(0,this.cd[k]-dt);
+    if(this.streakT>0&&(this.streakT-=dt)<=0){ this.streakT=0; this.streak=0; }
     this.bloom=Math.max(0,this.bloom-dt*(this.fireCd>-0.15?2:6));
     if(this.alive&&playing){
       const fx_=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),rx=Math.cos(this.yaw),rz=-Math.sin(this.yaw);
@@ -2694,9 +2696,12 @@ function updateHudFrame(c){
     $('tScope').style.display=WKEYS[c.w]==='sniper'?'flex':'none'; }
   for(const k of ['slide','dash','gren','shield']){const el=$('ab-'+k), p=c.cd[k]/CD[k]*100; el.querySelector('.cd').style.setProperty('--p',p+'%'); el.querySelector('.t').textContent=c.cd[k]>0?Math.ceil(c.cd[k]):'';
     const cool=c.cd[k]>0; if(el._cool&&!cool){ el.classList.remove('ready-flash'); void el.offsetWidth; el.classList.add('ready-flash'); } el.classList.toggle('cool',cool); el._cool=cool;}
-  { const st=Math.max(0,c.streak|0), ks=$('kstreak'); if(ks._st!==st){ ks._st=st; ks.querySelector('i').style.height=Math.min(1,st/7)*100+'%'; $('kstxt').textContent='×'+st; ks.classList.toggle('hot',st>=3); } }
+  { const st=Math.max(0,c.streak|0), ks=$('kstreak'); ks.querySelector('i').style.height=((c.streakT||0)/STREAK_WIN*100)+'%';
+    if(ks._st!==st){ ks._st=st; $('kstxt').textContent='×'+st; ks.classList.toggle('hot',st>=3); } }
 }
 const mini=$('mini').getContext('2d');
+const STREAK_WIN=6;          // seconds you have to get the next kill to keep the streak going
+const DEATH_MARKS=[];        // where teammates died, shown as ✕ on the minimap for a few seconds
 function drawMini(c){
   const Wd=208,Hd=120,sx=Wd/132,sz=Hd/76, X=x=>(x+66)*sx, Z=z=>(z+38)*sz;
   mini.clearRect(0,0,Wd,Hd);
@@ -2711,6 +2716,9 @@ function drawMini(c){
     mini.fillRect(X(x)-1,Z(z)-6,1.5,9);});
   for(const [id,av] of c.avatars){ if(!av.alive) continue; const carrier=s.f.some(f=>f.s==='carried'&&f.c===id);
     if(av.team!==c.team&&!carrier) continue; mini.fillStyle=TEAM_CSS[av.team]; mini.beginPath(); mini.arc(X(av.pos.x),Z(av.pos.z),carrier?3.5:2.5,0,7); mini.fill(); }
+  { const now=performance.now(); for(let i=DEATH_MARKS.length-1;i>=0;i--){ const d=DEATH_MARKS[i], age=(now-d.t)/1000; if(age>4){DEATH_MARKS.splice(i,1); continue;}
+      const x=X(d.x), z=Z(d.z), r=4; mini.globalAlpha=age<3?1:1-(age-3); mini.strokeStyle='#000'; mini.lineWidth=3.5; mini.beginPath(); mini.moveTo(x-r,z-r); mini.lineTo(x+r,z+r); mini.moveTo(x+r,z-r); mini.lineTo(x-r,z+r); mini.stroke();
+      mini.strokeStyle=TEAM_CSS[c.team]; mini.lineWidth=2; mini.stroke(); } mini.globalAlpha=1; }
   if(c.alive){ const x=X(c.me.x),z=Z(c.me.z),a=c.yaw; mini.fillStyle='#fff'; mini.beginPath();
     mini.moveTo(x-Math.sin(a)*6,z-Math.cos(a)*6); mini.lineTo(x-Math.sin(a+2.5)*4,z-Math.cos(a+2.5)*4); mini.lineTo(x-Math.sin(a-2.5)*4,z-Math.cos(a-2.5)*4); mini.fill(); }
 }
