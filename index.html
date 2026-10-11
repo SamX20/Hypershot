@@ -2068,12 +2068,24 @@ function buildSniper(M=RG_MAT()){
   S('LensBack',new THREE.CircleGeometry(0.026,14),M.Mat_Glass,-0.151,0,0,0,-Math.PI/2);
   g.scale.set(1,1.18,1.18); return g;
 }
+// tactical combat knife (KA-BAR-ish), matte coated blade with an exposed edge; tip at +X like the guns
+function buildKnife(M=RG_MAT()){
+  const g=new THREE.Group(), P=(...a)=>rgPart(g,...a);
+  P('Blade',rgSlab([[0.0,0.013],[0.15,0.013],[0.205,0.002],[0.18,-0.006],[0.07,-0.016],[0.0,-0.016]],0.0055,0.0012),M.Mat_Dark);
+  P('Edge',rgSlab([[0.0,-0.011],[0.07,-0.011],[0.178,-0.002],[0.2,0.003],[0.18,-0.006],[0.07,-0.016],[0.0,-0.016]],0.0062,0.0006),M.Mat_Steel);
+  P('Fuller',rgBox(0.1,0.004,0.0064),M.Mat_Rubber,0.065,0.006,0);
+  P('Guard',rgSlab([[0,0.02],[0.012,0.022],[0.012,-0.026],[0,-0.03]],0.026,0.002),M.Mat_Dark);
+  P('Handle',rgSlab([[0,0.014],[-0.12,0.016],[-0.125,-0.016],[-0.1,-0.02],[-0.085,-0.015],[-0.07,-0.02],[-0.055,-0.015],[-0.04,-0.02],[-0.025,-0.015],[0,-0.019]],0.026,0.003),M.Mat_Rubber);
+  for(let i=0;i<6;i++) P('Ridge',rgBox(0.004,0.03,0.028),M.Mat_Poly,-0.02-i*0.017,-0.001,0);
+  P('Pommel',rgSlab([[-0.12,0.018],[-0.135,0.014],[-0.135,-0.016],[-0.125,-0.02]],0.03,0.002),M.Mat_Steel);
+  return g;
+}
 // model registry: fbx = file in assets/weapons/real, proc = built in code; len = fitted length (m); mag/pump/bolt = animated part names
 const GUN_MODELS={
   rifle:{fbx:'M4A1',len:0.86,mag:'Mag'}, m16:{fbx:'M16',len:0.98,flip:true}, scar:{fbx:'SCAR',len:0.9},
   shotgun:{proc:buildShotgun,len:0.95,pump:'Pump'}, sniper:{proc:buildSniper,len:1.15,mag:'Mag',bolt:'Bolt'},
   pistol:{fbx:'M1911',len:0.33,flip:true}, m1911t:{fbx:'M1911Tactical',len:0.35,flip:true} /* these two FBX files face backwards */, smg:{fbx:'MP5',len:0.62}, mp7:{fbx:'MP7',len:0.52},
-  knife:{glb:'assets/weapons/knife.glb',len:0.4,knife:true},
+  knife:{proc:buildKnife,len:0.36,knife:true},
 };
 const GUN_GLB=GUN_MODELS; // older code reads .len from here
 const AVATAR_MODELS={}; // fitted, untinted model per weapon key
@@ -2083,7 +2095,7 @@ const SLOTS=['Mat_Dark','Mat_Poly','Mat_Rubber','Mat_Steel','Mat_Glass','Mat_Woo
 function fitGun(root,k){
   const cfg=GUN_MODELS[k];
   root.rotation.order='YXZ';
-  if(cfg.knife) root.rotation.set(-Math.PI/2,0,0);
+  if(cfg.knife&&cfg.glb) root.rotation.set(-Math.PI/2,0,0);
   else root.rotation.set(cfg.fbx?-Math.PI/2:0,cfg.flip?-Math.PI/2:Math.PI/2,0); // stand Z-up FBX up, then turn the muzzle to face -Z
   const wrap=new THREE.Group(); wrap.add(root); wrap.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(wrap), size=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
@@ -2094,7 +2106,7 @@ function fitGun(root,k){
     if(nA) for(let i=0;i<nA.count&&!bad;i++){ const l=Math.hypot(nA.getX(i),nA.getY(i),nA.getZ(i)); if(!(l>1e-4)) bad=true; }
     if(bad){ o.geometry=o.geometry.clone(); o.geometry.computeVertexNormals(); }
     if(m.map){m.map.colorSpace=THREE.SRGBColorSpace; m.map.anisotropy=4;} o.castShadow=false; });
-  wrap.userData.sc=sc; if(cfg.knife) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
+  wrap.userData.sc=sc; if(cfg.knife&&cfg.glb) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
   // the FBX pack only names the M4A1 magazine: guess the others (lowest tall part around the middle of the gun)
   if(!cfg.mag&&!cfg.knife&&!cfg.proc&&!/pistol|m1911/.test(k)){
     wrap.updateMatrixWorld(true); const inv=wrap.matrixWorld.clone().invert(); let best=null,by=Infinity;
@@ -2247,7 +2259,7 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
     const mag=wrap.getObjectByName('Mag'); g.userData.mag=mag||null; if(mag) g.userData.magBase=mag.position.clone();
     g.userData.pump=cfg.pump?wrap.getObjectByName(cfg.pump):null; g.userData.bolt=cfg.bolt?wrap.getObjectByName(cfg.bolt):null;
     placeHands(g,k,len);
-    if(!cfg.knife) applySkin(wrap,mySkin(k),'full');
+    applySkin(wrap,mySkin(k),'full');
     if(k==='rifle'){ AVATAR_GUN.clear(); AVATAR_GUN.add(AVATAR_MODELS.rifle.clone()); }
   };
   WKEYS.forEach((k,i)=>{ const cfg=GUN_MODELS[k];

@@ -2,7 +2,7 @@ Weapon models
 - real/M4A1.fbx, M16.fbx, SCAR.fbx, MP5.fbx, MP7.fbx, M1911.fbx, M1911Tactical.fbx: low-poly gun pack from itch.io.
   Free to use in projects, including commercial games; the assets themselves may not be resold on their own.
   Source link: (to be added)
-- knife.glb (Sword172): "50 Swords" pack from itch.io, same terms as above. Source link: (to be added)
+- Knife: built procedurally in code (buildKnife), matching the realistic gun style.
 - Shotgun and sniper: built procedurally in code for this game (index.html, buildShotgun / buildSniper).
 
 Sounds: Kenney (www.kenney.nl), CC0 — see assets/sounds/LICENSE-*.txt.
