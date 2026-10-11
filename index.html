@@ -965,8 +965,43 @@ function noise(dur,vol,freq,type='lowpass'){const a=ac(),t=a.currentTime,s=a.cre
   const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f).connect(g).connect(MASTER); s.start(t); s.stop(t+dur);}
 function tone(f0,f1,dur,vol,type='square'){const a=ac(),t=a.currentTime,o=a.createOscillator(); o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
   const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g).connect(MASTER); o.start(t); o.stop(t+dur);}
+// Kenney CC0 samples (assets/sounds). Loaded on first audio use; sfx() falls back to the synth below until/unless they load.
+const SND_DIR='assets/sounds/';
+const SAMPLE_DEFS={
+  rifle:     {files:[0,1,2,3,4].map(i=>'laserSmall_00'+i), vol:0.55, thump:[160,55,0.07,0.22]},
+  shotgun:   {files:['laserLarge_000','laserLarge_001'], vol:0.75, rate:0.8, thump:[115,32,0.22,0.45]},
+  sniper:    {files:['laserLarge_002','laserLarge_003'], vol:0.8, thump:[95,28,0.4,0.5]},
+  boom:      {files:['lowFrequency_explosion_000','lowFrequency_explosion_001','explosionCrunch_000'], vol:1.0},
+  step:      {files:[0,1,2,3,4].map(i=>'footstep_concrete_00'+i), vol:0.5, jitter:0.12},
+  wood:      {files:[0,1,2].map(i=>'impactWood_medium_00'+i), vol:0.7},
+  woodbreak: {files:[0,1,2].map(i=>'impactPlank_medium_00'+i), vol:0.9},
+  metal:     {files:[0,1,2].map(i=>'impactMetal_light_00'+i), vol:0.6},
+  metalbreak:{files:[0,1,2].map(i=>'impactMetal_heavy_00'+i), vol:0.9},
+};
+const SAMPLES={}; let samplesRequested=false;
+function loadSamples(){
+  if(samplesRequested||!AC) return; samplesRequested=true;
+  for(const [k,def] of Object.entries(SAMPLE_DEFS)){
+    Promise.all(def.files.map(f=>fetch(SND_DIR+f+'.ogg').then(r=>{if(!r.ok) throw r.status; return r.arrayBuffer();})
+      .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).catch(()=>null)))
+      .then(bufs=>{const ok=bufs.filter(Boolean); if(ok.length) SAMPLES[k]=ok;});
+  }
+}
+function playSample(k,v){
+  const bufs=SAMPLES[k]; if(!bufs) return false;
+  const def=SAMPLE_DEFS[k], a=AC, t=a.currentTime, s=a.createBufferSource();
+  s.buffer=bufs[Math.random()*bufs.length|0];
+  s.playbackRate.value=(def.rate||1)*(1+(Math.random()*2-1)*(def.jitter??0.05));
+  const g=a.createGain(); g.gain.value=def.vol*v;
+  if(v<0.6){ const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1500; s.connect(f).connect(g); } // distant: lose the highs
+  else s.connect(g);
+  g.connect(MASTER); s.start(t);
+  if(def.thump){ const [f0,f1,d,vol]=def.thump; tone(f0,f1,d,vol*v,'sine'); } // keep the synthesized low-end punch under gunshots
+  return true;
+}
 function sfx(k,v=1){
   if(v<0.03) return;
+  try{ ac(); loadSamples(); if(playSample(k,v)) return; }catch(e){}
   try{ switch(k){
     // gunshots: sharp transient + filtered body + low thump, distant shots lose their highs
     case 'rifle': tone(1900,300,0.025,0.18*v); noise(0.1,0.42*v,v>0.6?3600:1400); noise(0.22,0.16*v,450); tone(160,55,0.07,0.28*v,'sine'); break;
