@@ -263,6 +263,7 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 /* =====================================================================
    CONSTANTS
@@ -1306,7 +1307,7 @@ function makeAvatar(team,name,friendly){
   const legR=new THREE.Mesh(GEO.leg,mDark); legR.position.set(0.2,0.62,0);
   const armL=new THREE.Mesh(GEO.arm,mBody); armL.position.set(-0.52,1.42,0); armL.rotation.x=-1.1; armL.rotation.z=-0.5;
   const armR=new THREE.Mesh(GEO.arm,mBody); armR.position.set(0.52,1.42,0); armR.rotation.x=-1.4;
-  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(0.9); gun.position.set(0.4,1.2,-0.5);
+  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(0.9); gun.position.set(0.4,1.2,-0.5); avatarGuns.push(gun);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false;
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   const inner=new THREE.Group(); inner.add(torso,head,visor,legL,legR,armL,armR,gun,shield); g.add(inner,tag);
@@ -1409,6 +1410,28 @@ function buildGun(k){
   g.userData.flash=flash; g.visible=false; g.scale.setScalar(0.75); vmScene.add(g); return g;
 }
 const vmGuns=WKEYS.map(buildGun);
+// GLB weapon models (Kenney Blaster Kit, CC0) replace the procedural guns once loaded; procedural ones stay as fallback.
+// len = target length in meters, flip = model's muzzle points +Z
+const GUN_GLB={rifle:{url:'assets/weapons/rifle.glb',len:0.8,flip:false},shotgun:{url:'assets/weapons/shotgun.glb',len:0.62,flip:false},sniper:{url:'assets/weapons/sniper.glb',len:1.0,flip:false}};
+const avatarGuns=[];
+function fitGun(root,k){
+  const cfg=GUN_GLB[k]; if(cfg.flip) root.rotation.y=Math.PI;
+  const wrap=new THREE.Group(); wrap.add(root); wrap.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(wrap), size=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
+  const sc=cfg.len/size.z; root.position.sub(c); wrap.scale.setScalar(sc);
+  wrap.traverse(o=>{ if(o.isMesh&&o.material.map){o.material.map.colorSpace=THREE.SRGBColorSpace; o.material.map.anisotropy=4;} });
+  return {wrap,len:cfg.len,top:size.y*sc/2};
+}
+{
+  const loader=new GLTFLoader();
+  WKEYS.forEach((k,i)=>loader.load(GUN_GLB[k].url,gl=>{
+    const {wrap,len}=fitGun(gl.scene,k);
+    const model=vmGuns[i].children[0], flash=vmGuns[i].userData.flash;
+    model.clear(); model.add(wrap,flash); model.position.set(0.03,-0.02,-0.12); model.scale.setScalar(1);
+    flash.position.set(0,0.02,-len/2-0.04);
+    if(k==='rifle'){ AVATAR_GUN.clear(); AVATAR_GUN.add(wrap.clone()); for(const g of avatarGuns){g.clear(); g.add(wrap.clone());} }
+  },undefined,e=>console.warn('weapon model failed, keeping procedural gun',k,e)));
+}
 
 /* ---------------- effects ---------------- */
 const fx=[];
