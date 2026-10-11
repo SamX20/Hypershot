@@ -255,6 +255,7 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
 /* =====================================================================
    CONSTANTS
@@ -792,15 +793,65 @@ const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(20,60,10); 
   for(const t2 of [0,1]){const z=new THREE.Mesh(new THREE.PlaneGeometry(20,37),new THREE.MeshBasicMaterial({color:TEAM_COLOR[t2],transparent:true,opacity:0.07}));
     z.rotation.x=-Math.PI/2; z.position.set(t2?54:-54,0.01,0); scene.add(z); TEAMREG.push(()=>z.material.color.setHex(TEAM_COLOR[t2]));}
 }
+// procedural sci-fi panel textures: albedo + bump + roughness + glowing seams
+function panelTextures(seed){
+  let s=seed; const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+  const N=512, mk=()=>{const c=document.createElement('canvas'); c.width=c.height=N; return [c,c.getContext('2d')];};
+  const [ca,a]=mk(), [cb,b]=mk(), [cr,r]=mk(), [ce,e]=mk();
+  a.fillStyle='#c9cdd6'; a.fillRect(0,0,N,N); b.fillStyle='#808080'; b.fillRect(0,0,N,N);
+  r.fillStyle='#b4b4b4'; r.fillRect(0,0,N,N); e.fillStyle='#000'; e.fillRect(0,0,N,N);
+  // noise grain
+  for(let i=0;i<9000;i++){const x=rnd()*N,y=rnd()*N,v=rnd(); a.fillStyle=`rgba(${v<0.5?0:255},${v<0.5?0:255},${v<0.5?0:255},0.05)`; a.fillRect(x,y,2,2);
+    r.fillStyle=`rgba(255,255,255,${rnd()*0.08})`; r.fillRect(x,y,3,3);}
+  // panel grid: split into 2x2 big plates, some subdivided
+  const plates=[]; const split=(x,y,w,h,d)=>{if(d>0&&rnd()<0.6){if(w>=h){const k=Math.round(w*(0.35+rnd()*0.3)/32)*32||w/2; split(x,y,k,h,d-1); split(x+k,y,w-k,h,d-1);}
+    else{const k=Math.round(h*(0.35+rnd()*0.3)/32)*32||h/2; split(x,y,w,k,d-1); split(x,y+k,w,h-k,d-1);}} else plates.push([x,y,w,h]);};
+  split(0,0,N/2,N/2,2); split(N/2,0,N/2,N/2,2); split(0,N/2,N/2,N/2,2); split(N/2,N/2,N/2,N/2,2);
+  for(const [x,y,w,h] of plates){
+    const shade=0.85+rnd()*0.2, g=Math.round(200*shade);
+    a.fillStyle=`rgb(${g},${g+2},${g+8})`; a.fillRect(x+3,y+3,w-6,h-6);
+    // bevel: raised plate with darker groove
+    b.fillStyle='#303030'; b.fillRect(x,y,w,h); b.fillStyle='#9a9a9a'; b.fillRect(x+4,y+4,w-8,h-8);
+    const gr=b.createLinearGradient(x,y,x+w,y+h); gr.addColorStop(0,'rgba(255,255,255,0.12)'); gr.addColorStop(1,'rgba(0,0,0,0.12)'); b.fillStyle=gr; b.fillRect(x+4,y+4,w-8,h-8);
+    a.strokeStyle='rgba(10,12,20,0.85)'; a.lineWidth=3; a.strokeRect(x+1.5,y+1.5,w-3,h-3);
+    // glowing seam on some plates
+    if(rnd()<0.35){e.strokeStyle='#fff'; e.lineWidth=2; const hz=w>h; e.beginPath();
+      if(hz){e.moveTo(x+12,y+h-10); e.lineTo(x+w-12,y+h-10);} else {e.moveTo(x+w-10,y+12); e.lineTo(x+w-10,y+h-12);} e.stroke();}
+    // rivets in corners
+    for(const [px,py] of [[x+10,y+10],[x+w-10,y+10],[x+10,y+h-10],[x+w-10,y+h-10]]){
+      b.fillStyle='#d8d8d8'; b.beginPath(); b.arc(px,py,3,0,7); b.fill(); a.fillStyle='#6b7080'; a.beginPath(); a.arc(px,py,3,0,7); a.fill();}
+    // vent slots
+    if(w>=96&&h>=96&&rnd()<0.3){const vx=x+w/2-28,vy=y+h/2-20; for(let i=0;i<5;i++){b.fillStyle='#202020'; b.fillRect(vx,vy+i*9,56,4); a.fillStyle='#22252e'; a.fillRect(vx,vy+i*9,56,4);}}
+    // hazard stripe
+    if(rnd()<0.08){a.save(); a.beginPath(); a.rect(x+8,y+h-26,w-16,16); a.clip(); for(let i=-20;i<w;i+=16){a.fillStyle=(i/16)%2?'#e8b923':'#1a1a1a'; a.beginPath(); a.moveTo(x+i,y+h-10); a.lineTo(x+i+8,y+h-26); a.lineTo(x+i+16,y+h-26); a.lineTo(x+i+8,y+h-10); a.fill();} a.restore();}
+  }
+  // scratches + grime
+  for(let i=0;i<70;i++){const x=rnd()*N,y=rnd()*N,l=8+rnd()*30,ang=rnd()*6.28; a.strokeStyle=`rgba(255,255,255,${0.08+rnd()*0.12})`; a.lineWidth=1;
+    a.beginPath(); a.moveTo(x,y); a.lineTo(x+Math.cos(ang)*l,y+Math.sin(ang)*l); a.stroke(); r.strokeStyle='rgba(0,0,0,0.5)'; r.beginPath(); r.moveTo(x,y); r.lineTo(x+Math.cos(ang)*l,y+Math.sin(ang)*l); r.stroke();}
+  for(let i=0;i<25;i++){const x=rnd()*N,y=rnd()*N,rad=20+rnd()*60,g=a.createRadialGradient(x,y,0,x,y,rad); g.addColorStop(0,'rgba(20,15,10,0.18)'); g.addColorStop(1,'rgba(20,15,10,0)'); a.fillStyle=g; a.fillRect(x-rad,y-rad,rad*2,rad*2);}
+  const tex=(c,srgb)=>{const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(srgb) t.colorSpace=THREE.SRGBColorSpace; return t;};
+  return {map:tex(ca,true),bumpMap:tex(cb),roughnessMap:tex(cr),emissiveMap:tex(ce,true)};
+}
+const PANEL_TEX=[panelTextures(1337),panelTextures(90210)];
+// world-space UVs so the texture keeps the same scale on any box size
+function worldUV(geo,ox,oy,oz,tile=4){
+  const p=geo.attributes.position,n=geo.attributes.normal,uv=geo.attributes.uv;
+  for(let i=0;i<p.count;i++){const x=p.getX(i)+ox,y=p.getY(i)+oy,z=p.getZ(i)+oz, ax=Math.abs(n.getX(i)),ay=Math.abs(n.getY(i));
+    if(ax>0.5) uv.setXY(i,z/tile,y/tile); else if(ay>0.5) uv.setXY(i,x/tile,z/tile); else uv.setXY(i,x/tile,y/tile);}
+  uv.needsUpdate=true; return geo;
+}
 // boxes
-for(const b of BOXES){
-  const w=b.x1-b.x0,h=b.y1-b.y0,d=b.z1-b.z0, col=new THREE.Color(b.c);
-  const mat=new THREE.MeshStandardMaterial({color:b.tm>=0?col.clone().multiplyScalar(0.35):col,roughness:0.7,metalness:0.25,emissive:col,emissiveIntensity:b.tm>=0?0.12:0.04});
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set((b.x0+b.x1)/2,b.y0+h/2,(b.z0+b.z1)/2); scene.add(m);
+for(const [bi,b] of BOXES.entries()){
+  const w=b.x1-b.x0,h=b.y1-b.y0,d=b.z1-b.z0, col=new THREE.Color(b.c), T=PANEL_TEX[bi%2];
+  const base=b.tm>=0?col.clone().multiplyScalar(0.45):col.clone().lerp(new THREE.Color(0xffffff),0.25);
+  const mat=new THREE.MeshStandardMaterial({color:base,roughness:0.75,metalness:0.45,map:T.map,bumpMap:T.bumpMap,bumpScale:3,roughnessMap:T.roughnessMap,
+    emissive:col,emissiveMap:T.emissiveMap,emissiveIntensity:b.tm>=0?1.4:0.9});
+  const cx=(b.x0+b.x1)/2,cy=b.y0+h/2,cz=(b.z0+b.z1)/2;
+  const m=new THREE.Mesh(worldUV(new THREE.BoxGeometry(w,h,d),cx,cy,cz),mat); m.position.set((b.x0+b.x1)/2,b.y0+h/2,(b.z0+b.z1)/2); scene.add(m);
   const edgeCol=b.tm>=0?TEAM_COLOR[b.tm]:(b.c===PURPLE?0xb07bff:0x5f73ff);
   const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:0.85}));
   e.position.copy(m.position); scene.add(e);
-  if(b.tm>=0) TEAMREG.push(()=>{const c=new THREE.Color(TEAM_COLOR[b.tm]); mat.color.copy(c).multiplyScalar(0.35); mat.emissive.copy(c); e.material.color.copy(c);});
+  if(b.tm>=0) TEAMREG.push(()=>{const c=new THREE.Color(TEAM_COLOR[b.tm]); mat.color.copy(c).multiplyScalar(0.45); mat.emissive.copy(c); e.material.color.copy(c);});
 }
 // pads
 const padRings=[];
@@ -882,25 +933,97 @@ function makeAvatar(team,name,friendly){
   const legR=new THREE.Mesh(GEO.leg,mDark); legR.position.set(0.2,0.62,0);
   const armL=new THREE.Mesh(GEO.arm,mBody); armL.position.set(-0.52,1.42,0); armL.rotation.x=-1.1; armL.rotation.z=-0.5;
   const armR=new THREE.Mesh(GEO.arm,mBody); armR.position.set(0.52,1.42,0); armR.rotation.x=-1.4;
-  const gun=new THREE.Mesh(GEO.gun,mDark); gun.position.set(0.4,1.2,-0.55);
+  const gun=buildGunModel('rifle'); gun.scale.setScalar(0.9); gun.position.set(0.4,1.2,-0.5);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false;
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   const inner=new THREE.Group(); inner.add(torso,head,visor,legL,legR,armL,armR,gun,shield); g.add(inner,tag);
   return {g,inner,legL,legR,mBody,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,alive:true,team,walk:0,wasAlive:true};
 }
 // viewmodel guns
+// reflections for the weapon viewmodel
+{const pm=new THREE.PMREMGenerator(renderer); vmScene.environment=pm.fromScene(new RoomEnvironment(),0.04).texture; pm.dispose();}
+// shared weapon materials (brushed metal, polymer with grip texture, glowing accents, glass)
+const GUNMAT=(()=>{
+  const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
+  x.fillStyle='#808080'; x.fillRect(0,0,256,256);
+  for(let i=0;i<1400;i++){x.fillStyle=`rgba(${Math.random()<0.5?0:255},${Math.random()<0.5?0:255},${Math.random()<0.5?0:255},0.06)`; x.fillRect(Math.random()*256,Math.random()*256,Math.random()*40+4,1);}
+  const brushed=new THREE.CanvasTexture(c); brushed.wrapS=brushed.wrapT=THREE.RepeatWrapping;
+  const c2=document.createElement('canvas'); c2.width=c2.height=64; const y=c2.getContext('2d'); y.fillStyle='#777'; y.fillRect(0,0,64,64);
+  for(let i=0;i<64;i+=8) for(let j=0;j<64;j+=8){y.fillStyle='#bbb'; y.beginPath(); y.moveTo(i+4,j); y.lineTo(i+8,j+4); y.lineTo(i+4,j+8); y.lineTo(i,j+4); y.fill();}
+  const knurl=new THREE.CanvasTexture(c2); knurl.wrapS=knurl.wrapT=THREE.RepeatWrapping; knurl.repeat.set(3,3);
+  return {
+    metal:new THREE.MeshStandardMaterial({color:0x3a4252,metalness:0.9,roughness:0.32,bumpMap:brushed,bumpScale:0.4,roughnessMap:brushed}),
+    dark:new THREE.MeshStandardMaterial({color:0x14171f,metalness:0.5,roughness:0.5}),
+    poly:new THREE.MeshStandardMaterial({color:0x1d212b,metalness:0.1,roughness:0.75}),
+    grip:new THREE.MeshStandardMaterial({color:0x1a1d25,metalness:0.1,roughness:0.9,bumpMap:knurl,bumpScale:1.5}),
+    accent:new THREE.MeshStandardMaterial({color:0x003a44,emissive:0x00e5ff,emissiveIntensity:1.6,metalness:0.3,roughness:0.3}),
+    hot:new THREE.MeshStandardMaterial({color:0x440022,emissive:0xff3bd5,emissiveIntensity:1.6}),
+    glass:new THREE.MeshPhysicalMaterial({color:0x66ccff,metalness:0,roughness:0.05,transmission:0.6,transparent:true,opacity:0.55,emissive:0x0a3550,emissiveIntensity:0.6}),
+  };
+})();
+// beveled slab extruded along Z (for receivers, stocks, magazines): profile is in the YZ side view
+function sideSlab(pts,width,bevel=0.008){
+  const s=new THREE.Shape(); pts.forEach(([z,y],i)=>i?s.lineTo(z,y):s.moveTo(z,y));
+  const g=new THREE.ExtrudeGeometry(s,{depth:width-bevel*2,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:4});
+  g.translate(0,0,-(width-bevel*2)/2); g.rotateY(-Math.PI/2); return g; // shape x -> world +z (toward camera)
+}
+function buildGunModel(k){
+  const g=new THREE.Group(), M=GUNMAT;
+  const add=(geo,mat,x,y,z,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.rotation.set(rx,ry,rz); g.add(m); return m;};
+  const cyl=(r1,r2,l,seg=16)=>new THREE.CylinderGeometry(r1,r2,l,seg).rotateX(Math.PI/2);
+  const rail=(z0,len,y,w=0.05)=>{add(new THREE.BoxGeometry(w,0.012,len),M.dark,0,y,z0-len/2); for(let z=z0-0.02;z>z0-len;z-=0.035) add(new THREE.BoxGeometry(w+0.012,0.012,0.016),M.dark,0,y+0.012,z);};
+  if(k==='rifle'){
+    // receiver (profile: z forward is negative after rotation, so use +z = forward in shape coords)
+    add(sideSlab([[-0.2,-0.05],[0.32,-0.05],[0.34,-0.02],[0.34,0.055],[-0.16,0.055],[-0.2,0.03]],0.075),M.metal,0,0,0);
+    add(new THREE.BoxGeometry(0.082,0.025,0.3),M.accent,0,0.0,-0.12).scale.set(1,0.4,1);
+    add(cyl(0.032,0.032,0.26,12),M.poly,0,0.01,-0.47);                       // handguard
+    for(let i=0;i<5;i++) add(new THREE.BoxGeometry(0.068,0.012,0.025),M.dark,0,0.01+(i%2?0.03:-0.03),-0.38-i*0.04); // vents
+    add(cyl(0.012,0.012,0.22,10),M.metal,0,0.015,-0.66);                     // barrel
+    add(cyl(0.022,0.018,0.06,8),M.dark,0,0.015,-0.78);                       // muzzle brake
+    add(sideSlab([[-0.03,-0.05],[0.04,-0.05],[0.06,-0.2],[0.0,-0.2]],0.05),M.dark,0,0,-0.03); // magazine (curved feel)
+    add(sideSlab([[0.1,-0.05],[0.17,-0.05],[0.2,-0.17],[0.14,-0.18]],0.055),M.grip,0,0,0); // pistol grip
+    add(sideSlab([[0.3,0.03],[0.52,0.0],[0.54,-0.1],[0.48,-0.11],[0.3,-0.03]],0.06),M.poly,0,0,0); // stock
+    rail(0.15,0.4,0.062);
+    add(new THREE.BoxGeometry(0.05,0.05,0.09),M.dark,0,0.1,-0.03);           // red-dot body
+    add(new THREE.PlaneGeometry(0.036,0.032),M.glass,0,0.1,-0.076);
+    add(new THREE.CircleGeometry(0.004,8),M.hot,0,0.1,-0.074);
+  } else if(k==='shotgun'){
+    add(sideSlab([[-0.14,-0.06],[0.26,-0.06],[0.26,0.065],[-0.14,0.065]],0.1,0.012),M.metal,0,0,0);
+    add(new THREE.BoxGeometry(0.102,0.03,0.2),M.accent,0,0.02,0.02).scale.set(1,0.35,1); // shell port glow
+    add(cyl(0.03,0.03,0.52,16),M.metal,-0.032,0.025,-0.39); add(cyl(0.03,0.03,0.52,16),M.metal,0.032,0.025,-0.39); // double barrel
+    add(cyl(0.022,0.022,0.53,10),M.dark,-0.032,0.025,-0.4).scale.set(1,1,1.01); add(cyl(0.022,0.022,0.53,10),M.dark,0.032,0.025,-0.4);
+    add(cyl(0.028,0.028,0.46,12),M.dark,0,-0.035,-0.36);                     // tube magazine
+    add(sideSlab([[-0.55,-0.08],[-0.3,-0.08],[-0.3,0.0],[-0.55,0.0]],0.11,0.015),M.grip,0,0,0); // pump
+    for(let i=0;i<6;i++) add(new THREE.BoxGeometry(0.115,0.008,0.012),M.dark,0,-0.04,-0.32-i*0.04);
+    add(sideSlab([[0.14,-0.06],[0.21,-0.06],[0.24,-0.19],[0.17,-0.2]],0.06),M.grip,0,0,0);
+    add(sideSlab([[0.26,0.05],[0.5,0.02],[0.5,-0.1],[0.26,-0.05]],0.07),M.poly,0,0,0);
+    add(new THREE.BoxGeometry(0.075,0.018,0.04),M.accent,0,0.072,-0.6);       // front sight bead
+    for(let i=0;i<4;i++) add(cyl(0.011,0.011,0.035,8),new THREE.MeshStandardMaterial({color:0xaa1e2a,metalness:0.3,roughness:0.5}),0.06,-0.01-i*0.026,0.12).rotation.set(0,Math.PI/2,0); // side shell carrier
+  } else {
+    add(sideSlab([[-0.3,-0.04],[0.24,-0.04],[0.26,0.0],[0.26,0.045],[-0.26,0.045],[-0.3,0.02]],0.065),M.metal,0,0,0);
+    add(new THREE.BoxGeometry(0.067,0.006,0.48),M.accent,0,-0.02,-0.02);
+    add(cyl(0.017,0.014,0.5,12),M.metal,0,0.01,-0.55);                       // long barrel
+    add(cyl(0.028,0.028,0.13,12),M.dark,0,0.01,-0.84);                       // suppressor
+    for(let i=0;i<3;i++) add(cyl(0.0295,0.0295,0.008,12),M.accent,0,0.01,-0.79-i*0.045);
+    add(sideSlab([[-0.02,-0.04],[0.05,-0.04],[0.05,-0.12],[-0.02,-0.12]],0.05),M.dark,0,0,0); // box mag
+    add(sideSlab([[0.12,-0.04],[0.19,-0.04],[0.22,-0.17],[0.15,-0.18]],0.055),M.grip,0,0,0);
+    add(sideSlab([[0.24,0.04],[0.55,0.03],[0.56,-0.12],[0.46,-0.12],[0.4,-0.04],[0.24,-0.04]],0.06),M.poly,0,0,0); // skeleton stock
+    add(new THREE.BoxGeometry(0.03,0.04,0.12),M.poly,0,0.065,0.42);         // cheek rest
+    // scope with mounts, lens glass, glow ring
+    add(cyl(0.032,0.032,0.24,20),M.dark,0,0.1,-0.1);
+    add(cyl(0.042,0.032,0.07,20),M.dark,0,0.1,-0.25); add(cyl(0.032,0.038,0.05,20),M.dark,0,0.1,0.045);
+    add(new THREE.CircleGeometry(0.038,20),M.glass,0,0.1,-0.286); add(cyl(0.044,0.044,0.012,20),M.accent,0,0.1,-0.28);
+    add(cyl(0.012,0.012,0.04,10),M.metal,0,0.145,-0.1).rotation.set(0,0,0); // turret
+    add(new THREE.BoxGeometry(0.03,0.05,0.025),M.dark,0,0.065,-0.18); add(new THREE.BoxGeometry(0.03,0.05,0.025),M.dark,0,0.065,-0.02);
+    add(new THREE.BoxGeometry(0.012,0.012,0.06),M.metal,0.045,0.03,0.12).rotation.set(0,0,0.4); // bolt handle
+    add(new THREE.SphereGeometry(0.014,10,8),M.metal,0.06,0.022,0.12);
+  }
+  g.traverse(o=>{if(o.isMesh){o.castShadow=false;}});
+  return g;
+}
 function buildGun(k){
-  const g=new THREE.Group(), dark=new THREE.MeshStandardMaterial({color:0x232a38,metalness:0.6,roughness:0.35});
-  const acc=new THREE.MeshStandardMaterial({color:0x00e5ff,emissive:0x00e5ff,emissiveIntensity:1.2});
-  const add=(geo,mat,x,y,z,rx=0)=>{const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.rotation.x=rx; g.add(m); return m;};
-  if(k==='rifle'){ add(new THREE.BoxGeometry(0.08,0.11,0.55),dark,0,0,-0.1); add(new THREE.CylinderGeometry(0.02,0.02,0.35),dark,0,0.02,-0.5,Math.PI/2);
-    add(new THREE.BoxGeometry(0.06,0.16,0.08),dark,0,-0.12,-0.05); add(new THREE.BoxGeometry(0.085,0.02,0.4),acc,0,0.065,-0.1); add(new THREE.BoxGeometry(0.06,0.12,0.06),dark,0,-0.09,0.12,0.3);}
-  else if(k==='shotgun'){ add(new THREE.BoxGeometry(0.11,0.13,0.45),dark,0,0,-0.05); add(new THREE.CylinderGeometry(0.028,0.028,0.45),dark,-0.03,0.02,-0.45,Math.PI/2);
-    add(new THREE.CylinderGeometry(0.028,0.028,0.45),dark,0.03,0.02,-0.45,Math.PI/2); add(new THREE.BoxGeometry(0.12,0.05,0.18),acc,0,-0.06,-0.35); add(new THREE.BoxGeometry(0.07,0.13,0.07),dark,0,-0.1,0.12,0.3);}
-  else { add(new THREE.BoxGeometry(0.07,0.09,0.75),dark,0,0,-0.2); add(new THREE.CylinderGeometry(0.018,0.018,0.4),dark,0,0.01,-0.75,Math.PI/2);
-    add(new THREE.CylinderGeometry(0.035,0.035,0.25),dark,0,0.08,-0.15,Math.PI/2); add(new THREE.CylinderGeometry(0.037,0.037,0.02),acc,0,0.08,-0.28,Math.PI/2);
-    add(new THREE.BoxGeometry(0.075,0.015,0.5),acc,0,0.05,-0.25); add(new THREE.BoxGeometry(0.06,0.12,0.06),dark,0,-0.09,0.1,0.3);}
-  const flash=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial({color:0xffe08a})); flash.position.set(0,0.02,k==='sniper'?-0.98:k==='shotgun'?-0.7:-0.7); flash.visible=false; g.add(flash);
+  const g=new THREE.Group(), model=buildGunModel(k); model.position.set(0,0,-0.22); model.scale.setScalar(0.8); g.add(model);
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial({color:0xffe08a})); flash.position.set(0,0.015,k==="sniper"?-0.92:k==="shotgun"?-0.66:-0.82); flash.visible=false; model.add(flash);
   g.userData.flash=flash; g.visible=false; g.scale.setScalar(0.75); vmScene.add(g); return g;
 }
 const vmGuns=WKEYS.map(buildGun);
