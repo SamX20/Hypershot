@@ -248,6 +248,41 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #tMenu{left:10px;top:10px;width:44px;height:44px;font-size:20px} #tChat{right:180px;bottom:270px;width:52px;height:52px;font-size:20px}
 body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
 body.touch #mini{left:62px}
+
+/* ---------- HUD v2 (Hyper Shot style) ---------- */
+#ranks{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
+.rk{width:50px;display:flex;flex-direction:column;align-items:center;animation:fin .25s}
+.rk .av{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#2b3a7a,#0c1230);border:3px solid var(--tc);box-shadow:0 2px 10px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.rk .av svg{position:absolute;inset:0;width:100%;height:100%}
+.rk .no{position:absolute;top:-2px;left:-4px;font-size:11px;font-weight:900;background:#0c1230;border:1px solid var(--tc);border-radius:8px;padding:0 4px;z-index:2}
+.rk .kc{font-size:15px;font-weight:900;text-shadow:0 1px 3px #000;margin-top:1px}
+.rk.me .av{box-shadow:0 0 0 2px #fff,0 0 16px var(--tc)} .rk.me .kc{color:#ffd54a}
+.rk.dead{opacity:.45}
+.rk-wrap{position:relative}
+#top{top:76px;transform:translateX(-50%) scale(.82);transform-origin:top center}
+#kstreak{position:absolute;left:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+#kstreak .kico{width:34px;height:34px;filter:drop-shadow(0 0 6px #ffb000)}
+#kstreak .kb{width:14px;height:34vh;border-radius:8px;background:rgba(10,14,36,.6);border:2px solid rgba(255,190,40,.6);position:relative;overflow:hidden}
+#kstreak .kb i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(0deg,#ff8a00,#ffd23a);box-shadow:0 0 14px #ffb000;transition:height .3s}
+#kstreak span{font-size:12px;font-weight:900;color:#ffd23a;text-shadow:0 1px 3px #000;writing-mode:horizontal-tb;direction:ltr}
+#kstreak.hot .kb{animation:kpulse .8s infinite} @keyframes kpulse{50%{box-shadow:0 0 22px #ffb000}}
+#abil{gap:12px;bottom:16px}
+.ab{width:64px;height:64px;border-radius:16px;border:2px solid rgba(190,225,255,.75)!important;background:linear-gradient(180deg,#4fb6ff 0%,#2a6cff 55%,#1d3fd6 100%)!important;
+  box-shadow:0 0 18px rgba(60,150,255,.55),inset 0 2px 0 rgba(255,255,255,.45),inset 0 -6px 12px rgba(0,0,60,.35);overflow:hidden}
+.ab .ic{font-size:0;width:36px;height:36px;filter:drop-shadow(0 2px 2px rgba(0,0,60,.6))!important}
+.ab .ic svg{width:36px;height:36px;display:block}
+.ab .k{top:auto;bottom:3px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:900;opacity:1;background:rgba(0,10,50,.55);border-radius:6px;padding:0 5px;line-height:14px}
+.ab .l{display:none}
+.ab .cd{inset:0;height:auto!important;background:conic-gradient(rgba(5,10,30,.72) var(--p,0%),transparent 0)}
+.ab .t{font-size:22px;text-shadow:0 2px 4px #000}
+.ab.cool{filter:saturate(.35) brightness(.8)}
+.ab.ready-flash{animation:abready .4s}
+@keyframes abready{0%{transform:scale(1.15);box-shadow:0 0 30px #9fdcff}100%{transform:scale(1)}}
+#bl{width:320px} #hpt{font-size:30px;text-shadow:0 2px 6px #000}
+#hpb{height:14px;border-radius:7px;transform:skewX(-12deg);border:1px solid rgba(255,255,255,.25)}
+#ammo{font-size:46px;text-shadow:0 2px 8px #000} #ammo small{font-size:20px}
+body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top center} body.touch #kstreak{display:none}
+@media (max-width:900px){#ranks{transform:translateX(-50%) scale(.8);transform-origin:top center}}
 </style>
 </head>
 <body>
@@ -255,6 +290,8 @@ body.touch #mini{left:62px}
 
 <div id="hud" class="hidden">
   <canvas id="mini" width="208" height="120"></canvas>
+  <div id="ranks"></div>
+  <div id="kstreak"><svg class="kico" viewBox="0 0 32 32"><path d="M16 3c2 5 7 7 7 13a7 7 0 0 1-14 0c0-3 1-5 3-7 0 3 1 4 3 5-1-5 0-8 1-11z" fill="#ffb000" stroke="#fff3c0" stroke-width="1.4"/></svg><div class="kb"><i></i></div><span id="kstxt">×0</span></div>
   <div id="top">
     <div class="sc r"><div class="n" id="s0">0</div><div class="f" id="f0">🏠 في القاعدة</div></div>
     <div id="timer"><span id="tm">10:00</span><small id="cl">أول من يجمع 10 أعلام</small></div>
@@ -278,10 +315,10 @@ body.touch #mini{left:62px}
     <div class="bar" id="shb"><i style="width:0"></i></div>
   </div>
   <div id="abil">
-    <div class="ab" id="ab-slide"><span class="k">C</span><span class="ic">⤵</span><span class="l">سلايد</span><div class="cd"></div><div class="t"></div></div>
-    <div class="ab" id="ab-dash"><span class="k">SHIFT</span><span class="ic">🌪️</span><span class="l">Tailwind</span><div class="cd"></div><div class="t"></div></div>
-    <div class="ab" id="ab-gren"><span class="k">Q</span><span class="ic">⏫</span><span class="l">Upward Shift</span><div class="cd"></div><div class="t"></div></div>
-    <div class="ab" id="ab-shield"><span class="k">E</span><span class="ic">🧪</span><span class="l">جرعة شفاء</span><div class="cd"></div><div class="t"></div></div>
+    <div class="ab" id="ab-slide"><span class="k">C</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="22" cy="8" r="3.2" fill="#fff" stroke="none"/><path d="M8 24h18"/><path d="M20 12l-6 3 3 5-6 4"/><path d="M14 15l-6-1"/><path d="M3 18h4M2 22h3" stroke-width="2"/></svg></span><span class="l">سلايد</span><div class="cd"></div><div class="t"></div></div>
+    <div class="ab" id="ab-dash"><span class="k">SHIFT</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 11h15a4 4 0 1 0-4-4"/><path d="M4 17h21a4 4 0 1 1-4 4"/><path d="M4 23h9"/></svg></span><span class="l">Tailwind</span><div class="cd"></div><div class="t"></div></div>
+    <div class="ab" id="ab-gren"><span class="k">Q</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16l7-7 7 7"/><path d="M9 24l7-7 7 7"/><path d="M16 3v2M7 6l1.5 1.5M25 6l-1.5 1.5" stroke-width="2"/></svg></span><span class="l">Upward Shift</span><div class="cd"></div><div class="t"></div></div>
+    <div class="ab" id="ab-shield"><span class="k">E</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"><path d="M13 4h6M14 4v7l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V4"/><path d="M10 20h12l2 4H8z" fill="#7dffb0" stroke="none"/><path d="M16 14v4M14 16h4" stroke-width="2"/></svg></span><span class="l">جرعة شفاء</span><div class="cd"></div><div class="t"></div></div>
     <div class="ab ult hidden" id="ab-ult"><span class="k">F</span><span class="ic">⚡</span><span class="l" id="ultp">0%</span><div class="cd"></div><div class="t"></div></div>
   </div>
   <div id="br">
@@ -1648,7 +1685,7 @@ function applyTeamView(my){
   const blue=0x2fa8ff, red=0xff3b5c;
   TEAM_COLOR[my]=blue; TEAM_COLOR[1-my]=red; TEAM_CSS[my]='#2fa8ff'; TEAM_CSS[1-my]='#ff3b5c';
   TEAM_NAME[my]='فريقك'; TEAM_NAME[1-my]='العدو';
-  TEAMREG.forEach(f=>f());
+  TEAMREG.forEach(f=>f()); _ranksKey='';
 }
 const flagObjs=[makeFlag(0),makeFlag(1)];
 // avatars
@@ -2515,6 +2552,15 @@ function updateHudSnap(c,s){
   if(s.end){e.classList.remove('hidden'); const w=s.end.w; $('endT').textContent=w<0?'تعادل!':(w===c.team?'فاز فريقك! 🏆':'فاز العدو!'); $('endT').style.color=w<0?'#fff':TEAM_CSS[w];
     $('endS').textContent=`${s.sc[0]} - ${s.sc[1]} • مباراة جديدة بعد ${s.end.t}`;} else e.classList.add('hidden');
   if(!$('board').classList.contains('hidden')) drawBoard(c,s);
+  drawRanks(c,s);
+}
+// top bar: everyone ranked by kills (then objective), helmet icon in team colour, kills underneath
+const HELM=col=>`<svg viewBox="5 3 30 33"><rect x="7" y="9" width="26" height="25" rx="7" fill="${col}"/><rect x="10" y="17" width="20" height="7" rx="2" fill="#e8f6ff"/><rect x="17" y="4" width="6" height="7" rx="2" fill="#1a1f2e"/><rect x="4" y="18" width="4" height="9" rx="2" fill="#2c3242"/><rect x="32" y="18" width="4" height="9" rx="2" fill="#2c3242"/></svg>`;
+let _ranksKey='';
+function drawRanks(c,s){
+  const ps=[...s.p].sort((a,b)=>b.k-a.k||b.c-a.c||a.d-b.d).slice(0,10);
+  const key=ps.map(p=>p.i+':'+p.k+':'+p.t+':'+p.al).join('|'); if(key===_ranksKey) return; _ranksKey=key;
+  $('ranks').innerHTML=ps.map((p,i)=>`<div class="rk${p.i===c.id?' me':''}${p.al?'':' dead'}" style="--tc:${TEAM_CSS[p.t]}" title="${escapeHtml(p.n)}"><div class="rk-wrap"><span class="no">#${i+1}</span><div class="av">${HELM(TEAM_CSS[p.t])}</div></div><div class="kc">${p.k}</div></div>`).join('');
 }
 function drawBoard(c,s){
   const b=$('board'); b.innerHTML='';
@@ -2538,7 +2584,9 @@ function updateHudFrame(c){
   if(TOUCH){ document.querySelectorAll('.tb[data-cd]').forEach(el=>{const k=el.dataset.cd; el.style.setProperty('--cd',c.cd[k]/CD[k]*100);});
     const u=$('tUlt'); u.style.setProperty('--cd',c.ut>0?0:100-c.u); u.style.boxShadow=c.u>=100&&c.ut<=0?'0 0 18px #ffcc33':'';
     $('tScope').style.display=WKEYS[c.w]==='sniper'?'flex':'none'; }
-  for(const k of ['slide','dash','gren','shield']){const el=$('ab-'+k); el.querySelector('.cd').style.height=(c.cd[k]/CD[k]*100)+'%'; el.querySelector('.t').textContent=c.cd[k]>0?Math.ceil(c.cd[k]):'';}
+  for(const k of ['slide','dash','gren','shield']){const el=$('ab-'+k), p=c.cd[k]/CD[k]*100; el.querySelector('.cd').style.setProperty('--p',p+'%'); el.querySelector('.t').textContent=c.cd[k]>0?Math.ceil(c.cd[k]):'';
+    const cool=c.cd[k]>0; if(el._cool&&!cool){ el.classList.remove('ready-flash'); void el.offsetWidth; el.classList.add('ready-flash'); } el.classList.toggle('cool',cool); el._cool=cool;}
+  { const st=Math.max(0,c.streak|0), ks=$('kstreak'); if(ks._st!==st){ ks._st=st; ks.querySelector('i').style.height=Math.min(1,st/7)*100+'%'; $('kstxt').textContent='×'+st; ks.classList.toggle('hot',st>=3); } }
 }
 const mini=$('mini').getContext('2d');
 function drawMini(c){
