@@ -956,6 +956,10 @@ class Server{
 ===================================================================== */
 let AC=null,MASTER=null,NB=null;
 function ac(){ if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)(); MASTER=AC.createGain(); MASTER.gain.value=0.45; MASTER.connect(AC.destination);
+  // small arena reverb: synthetic decaying-noise impulse on a send
+  { const len=AC.sampleRate*1.3|0, ir=AC.createBuffer(2,len,AC.sampleRate);
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
+    const cv=AC.createConvolver(); cv.buffer=ir; const wet=AC.createGain(); wet.gain.value=0.22; MASTER.connect(cv).connect(wet).connect(AC.destination); }
   NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate); const d=NB.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;} return AC; }
 function noise(dur,vol,freq,type='lowpass'){const a=ac(),t=a.currentTime,s=a.createBufferSource(); s.buffer=NB; const f=a.createBiquadFilter(); f.type=type; f.frequency.value=freq;
   const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f).connect(g).connect(MASTER); s.start(t); s.stop(t+dur);}
@@ -964,11 +968,13 @@ function tone(f0,f1,dur,vol,type='square'){const a=ac(),t=a.currentTime,o=a.crea
 function sfx(k,v=1){
   if(v<0.03) return;
   try{ switch(k){
-    case 'rifle': noise(0.09,0.35*v,3200); tone(420,90,0.06,0.12*v); break;
-    case 'shotgun': noise(0.25,0.55*v,1800); tone(220,40,0.15,0.3*v); break;
-    case 'sniper': noise(0.4,0.6*v,4200); tone(900,60,0.25,0.22*v,'sawtooth'); break;
-    case 'hit': tone(1500,1500,0.05,0.12,'sine'); break;
-    case 'head': tone(2200,2200,0.07,0.14,'sine'); break;
+    // gunshots: sharp transient + filtered body + low thump, distant shots lose their highs
+    case 'rifle': tone(1900,300,0.025,0.18*v); noise(0.1,0.42*v,v>0.6?3600:1400); noise(0.22,0.16*v,450); tone(160,55,0.07,0.28*v,'sine'); break;
+    case 'shotgun': tone(1200,200,0.03,0.2*v); noise(0.3,0.7*v,v>0.6?2000:900); noise(0.55,0.3*v,280); tone(115,32,0.22,0.5*v,'sine'); break;
+    case 'sniper': tone(2600,350,0.04,0.25*v); noise(0.45,0.75*v,v>0.6?4200:1500); noise(0.9,0.3*v,230); tone(95,28,0.4,0.55*v,'sine'); break;
+    case 'hit': tone(1700,1600,0.04,0.12,'triangle'); noise(0.03,0.08,5000,'highpass'); break;
+    case 'head': tone(2600,2600,0.06,0.14,'triangle'); setTimeout(()=>tone(3900,3900,0.12,0.12,'sine'),45); break;
+    case 'step': noise(0.07,0.13*v,650,'bandpass'); tone(85,55,0.05,0.07*v,'sine'); break;
     case 'kill': tone(900,1900,0.18,0.18,'triangle'); break;
     case 'boom': noise(0.8,0.9*v,500); tone(120,30,0.5,0.4*v,'sine'); break;
     case 'pad': tone(180,900,0.3,0.15,'sine'); break;
@@ -1293,25 +1299,57 @@ function applyTeamView(my){
 }
 const flagObjs=[makeFlag(0),makeFlag(1)];
 // avatars
-const GEO={torso:new THREE.BoxGeometry(0.8,0.85,0.48),head:new THREE.BoxGeometry(0.5,0.48,0.5),visor:new THREE.BoxGeometry(0.42,0.12,0.05),
-  leg:new THREE.BoxGeometry(0.3,0.62,0.3).translate(0,-0.31,0),arm:new THREE.BoxGeometry(0.22,0.7,0.22).translate(0,-0.3,0),gun:new THREE.BoxGeometry(0.12,0.14,0.75),
+// avatars: armored soldier built from shared geometry (hitboxes are unchanged: body box 0.9×1.42, head sphere at 1.68)
+const bev=(w,h,d)=>new THREE.BoxGeometry(w,h,d,1,1,1);
+const GEO={
+  pelvis:bev(0.6,0.22,0.36), thigh:bev(0.26,0.44,0.28).translate(0,-0.22,0), shin:bev(0.23,0.42,0.25).translate(0,-0.21,0),
+  boot:bev(0.27,0.14,0.38).translate(0,-0.47,-0.05), knee:bev(0.2,0.14,0.08).translate(0,0,-0.15),
+  chest:bev(0.76,0.52,0.46).translate(0,0.3,0), belly:bev(0.58,0.24,0.38).translate(0,0.02,0), plate:bev(0.46,0.3,0.06).translate(0,0.34,-0.24),
+  strip:bev(0.22,0.03,0.02).translate(0,0.48,-0.245), pack:bev(0.48,0.5,0.22).translate(0,0.3,0.32), packGlow:bev(0.06,0.36,0.02).translate(0,0.3,0.435),
+  pad:bev(0.3,0.18,0.38), arm:bev(0.17,0.5,0.17).translate(0,-0.22,0), hand:bev(0.14,0.14,0.14),
+  helmet:bev(0.46,0.44,0.48), visor:bev(0.42,0.17,0.04), crest:bev(0.08,0.12,0.36), ear:bev(0.06,0.2,0.2),
   shield:new THREE.SphereGeometry(1.25,16,12)};
-const mDark=new THREE.MeshStandardMaterial({color:0x1a1f2e,roughness:0.6});
+const mDark=new THREE.MeshStandardMaterial({color:0x1a1f2e,roughness:0.6,metalness:0.3});
+const mJoint=new THREE.MeshStandardMaterial({color:0x2c3242,roughness:0.5,metalness:0.6});
 function makeAvatar(team,name,friendly){
   const g=new THREE.Group(), col=new THREE.Color(TEAM_COLOR[team]);
-  const mBody=new THREE.MeshStandardMaterial({color:col.clone().multiplyScalar(0.55),emissive:col,emissiveIntensity:0.25,roughness:0.5,metalness:0.3});
-  const torso=new THREE.Mesh(GEO.torso,mBody); torso.position.y=1.05;
-  const head=new THREE.Mesh(GEO.head,mBody); head.position.y=1.7;
-  const visor=new THREE.Mesh(GEO.visor,new THREE.MeshBasicMaterial({color:col.clone().lerp(new THREE.Color(1,1,1),0.6)})); visor.position.set(0,1.72,-0.26);
-  const legL=new THREE.Mesh(GEO.leg,mDark); legL.position.set(-0.2,0.62,0);
-  const legR=new THREE.Mesh(GEO.leg,mDark); legR.position.set(0.2,0.62,0);
-  const armL=new THREE.Mesh(GEO.arm,mBody); armL.position.set(-0.52,1.42,0); armL.rotation.x=-1.1; armL.rotation.z=-0.5;
-  const armR=new THREE.Mesh(GEO.arm,mBody); armR.position.set(0.52,1.42,0); armR.rotation.x=-1.4;
-  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(0.9); gun.position.set(0.4,1.2,-0.5); avatarGuns.push(gun);
-  const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false;
+  const mBody=new THREE.MeshStandardMaterial({color:col.clone().multiplyScalar(0.55),emissive:col,emissiveIntensity:0.18,roughness:0.45,metalness:0.35});
+  const mGlow=new THREE.MeshBasicMaterial({color:col.clone().lerp(new THREE.Color(1,1,1),0.45)});
+  const M=(geo,mat,x=0,y=0,z=0,parent)=>{const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); parent.add(m); return m;};
+  const inner=new THREE.Group();
+  // legs: hip pivot → thigh → knee pivot → shin + boot
+  const legs=[-1,1].map(s=>{const hip=new THREE.Group(); hip.position.set(s*0.17,0.92,0); inner.add(hip);
+    M(GEO.thigh,mDark,0,0,0,hip); const knee=new THREE.Group(); knee.position.y=-0.44; hip.add(knee);
+    M(GEO.shin,mBody,0,0,0,knee); M(GEO.boot,mDark,0,0,0,knee); M(GEO.knee,mGlow,0,-0.02,0,knee); return {hip,knee};});
+  M(GEO.pelvis,mJoint,0,0.95,0,inner);
+  // torso pivots at the spine so the upper body leans with aim pitch
+  const torso=new THREE.Group(); torso.position.y=1.05; inner.add(torso);
+  M(GEO.belly,mJoint,0,0,0,torso); M(GEO.chest,mBody,0,0,0,torso); M(GEO.plate,mJoint,0,0,0,torso); M(GEO.strip,mGlow,0,0,0,torso);
+  M(GEO.pack,mDark,0,0,0,torso); M(GEO.packGlow,mGlow,0,0,0,torso);
+  for(const s of [-1,1]){ const p=M(GEO.pad,mBody,s*0.47,0.55,0,torso); p.rotation.z=s*-0.25; }
+  const head=new THREE.Group(); head.position.y=0.63; torso.add(head);
+  M(GEO.helmet,mBody,0,0,0,head); M(GEO.visor,mGlow,0,0.02,-0.24,head); M(GEO.crest,mDark,0,0.25,0.02,head);
+  for(const s of [-1,1]) M(GEO.ear,mJoint,s*0.25,0,0.02,head);
+  // arms reach forward to hold the gun
+  const armR=new THREE.Group(); armR.position.set(0.42,0.45,0); armR.rotation.set(1.35,0,-0.1); torso.add(armR); M(GEO.arm,mBody,0,0,0,armR); M(GEO.hand,mDark,0,-0.5,0,armR);
+  const armL=new THREE.Group(); armL.position.set(-0.42,0.45,0); armL.rotation.set(1.3,0,-0.75); torso.add(armL); M(GEO.arm,mBody,0,0,0,armL); M(GEO.hand,mDark,0,-0.5,0,armL);
+  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.2,0.3,-0.55); torso.add(gun); avatarGuns.push(gun);
+  const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false; inner.add(shield);
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
-  const inner=new THREE.Group(); inner.add(torso,head,visor,legL,legR,armL,armR,gun,shield); g.add(inner,tag);
-  return {g,inner,legL,legR,mBody,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,alive:true,team,walk:0,wasAlive:true};
+  g.add(inner,tag);
+  return {g,inner,legs,torso,head,gun,mBody,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
+}
+// death: the soldier's pieces fly apart (uses the crate debris system)
+function deathBurst(av){
+  av.g.updateMatrixWorld(true);
+  const parts=[]; av.inner.traverse(o=>{ if(o.isMesh&&o!==av.shield&&o.geometry!==GEO.hand) parts.push(o); });
+  for(const o of parts){
+    const mat=o.material.clone(); mat.transparent=true;
+    if(o.material===av.mBody){mat.emissive.setHex(TEAM_COLOR[av.team]); mat.emissiveIntensity=0.25;} // drop the white hit flash
+    const m=new THREE.Mesh(o.geometry,mat); o.matrixWorld.decompose(m.position,m.quaternion,m.scale);
+    const ox=m.position.x-av.pos.x, oz=m.position.z-av.pos.z;
+    addDebris(m,[ox*5+rand(-2,2),rand(2,6),oz*5+rand(-2,2)],[rand(-7,7),rand(-7,7)],rand(1.6,2.4),av.pos.y+0.05); debris[debris.length-1].own=true;
+  }
 }
 // viewmodel guns
 // reflections for the weapon viewmodel
@@ -1543,8 +1581,8 @@ class Client{
       }
       seen.add(p.i); let av=this.avatars.get(p.i);
       if(!av||av.team!==p.t){ if(av) scene.remove(av.g); av=makeAvatar(p.t,p.n,p.t===this.team); this.avatars.set(p.i,av); scene.add(av.g); av.pos.set(p.x,p.y,p.z); }
-      av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.team=p.t; av.name=p.n;
-      if(av.wasAlive&&!p.al) addPoof(av.pos,TEAM_COLOR[p.t]);
+      av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.team=p.t; av.name=p.n;
+      if(av.wasAlive&&!p.al){ addPoof(av.pos,TEAM_COLOR[p.t]); deathBurst(av); }
       if(!av.wasAlive&&p.al) av.pos.copy(av.target);
       av.alive=!!p.al; av.wasAlive=av.alive; av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
     }
@@ -1579,7 +1617,7 @@ class Client{
     }
     // camera
     const spd=Math.hypot(me.vx,me.vz), sliding=me.slideT>0&&this.alive;
-    if(me.onGround&&spd>1&&!sliding) this.bob+=dt*spd*1.3;
+    if(me.onGround&&spd>1&&!sliding){ const before=Math.floor(this.bob/Math.PI); this.bob+=dt*spd*1.3; if(Math.floor(this.bob/Math.PI)!==before&&this.alive) sfx('step',0.55); }
     this.kick=Math.max(0,this.kick-dt*6); this.shake=Math.max(0,this.shake-dt*3);
     const ek=Math.min(1,dt*14);
     this.eyeOff+=((sliding?-0.8:0)-this.eyeOff)*ek;
@@ -1638,6 +1676,7 @@ class Client{
     if(w.bloom) this.bloom=Math.min(2.5,this.bloom+w.bloom);
     let anyHead=false;
     for(const [id,h] of hits){this.send({t:'hit',v:id,d:Math.round(h.d),h:h.h,w:this.w}); anyHead=anyHead||h.h;
+      const av=this.avatars.get(id); if(av) av.flinch=0.18;
       dmgNum(h.p,Math.round(h.d*(this.ut>0?1.3:1)),h.h);}
     if(k==='sniper') this.shake=0.5;
     if(hits.size){hitMarker(false); sfx(anyHead?'head':'hit');}
@@ -1677,12 +1716,24 @@ class Client{
       if(av.pos.distanceTo(av.target)>6) av.pos.copy(av.target);
       const before=av.pos.clone(); av.pos.lerp(av.target,k);
       const sp=Math.hypot(av.pos.x-before.x,av.pos.z-before.z)/Math.max(dt,1e-4);
-      av.walk+=dt*sp*1.6; const sw=Math.sin(av.walk)*Math.min(1,sp/4)*0.7;
-      av.legL.rotation.x=av.sl?-1.2:sw; av.legR.rotation.x=av.sl?-1.0:-sw;
+      av.vy+=((av.pos.y-av.lastY)/Math.max(dt,1e-4)-av.vy)*Math.min(1,dt*10); av.lastY=av.pos.y;
+      const air=Math.abs(av.vy)>1.5, run=Math.min(1,sp/4);
+      av.walk+=dt*sp*1.6; const sw=Math.sin(av.walk)*run*0.75;
+      av.legs.forEach((L,i)=>{const s_=i?-sw:sw;
+        const hipX=av.sl?-1.25:air?-0.7+i*0.4:s_, kneeX=av.sl?0.2:air?1.1:Math.max(0,-Math.sin(av.walk+(i?Math.PI:0)))*run*1.1;
+        L.hip.rotation.x+=(hipX-L.hip.rotation.x)*Math.min(1,dt*16); L.knee.rotation.x+=(kneeX-L.knee.rotation.x)*Math.min(1,dt*16);});
       av.inner.rotation.x+=((av.sl?1.05:0)-av.inner.rotation.x)*Math.min(1,dt*14);
+      av.inner.position.y=air||av.sl?0:Math.abs(Math.cos(av.walk))*run*0.05;
+      // upper body follows aim pitch; hits knock it back for a moment
+      av.flinch=Math.max(0,av.flinch-dt);
+      const fl=av.flinch>0?Math.sin(av.flinch/0.18*Math.PI)*0.35:0;
+      av.torso.rotation.x=clamp(av.pitch,-1,1)*0.45+fl; av.head.rotation.x=clamp(av.pitch,-1,1)*0.35;
+      av.mBody.emissive.setHex(av.flinch>0.09?0xffffff:TEAM_COLOR[av.team]);
+      // footsteps of nearby players
+      if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
       let dy=av.yaw-av.ryaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); av.ryaw+=dy*k;
       av.g.position.copy(av.pos); av.g.rotation.y=av.ryaw; av.g.visible=av.alive;
-      av.mBody.emissiveIntensity=av.ult?0.6+Math.sin(t*12)*0.3:0.25;
+      av.mBody.emissiveIntensity=av.flinch>0.09?0.9:av.ult?0.6+Math.sin(t*12)*0.3:0.18;
       if(av.shield.visible) av.shield.rotation.y+=dt*1.5;
     }
     for(const m of grenMeshes.values()){const tg=m.userData.t; m.position.x+=(tg[0]-m.position.x)*k; m.position.y+=(tg[1]-m.position.y)*k; m.position.z+=(tg[2]-m.position.z)*k;}
