@@ -1553,11 +1553,40 @@ const CRATE_TEX=(()=>{
   for(let i=0;i<6;i++){const x=rand(120,392),y=rand(120,392); for(let k=0;k<4;k++) crack(x,y,rand(0,6.28),rand(50,110),5,5);}
   return {wood:{map:tex(wa,true),bumpMap:tex(wb)},metal:{map:tex(ma,true),bumpMap:tex(mb)},crack:tex(ca,true)};
 })();
+const CRATE_LOOK='scifi'; // 'wood' = Fortnite planks (kept for a wooden map), 'scifi' = cargo crates matching the space kit
+function sciCrateTex(heavy){
+  const N=512, mk=()=>{const c=document.createElement('canvas'); c.width=c.height=N; return [c,c.getContext('2d')];};
+  const [ca,a]=mk(), [cb,b]=mk(), [ce,e]=mk(), acc='#'+new THREE.Color(SPACE_ACCENT).getHexString(), body='#'+new THREE.Color(SPACE_BODY).getHexString();
+  const base=heavy?'#3b4152':body, frame=heavy?'#23262f':'#4a4f66', inner=heavy?'#454c5e':'#c9c3dd';
+  a.fillStyle=frame; a.fillRect(0,0,N,N); b.fillStyle='#c8c8c8'; b.fillRect(0,0,N,N); e.fillStyle='#000'; e.fillRect(0,0,N,N);
+  // chamfered body plate
+  const plate=(ctx,col,inset)=>{ ctx.fillStyle=col; ctx.beginPath(); const i=inset, c=38; ctx.moveTo(i+c,i); ctx.lineTo(N-i-c,i); ctx.lineTo(N-i,i+c); ctx.lineTo(N-i,N-i-c); ctx.lineTo(N-i-c,N-i); ctx.lineTo(i+c,N-i); ctx.lineTo(i,N-i-c); ctx.lineTo(i,i+c); ctx.closePath(); ctx.fill(); };
+  plate(a,base,34); plate(b,'#8a8a8a',34); plate(a,inner,74); plate(b,'#9c9c9c',74);
+  for(let i=0;i<2600;i++){ a.fillStyle=`rgba(${heavy?255:0},${heavy?255:0},${heavy?255:0},${Math.random()*0.04})`; a.fillRect(Math.random()*N,Math.random()*N,Math.random()*22,1); }
+  // glowing accent band + corner lights
+  a.fillStyle='#1a1d28'; a.fillRect(74,N/2-20,N-148,40); a.fillStyle=acc; a.fillRect(84,N/2-10,N-168,20);
+  e.fillStyle=acc; e.fillRect(84,N/2-10,N-168,20);
+  for(const [x,y] of [[60,60],[N-60,60],[60,N-60],[N-60,N-60]]){ a.fillStyle='#1a1d28'; a.beginPath(); a.arc(x,y,14,0,7); a.fill(); a.fillStyle=acc; a.beginPath(); a.arc(x,y,8,0,7); a.fill();
+    e.fillStyle=acc; e.beginPath(); e.arc(x,y,8,0,7); e.fill(); b.fillStyle='#fff'; b.beginPath(); b.arc(x,y,14,0,7); b.fill(); }
+  // vents above and below the band
+  for(let k=0;k<5;k++) for(const yy of [150,N-182]){ a.fillStyle=heavy?'#1c1f27':'#8f88a8'; a.fillRect(150,yy+k*8,N-300,4); b.fillStyle='#404040'; b.fillRect(150,yy+k*8,N-300,4); }
+  if(heavy){ a.save(); a.beginPath(); a.rect(34,34,N-68,40); a.rect(34,N-74,N-68,40); a.clip();
+    for(let i=-N;i<N*2;i+=40){ a.fillStyle=i/40%2?'#e8b923':'#16181e'; a.beginPath(); a.moveTo(i,34); a.lineTo(i+20,34); a.lineTo(i+60,74+N); a.lineTo(i+40,74+N); a.fill(); } a.restore(); }
+  const tex=(c,srgb)=>{const t=new THREE.CanvasTexture(c); t.anisotropy=8; if(srgb) t.colorSpace=THREE.SRGBColorSpace; return t;};
+  return {map:tex(ca,true),bumpMap:tex(cb),emissiveMap:tex(ce,true)};
+}
 const CRATE_MAT={
   wood:new THREE.MeshStandardMaterial({map:CRATE_TEX.wood.map,bumpMap:CRATE_TEX.wood.bumpMap,bumpScale:4,roughness:0.85,metalness:0}),
   metal:new THREE.MeshStandardMaterial({map:CRATE_TEX.metal.map,bumpMap:CRATE_TEX.metal.bumpMap,bumpScale:3,roughness:0.45,metalness:0.7}),
 };
 const CRATE_COL={wood:[0xd39350,0x9c5f2a,0x6b3c14],metal:[0x8d96a3,0x59616e,0xe8b923]};
+if(CRATE_LOOK==='scifi'){
+  const L=sciCrateTex(false), Hv=sciCrateTex(true);
+  CRATE_MAT.wood=new THREE.MeshStandardMaterial({map:L.map,bumpMap:L.bumpMap,bumpScale:3,emissive:0xffffff,emissiveMap:L.emissiveMap,emissiveIntensity:1.3,roughness:0.5,metalness:0.35});
+  CRATE_MAT.metal=new THREE.MeshStandardMaterial({map:Hv.map,bumpMap:Hv.bumpMap,bumpScale:3,emissive:0xffffff,emissiveMap:Hv.emissiveMap,emissiveIntensity:1.3,roughness:0.4,metalness:0.75});
+  CRATE_COL.wood=[SPACE_BODY,SPACE_ACCENT,0x4a4f66]; CRATE_COL.metal=[0x59616e,SPACE_ACCENT,0xe8b923];
+}
+const woodLook=c=>c.crate==='wood'&&CRATE_LOOK==='wood';
 for(const c of CRATES){
   const s=c.x1-c.x0, mesh=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),CRATE_MAT[c.crate]);
   mesh.position.set((c.x0+c.x1)/2,c.y0+s/2,(c.z0+c.z1)/2); scene.add(mesh);
@@ -1574,15 +1603,15 @@ function crateHit(c,p){
   const cols=CRATE_COL[c.crate];
   for(let i=0;i<5;i++){const m=new THREE.Mesh(_chipGeo,new THREE.MeshBasicMaterial({color:cols[i%3],transparent:true})); m.position.set(...p);
     addDebris(m,[rand(-3,3),rand(1,4),rand(-3,3)],[rand(-9,9),rand(-9,9)],0.6,c.y0); debris[debris.length-1].own=true;}
-  sfx(c.crate==='wood'?'wood':'metal',client?client.vol(p):1);
+  sfx(woodLook(c)?'wood':'metal',client?client.vol(p):1);
 }
 function crateBreak(c){
   const V=c.view, s=c.x1-c.x0, cx=V.base.x, cy=V.base.y, cz=V.base.z;
   V.mesh.visible=false; V.vis=false;
   const mat=CRATE_MAT[c.crate].clone(); mat.transparent=true;
-  const n=c.crate==='wood'?9:6;
+  const n=woodLook(c)?9:7;
   for(let i=0;i<n;i++){ // planks / panels flying apart
-    const g=c.crate==='wood'?new THREE.BoxGeometry(s*rand(0.5,0.95),s*0.13,s*rand(0.18,0.3)):new THREE.BoxGeometry(s*rand(0.35,0.6),s*0.06,s*rand(0.35,0.6));
+    const g=woodLook(c)?new THREE.BoxGeometry(s*rand(0.5,0.95),s*0.13,s*rand(0.18,0.3)):new THREE.BoxGeometry(s*rand(0.35,0.6),s*0.06,s*rand(0.35,0.6));
     const m=new THREE.Mesh(g,mat); m.position.set(cx+rand(-s/3,s/3),cy+rand(-s/3,s/3),cz+rand(-s/3,s/3)); m.rotation.set(rand(0,3),rand(0,3),rand(0,3));
     const ox=m.position.x-cx, oz=m.position.z-cz;
     addDebris(m,[ox*6+rand(-2,2),rand(3,8),oz*6+rand(-2,2)],[rand(-8,8),rand(-8,8)],rand(2.2,3.2),c.y0===0?0:c.y0);
@@ -1590,11 +1619,11 @@ function crateBreak(c){
   const cols=CRATE_COL[c.crate];
   for(let i=0;i<14;i++){const m=new THREE.Mesh(_chipGeo,new THREE.MeshBasicMaterial({color:cols[i%3],transparent:true})); m.position.set(cx,cy,cz); m.scale.setScalar(rand(0.8,2));
     addDebris(m,[rand(-6,6),rand(2,9),rand(-6,6)],[rand(-12,12),rand(-12,12)],rand(0.8,1.4),c.y0); debris[debris.length-1].own=true;}
-  for(let i=0;i<6;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:_dustTex,color:c.crate==='wood'?0xc8a07a:0x9aa3ad,transparent:true,depthWrite:false,opacity:0.7}));
+  for(let i=0;i<6;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:_dustTex,color:woodLook(c)?0xc8a07a:CRATE_LOOK==='scifi'?SPACE_BODY:0x9aa3ad,transparent:true,depthWrite:false,opacity:0.7}));
     sp.position.set(cx+rand(-s/2,s/2),cy+rand(-s/3,s/3),cz+rand(-s/2,s/2)); sp.scale.setScalar(s);
     addDebris(sp,[rand(-1,1),rand(0.3,1.2),rand(-1,1)],null,rand(0.8,1.2),-99); debris[debris.length-1].dust=true; debris[debris.length-1].own=true;}
-  if(c.crate==='metal') addSpark([cx,cy,cz],0xffd27f,0.35);
-  sfx(c.crate==='wood'?'woodbreak':'metalbreak',client?client.vol([cx,cy,cz]):1);
+  if(!woodLook(c)){ addSpark([cx,cy,cz],CRATE_LOOK==='scifi'?SPACE_ACCENT:0xffd27f,0.35); addSpark([cx,cy+s*0.3,cz],0xffffff,0.2); }
+  sfx(woodLook(c)?'woodbreak':'metalbreak',(client?client.vol([cx,cy,cz]):1)*(c.crate==='wood'?0.75:1));
 }
 function crateRespawn(c){const V=c.view; V.mesh.visible=true; V.vis=true; V.mesh.scale.setScalar(0.01); V.grow=0.35;}
 function syncCrates(cr){
@@ -1894,8 +1923,9 @@ function buildGun(k){
   const flash=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial({color:0xffe08a})); flash.position.set(0,0.015,k==="sniper"?-0.92:k==="shotgun"?-0.66:-0.82); flash.visible=false; model.add(flash);
   g.userData.flash=flash; g.visible=false; g.scale.setScalar(0.75); vmScene.add(g);
   const len=(GUN_GLB[k]||{len:0.8}).len, H=VM_HANDS(k,len);
-  g.userData.R=buildHand('grip'); g.userData.R.position.set(...H.R); g.add(g.userData.R);
-  g.userData.L=H.L?buildHand('fore'):null; if(g.userData.L){ g.userData.L.position.set(...H.L); g.add(g.userData.L); }
+  g.userData.R=buildHand('grip'); g.userData.R.position.set(...H.R); g.userData.R.scale.setScalar(0.82); g.add(g.userData.R);
+  g.userData.L=H.L?buildHand('fore'):null; if(g.userData.L){ g.userData.L.position.set(...H.L); g.userData.L.scale.setScalar(0.82); g.add(g.userData.L); }
+  g.userData.oneHand=['pistol','m1911t','smg','mp7'].includes(k); // held in one hand like in Hyper Shot; the left hand only comes in to reload
   g.userData.Lrest=H.L?new THREE.Vector3(...H.L):null;
   return g;
 }
@@ -1934,7 +1964,8 @@ function placeHands(g,k,len){
   // grip: tall low part in the rear section (not the stock, which sits further back)
   const gz=pistol?[z0+0.45*L,all.max.z]:[z0+0.5*L,z0+0.82*L];
   let grip=null; for(const q of parts) if(q.c.z>gz[0]&&q.c.z<gz[1]&&q.s.y>q.s.z*0.9&&q.b.min.y<all.min.y+H*0.35&&(!grip||q.b.min.y<grip.b.min.y)) grip=q;
-  if(grip) U.R.position.set(grip.c.x+0.004,grip.b.max.y-Math.min(0.05,grip.s.y*0.35),grip.c.z+0.006);
+  if(pistol) U.R.position.set(all.getCenter(new THREE.Vector3()).x,all.min.y+H*0.42,all.max.z-L*0.17); // pistol grip = lower back of the gun
+  else if(grip) U.R.position.set(grip.c.x+0.004,grip.b.max.y-Math.min(0.05,grip.s.y*0.35),grip.c.z+0.006);
   // handguard: underside of the gun around the front third (pump for the shotgun)
   if(U.L){
     if(pistol&&grip){ U.L.position.set(grip.c.x-0.012,grip.b.max.y-grip.s.y*0.7,grip.c.z+0.01); }
@@ -2033,9 +2064,9 @@ function buildSniper(M=RG_MAT()){
 }
 // model registry: fbx = file in assets/weapons/real, proc = built in code; len = fitted length (m); mag/pump/bolt = animated part names
 const GUN_MODELS={
-  rifle:{fbx:'M4A1',len:0.86,mag:'Mag'}, m16:{fbx:'M16',len:0.98}, scar:{fbx:'SCAR',len:0.9},
+  rifle:{fbx:'M4A1',len:0.86,mag:'Mag'}, m16:{fbx:'M16',len:0.98,flip:true}, scar:{fbx:'SCAR',len:0.9},
   shotgun:{proc:buildShotgun,len:0.95,pump:'Pump'}, sniper:{proc:buildSniper,len:1.15,mag:'Mag',bolt:'Bolt'},
-  pistol:{fbx:'M1911',len:0.24}, m1911t:{fbx:'M1911Tactical',len:0.26}, smg:{fbx:'MP5',len:0.6}, mp7:{fbx:'MP7',len:0.5},
+  pistol:{fbx:'M1911',len:0.33,flip:true}, m1911t:{fbx:'M1911Tactical',len:0.35,flip:true} /* these two FBX files face backwards */, smg:{fbx:'MP5',len:0.62}, mp7:{fbx:'MP7',len:0.52},
   knife:{glb:'assets/weapons/knife.glb',len:0.6,knife:true},
 };
 const GUN_GLB=GUN_MODELS; // older code reads .len from here
@@ -2047,7 +2078,7 @@ function fitGun(root,k){
   const cfg=GUN_MODELS[k];
   root.rotation.order='YXZ';
   if(cfg.knife) root.rotation.set(-Math.PI/2,0,0);
-  else root.rotation.set(cfg.fbx?-Math.PI/2:0,Math.PI/2,0); // stand Z-up FBX up, then turn the +X muzzle to face -Z
+  else root.rotation.set(cfg.fbx?-Math.PI/2:0,cfg.flip?-Math.PI/2:Math.PI/2,0); // stand Z-up FBX up, then turn the muzzle to face -Z
   const wrap=new THREE.Group(); wrap.add(root); wrap.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(wrap), size=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
   const sc=cfg.len/size.z; root.position.sub(c); wrap.scale.setScalar(sc);
@@ -2414,6 +2445,7 @@ class Client{
     if(U.mag){ const out=rp>0.12&&rp<0.42?(rp-0.12)/0.3:0, back=rp>=0.42&&rp<0.8?1-(rp-0.42)/0.38:0, off=rp>=0.12&&rp<0.8?(rp<0.42?out:back):0;
       U.mag.position.copy(U.magBase); U.mag.position.y-=off*1.4; U.mag.visible=!(rp>0.38&&rp<0.48); }
     if(U.L&&U.Lrest){ const t2=U.L.position; t2.copy(U.Lrest);
+      if(U.oneHand){ U.L.visible=rp>0.04&&rp<0.96; t2.add(new THREE.Vector3(-0.06,-0.3,0.18).multiplyScalar(1-Math.sin(clamp((rp-0.04)/0.92,0,1)*Math.PI))); }
       if(rp>0.08&&rp<0.9){ const k2=Math.sin((rp-0.08)/0.82*Math.PI);
         if(U.mag){ g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(new THREE.Vector3()); g.worldToLocal(mp); t2.lerp(mp.add(new THREE.Vector3(-0.02,-0.04,0)),k2); }
         else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } } }
@@ -2644,7 +2676,7 @@ function drawMini(c){
   mini.clearRect(0,0,Wd,Hd);
   if(MODE==='koth'){const h=c.snap?c.snap.hl:-1; mini.strokeStyle=h===0||h===1?TEAM_CSS[h]:h===2?'#ffcc33':'#fff'; mini.lineWidth=2; mini.beginPath(); mini.arc(X(HILL.x),Z(HILL.z),HILL.r*sx,0,7); mini.stroke();}
   for(const b of BOXES){ if(b.x1-b.x0>100||b.z1-b.z0>70||b.dead) continue;
-    mini.fillStyle=b.crate?(b.crate==='wood'?'#c98645':'#9aa3ad'):b.tm>=0?TEAM_CSS[b.tm]:'#6e7ddc'; mini.globalAlpha=0.55;
+    mini.fillStyle=b.crate?(CRATE_LOOK==='wood'&&b.crate==='wood'?'#c98645':b.crate==='wood'?'#'+new THREE.Color(SPACE_ACCENT).getHexString():'#9aa3ad'):b.tm>=0?TEAM_CSS[b.tm]:'#6e7ddc'; mini.globalAlpha=0.55;
     mini.fillRect(X(b.x0),Z(b.z0),Math.max(1,(b.x1-b.x0)*sx),Math.max(1,(b.z1-b.z0)*sz)); }
   mini.globalAlpha=1; mini.fillStyle='#00ffd5'; for(const p of PADS){mini.beginPath(); mini.arc(X(p.x),Z(p.z),2,0,7); mini.fill();}
   const s=c.snap; if(!s) return;
