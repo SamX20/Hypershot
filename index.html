@@ -1337,6 +1337,7 @@ if(DAY){ // gradient sky dome, sun disc and a few clouds
 [[FLAG_HOME[0][0],0],[FLAG_HOME[1][0],1],[0,-1]].forEach(([x,tm])=>{const l=new THREE.PointLight(tm<0?0xa060ff:TEAM_COLOR[tm],30,45,1.6); l.position.set(x,7,0); scene.add(l);
   if(tm>=0) TEAMREG.push(()=>l.color.setHex(TEAM_COLOR[tm]));});
 
+let FLOOR=null;
 // floor
 {
   const c=document.createElement('canvas'); c.width=c.height=256; const x=c.getContext('2d');
@@ -1354,7 +1355,7 @@ if(DAY){ // gradient sky dome, sun disc and a few clouds
   }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(130/4,74/4); t.anisotropy=8; t.colorSpace=THREE.SRGBColorSpace;
   const f=new THREE.Mesh(new THREE.PlaneGeometry(130,74),new THREE.MeshStandardMaterial({map:t,roughness:0.85,metalness:0.1}));
-  f.rotation.x=-Math.PI/2; scene.add(f);
+  f.rotation.x=-Math.PI/2; scene.add(f); FLOOR=f;
   // team zones tint
   for(const t2 of [0,1]){const z=new THREE.Mesh(new THREE.PlaneGeometry(20,37),new THREE.MeshBasicMaterial({color:TEAM_COLOR[t2],transparent:true,opacity:0.07}));
     z.rotation.x=-Math.PI/2; z.position.set(t2?54:-54,0.01,0); scene.add(z); TEAMREG.push(()=>z.material.color.setHex(TEAM_COLOR[t2]));}
@@ -1453,10 +1454,59 @@ for(const [bi,b] of BOXES.entries()){
   const m=new THREE.Mesh(worldUV(new THREE.BoxGeometry(w,h,d),cx,cy,cz),mat); m.position.set((b.x0+b.x1)/2,b.y0+h/2,(b.z0+b.z1)/2); scene.add(m);
   const edgeCol=b.tm>=0?TEAM_COLOR[b.tm]:(b.c===PURPLE?0xb07bff:0x5f73ff);
   const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:0.85}));
-  e.position.copy(m.position); scene.add(e);
+  e.position.copy(m.position); scene.add(e); b.mesh=m; b.edge=e; b.mat=mat;
   if(DAY) e.material.opacity=0.45;
   if(b.tm>=0) TEAMREG.push(()=>{const c=new THREE.Color(TEAM_COLOR[b.tm]); mat.color.copy(c).multiplyScalar(DAY?0.75:0.45); mat.emissive.copy(c); e.material.color.copy(c);});
 }
+// ---------- Kenney Modular Space Kit dressing: visuals only, the collision boxes underneath stay exactly the same ----------
+// each map uses a different colour variation of the kit: neon = blue (variation A), warehouse = orange (original), towers = green (variation B)
+const SPACE_STYLE={neon:'variation-a',yard:'colormap',towers:'variation-b'}[MAP_ID];
+const SPACE_ACCENT={'variation-a':0x4a7dff,'colormap':0xff8a2a,'variation-b':0x2fd38a}[SPACE_STYLE];
+const SPACE_BODY={'variation-a':0xe4e0f6,'colormap':0xd6cfec,'variation-b':0xcdc3e6}[SPACE_STYLE];
+(function dressSpace(){
+  const isPerimeter=b=>(b.x1-b.x0)>=100||(b.z1-b.z0)>=70;
+  // boxes that become kit walls: long, thin, tall neutral walls
+  const isWall=b=>!b.crate&&b.tm<0&&!isPerimeter(b)&&(b.y1-b.y0)>=1.8&&Math.min(b.x1-b.x0,b.z1-b.z0)<=1.2&&Math.max(b.x1-b.x0,b.z1-b.z0)>=3.9;
+  // the rest of the neutral blocks get the kit's palette right away
+  for(const b of BOXES) if(b.mesh&&b.tm<0&&!isPerimeter(b)&&!isWall(b)){
+    b.mat.color.setHex(SPACE_BODY); b.mat.emissive.setHex(SPACE_ACCENT); b.mat.emissiveIntensity=DAY?0.35:0.8; b.edge.material.color.setHex(SPACE_ACCENT); }
+  const names=['template-floor','template-floor-detail','template-floor-detail-a','template-wall','template-wall-corner','template-detail','cables'];
+  const loader=new GLTFLoader(), tex=new THREE.TextureLoader().load('assets/space/Textures/'+SPACE_STYLE+'.png');
+  tex.flipY=false; tex.colorSpace=THREE.SRGBColorSpace; tex.magFilter=THREE.NearestFilter;
+  Promise.all(names.map(n=>loader.loadAsync('assets/space/'+n+'.glb').then(g=>[n,g.scene]))).then(list=>{
+    const P=Object.fromEntries(list), UP=new THREE.Vector3(0,1,0);
+    for(const sc of Object.values(P)) sc.traverse(o=>{ if(o.isMesh){ o.material=o.material.clone(); o.material.map=tex; o.material.needsUpdate=true; } });
+    const M4=(x,y,z,ry=0,sx=1,sy=1,sz=1)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromAxisAngle(UP,ry),new THREE.Vector3(sx,sy,sz));
+    const inst=(root,mats)=>{ if(!mats.length) return; root.updateMatrixWorld(true); root.traverse(o=>{ if(!o.isMesh) return;
+      const im=new THREE.InstancedMesh(o.geometry,o.material,mats.length); mats.forEach((m,i)=>im.setMatrixAt(i,new THREE.Matrix4().multiplyMatrices(m,o.matrixWorld)));
+      im.castShadow=im.receiveShadow=SHADOWS; scene.add(im); }); };
+    // floor: 4m kit tiles over the whole arena, a few detail tiles mixed in
+    const fl=[[],[],[]]; let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+    for(let x=-62;x<=62;x+=4) for(let z=-34;z<=34;z+=4){ const r=rnd(); fl[r<0.8?0:r<0.94?1:2].push(M4(x,0.002,z,(rnd()*4|0)*Math.PI/2)); }
+    inst(P['template-floor'],fl[0]); inst(P['template-floor-detail'],fl[1]); inst(P['template-floor-detail-a'],fl[2]);
+    if(FLOOR) FLOOR.visible=false;
+    // perimeter: two rows of kit walls facing the arena, columns at the corners and every 16m
+    const pw=[], cols=[], sy=9/8.5;
+    // the kit wall's decorated face is its local -Z side, so each piece is turned to show it to the arena
+    for(let x=-62;x<=62;x+=4) for(const y of [0,4.25*sy]) pw.push(M4(x,y,-37,Math.PI,1,sy,1),M4(x,y,37,0,1,sy,1));
+    for(let z=-34;z<=34;z+=4) for(const y of [0,4.25*sy]) pw.push(M4(-65,y,z,-Math.PI/2,1,sy,1),M4(65,y,z,Math.PI/2,1,sy,1));
+    for(let x=-64;x<=64;x+=16) cols.push(M4(x,0,-36,0,1,sy*2,1),M4(x,0,36,0,1,sy*2,1));
+    for(let z=-20;z<=20;z+=20) cols.push(M4(-64,0,z,0,1,sy*2,1),M4(64,0,z,0,1,sy*2,1));
+    // interior walls → kit wall segments stretched to the box (both faces)
+    const iw=[];
+    for(const b of BOXES) if(b.mesh&&isWall(b)){
+      const w=b.x1-b.x0, d=b.z1-b.z0, h=b.y1-b.y0, alongX=w>=d, len=alongX?w:d, t=alongX?d:w, n=Math.max(1,Math.round(len/4)), seg=len/n;
+      for(let i=0;i<n;i++){ const c=(alongX?b.x0:b.z0)+seg*(i+0.5);
+        if(alongX){ iw.push(M4(c,b.y0,b.z1-t/2,Math.PI,seg/4,h/4.25,t/2), M4(c,b.y0,b.z0+t/2,0,seg/4,h/4.25,t/2)); }
+        else { iw.push(M4(b.x1-t/2,b.y0,c,-Math.PI/2,seg/4,h/4.25,t/2), M4(b.x0+t/2,b.y0,c,Math.PI/2,seg/4,h/4.25,t/2)); } }
+      b.mesh.visible=false; b.edge.visible=false; }
+    for(const b of BOXES) if(b.mesh&&isPerimeter(b)){ b.mesh.visible=false; b.edge.visible=false; }
+    inst(P['template-wall'],[...pw,...iw]); inst(P['template-detail'],cols);
+    // cables lying around open floor
+    const cb=[]; for(let i=0;i<40&&cb.length<14;i++){ const x=rand(-58,58), z=rand(-32,32); if(!hitBox(x,0.01,z)&&!hitBox(x+1,0.01,z+1)) cb.push(M4(x,0.01,z,rand(0,6.28),1.4,1,1.4)); }
+    inst(P['cables'],cb);
+  }).catch(e=>console.warn('space kit failed to load, keeping the procedural look',e));
+})();
 // ---------- destructible crates ----------
 const CRATE_TEX=(()=>{
   const N=512, mk=()=>{const c=document.createElement('canvas'); c.width=c.height=N; return [c,c.getContext('2d')];};
