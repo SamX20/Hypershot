@@ -203,6 +203,24 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #pause div{background:var(--panel);padding:20px 34px;border-radius:14px;font-size:20px;text-align:center}
 #pause small{display:block;opacity:.7;font-size:13px;margin-top:8px}
 
+/* ---- loadout, warmup, weapon pickup ---- */
+#loadout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.5);z-index:31}
+#loadout .lo{width:min(640px,94vw);max-height:92vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);direction:rtl}
+#loadout h2{margin:0;text-align:center} #loSub{text-align:center;opacity:.8;font-size:13px;margin:4px 0 8px;min-height:16px}
+.lcat{font-size:13px;opacity:.75;margin:12px 2px 6px}
+.lrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.lcard{padding:10px;border-radius:12px;background:#121a40;border:2px solid #26306a;cursor:pointer;transition:border-color .15s,transform .1s}
+.lcard:hover{transform:translateY(-1px)} .lcard.on{border-color:#00e5ff;background:#132656;box-shadow:0 0 18px rgba(0,229,255,.25)}
+.lcard b{font-size:16px} .lcard p{margin:4px 0 6px;font-size:11px;opacity:.75;min-height:28px}
+.lst{display:flex;align-items:center;gap:6px;font-size:11px;margin-top:3px} .lst span{width:44px;opacity:.7} .lst i{flex:1;height:5px;border-radius:3px;background:#22295a;position:relative;overflow:hidden}
+.lst i::after{content:'';position:absolute;inset:0;width:var(--v);background:linear-gradient(90deg,#3a2cff,#00e5ff)}
+.lnote{font-size:12px;opacity:.8;margin-top:10px;text-align:center}
+#warm{position:absolute;top:96px;left:50%;transform:translateX(-50%);text-align:center;font-weight:800;font-size:22px;text-shadow:0 2px 8px #000;pointer-events:none}
+#warm small{display:block;font-size:13px;font-weight:600;opacity:.85}
+#pickp{position:absolute;top:58%;left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:rgba(10,14,36,.75);border:1px solid rgba(255,204,51,.5);font-size:14px;pointer-events:none}
+#pickp kbd{background:#ffcc33;color:#000;border-radius:4px;padding:0 6px;font-weight:800}
+#dead .btn{width:auto;display:inline-block;padding:8px 16px;font-size:14px;pointer-events:auto}
+#tPick{left:50%;top:62%;transform:translateX(-50%);width:auto;height:auto;padding:6px 14px;border-radius:12px;font-size:14px;border-color:#ffcc33}
 /* ---- pause menu, chat, quick chat, health drops ---- */
 #pause{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:30}
 #pause .pm{width:min(380px,90vw);padding:22px;border-radius:16px;background:rgba(12,16,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);text-align:center}
@@ -262,9 +280,11 @@ body.touch #mini{left:62px}
   <div id="br">
     <div id="wname">رشاش</div>
     <div id="ammo">30<small>/30</small></div>
-    <div id="wslots"><span class="ws on">1 رشاش</span><span class="ws">2 شوزن</span><span class="ws">3 قناص</span></div>
+    <div id="wslots"><span class="ws on">1 رشاش</span><span class="ws">2 مسدس</span><span class="ws">3 سكين</span></div>
   </div>
-  <div id="dead" class="hidden"><h2>💀 تم إقصاؤك</h2><p id="deadBy"></p><p id="deadT"></p></div>
+  <div id="dead" class="hidden"><h2>💀 تم إقصاؤك</h2><p id="deadBy"></p><p id="deadT"></p><button class="btn ghost" id="deadLo">🔫 تغيير السلاح (B)</button></div>
+  <div id="warm" class="hidden"></div>
+  <div id="pickp" class="hidden"></div>
   <div id="chat"><div id="chatLog"></div><div id="chatIn" class="hidden"><span id="chatCh">الفريق</span><input id="chatTxt" maxlength="100" autocomplete="off" placeholder="اكتب رسالة… (Enter إرسال • Tab تبديل القناة)"></div></div>
   <div id="quick" class="hidden"></div>
   <div id="board" class="hidden"></div>
@@ -285,9 +305,17 @@ body.touch #mini{left:62px}
   <div class="tb" id="tWeap">⇄</div>
   <div class="tb" id="tTab">النتائج</div>
   <div class="tb" id="tMenu">☰</div>
+  <div class="tb hidden" id="tPick">✋ خذ</div>
   <div class="tb" id="tChat">💬</div>
 </div>
 
+<div id="loadout" class="hidden"><div class="lo">
+  <h2>🔫 اختر أسلحتك</h2><div id="loSub"></div>
+  <div class="lcat">السلاح الرئيسي (زر 1)</div><div class="lrow" id="loP"></div>
+  <div class="lcat">السلاح الثانوي (زر 2)</div><div class="lrow" id="loS"></div>
+  <div class="lnote">🔪 السكين معك دايماً (زر 3) — بتركض فيه أسرع، وضربة من ورا بتقتل فوراً<br>إذا مات حدا بيوقع سلاحه — قرّب منه واضغط <b>F</b> لتبدّله بسلاحك</div>
+  <button class="btn" id="loGo">✓ جاهز</button>
+</div></div>
 <div id="pause" class="hidden"><div class="pm">
   <h2>⏸ متوقف مؤقتاً</h2><div class="sub2">اللعبة مستمرة عند الباقين</div>
   <button class="btn" id="pmResume">▶ متابعة</button>
@@ -332,7 +360,7 @@ body.touch #mini{left:62px}
     <div id="lobMsg"></div>
     <div class="controls">
       <kbd>W A S D</kbd> حركة &nbsp; <kbd>Space</kbd> قفز &nbsp; <kbd>Mouse</kbd> تصويب/إطلاق &nbsp; <kbd>R</kbd> تلقيم<br>
-      <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / العجلة: رشاش، شوزن، قناص (زر يمين للمنظار)<br>
+      <kbd>1</kbd> رئيسي &nbsp; <kbd>2</kbd> ثانوي &nbsp; <kbd>3</kbd> سكين &nbsp; <kbd>B</kbd> اختيار الأسلحة &nbsp; <kbd>F</kbd> التقاط سلاح (زر يمين للمنظار)<br>
       <kbd>C</kbd> سلايد &nbsp; <kbd>Q</kbd> Upward Shift (دفعة لأعلى) &nbsp; <kbd>Shift</kbd> Tailwind (سرعة) &nbsp; <kbd>E</kbd> جرعة شفاء<br>
       <kbd>Enter</kbd> شات &nbsp; <kbd>T</kbd> رسائل سريعة &nbsp; <kbd>Esc</kbd> القائمة والإعدادات<br>
       <kbd>Tab</kbd> النتائج — امسك العلم: حامل العلم صحته مضاعفة بس بدون قدرات أو سلايد، وإذا مات يرجع العلم لقاعدته.<br>
@@ -352,6 +380,7 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 
 /* =====================================================================
    CONSTANTS
@@ -366,13 +395,20 @@ const MATCH_TIME=600, RESPAWN=5, MAX_HP=100, PREFIX='hypershot-v1-';
 //  rifle   – 14 body / 21 head, 600 rpm → ~0.65s TTK up close, falls to 55% past 35m and blooms when sprayed
 //  shotgun – 10×9 pellets, 90 max body → needs a headshot or a follow-up; useless past ~25m
 //  sniper  – 90 body / 198 head: one-shots heads (not carriers), body shot needs a follow-up; slow & sloppy unscoped
+//  pistol  – 22 body / 40 head, accurate, 5 body shots; the reliable backup
+//  smg     – 10 body, ~920 rpm, deadly up close, falls off fast past 14m
+//  knife   – 55 front / 100 from behind (backstab one-shots), 2.4m reach, you run 12% faster with it out
 const W={
   rifle:  {name:'رشاش',dmg:14,rate:0.1, mag:30,reload:1.7,spread:0.011,pellets:1, range:250,head:1.5, recoil:0.011,falloff:[35,60],fmin:0.55,bloom:0.22,snd:'rifle'},
   shotgun:{name:'شوزن',dmg:10,rate:0.8, mag:6, reload:2.2,spread:0.068,pellets:9, range:55, head:1.25,recoil:0.06, falloff:[7,18],fmin:0.15,snd:'shotgun'},
-  sniper: {name:'قناص',dmg:90,rate:1.25,mag:5, reload:2.5,spread:0.0012,pellets:1,range:400,head:2.2, recoil:0.09, zoom:true,hip:0.055,snd:'sniper'},
+  sniper: {name:'قناص',dmg:90,rate:1.25,mag:5, reload:2.5,spread:0.0012,pellets:1,range:400,head:2.2, recoil:0.09, zoom:true,hip:0.055,snd:'sniper',speed:0.95},
+  pistol: {name:'مسدس',dmg:22,rate:0.2, mag:12,reload:1.3,spread:0.008,pellets:1, range:150,head:1.8, recoil:0.022,falloff:[25,45],fmin:0.5,snd:'pistol',speed:1.05},
+  smg:    {name:'SMG', dmg:10,rate:0.065,mag:32,reload:1.7,spread:0.026,pellets:1,range:90, head:1.4, recoil:0.008,falloff:[14,28],fmin:0.4,bloom:0.2,snd:'smg',speed:1.05},
+  knife:  {name:'سكين',dmg:55,back:100,rate:0.55,mag:Infinity,reload:0,spread:0,pellets:1,range:2.4,head:1,recoil:0,melee:true,snd:'knife',speed:1.12},
 };
 const falloffMul=(w,d)=>w.falloff?clamp(1-(d-w.falloff[0])/w.falloff[1],w.fmin,1):1;
-const WKEYS=['rifle','shotgun','sniper'];
+const WKEYS=['rifle','shotgun','sniper','pistol','smg','knife'], NW=WKEYS.length, PRIMS=[0,1,2], SECS=[3,4], KNIFE=5;
+const WARMUP=10; // seconds behind the spawn barrier to pick a loadout before each match
 // Hypershot active abilities: dash = Tailwind (speed), gren = Upward Shift (vertical boost), shield = Healing Potion
 const CD={dash:10,gren:6,shield:12,slide:1.2};
 const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -626,7 +662,7 @@ class Server{
     this.proj=[]; this.pid=1; this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.snapT=0; this.hill=-1;
     this.crt=CRATES.map(()=>0); // crate respawn timers
     this.wave=[0,1].map(()=>({go:false,t:0,z:0})); // CTF attack waves: gather, then push together
-    this.drops=[]; this.did=1;
+    this.drops=[]; this.did=1; this.wdrops=[]; this.wid=1; this.warm=WARMUP;
     this.balanceBots();
   }
   send(id,m){const c=this.clients.get(id); if(c) c.send(m);}
@@ -642,13 +678,15 @@ class Server{
     if(isBot){
       const nb=[...this.players.values()].filter(q=>q.isBot&&q.team===team).length;
       const persona=PERSONAS[(nb+team*3)%PERSONAS.length];
-      p.w=persona==='sniper'?2:persona==='rusher'?1:0;
+      p.w=persona==='sniper'?2:persona==='rusher'?1:0; p.load={p:p.w,s:persona==='rusher'?4:persona==='sniper'?3:(Math.random()<0.5?3:4)};
       p.bot={persona,role:nb%5===1||nb%5===3?'def':'att',skill:rand(0.85,1.15),path:[],repath:0,scan:0,target:0,react:0,fireCd:0,
         mag:WKEYS.map(k=>W[k].mag),reloadT:0,swapT:0,burst:0,strafe:1,strafeT:0,chkT:0.5,lx:0,lz:0,stuck:0,patrol:null,patrolT:0,
         jump:false,abilT:rand(1,3),wx:0,wy:0,heard:null,alert:0,alertT:0,lastSeen:null,crate:null,roam:null,roamT:0};
     }
+    if(!p.load) p.load={p:0,s:3};
     this.players.set(id,p); return p;
   }
+  held(p){ return [p.load.p,p.load.s,KNIFE]; }
   balanceBots(){
     const h=[0,0], bots=[[],[]];
     for(const p of this.players.values()) p.isBot?bots[p.team].push(p):h[p.team]++;
@@ -670,6 +708,7 @@ class Server{
       if(s>bs){bs=s;best=sp;} }
     p.x=best[0]+rand(-0.8,0.8); p.z=best[1]+rand(-0.8,0.8); p.y=0; p.vx=p.vy=p.vz=0;
     p.mh=MAX_HP; p.hp=MAX_HP; p.sh=0; p.alive=true; p.sp=2; p.slideT=0; p.twT=0; p.sl=0; p.dashT=0; p.lastHit=99; p.yaw=p.team===1?Math.PI/2:-Math.PI/2; p.pitch=0;
+    if(p.loadNext){p.load=p.loadNext; p.loadNext=null;} p.w=p.load.p;
     if(p.isBot){const B=p.bot; B.path=[];B.target=0;B.mag=WKEYS.map(k=>W[k].mag);B.reloadT=0;B.crate=null;B.lastSeen=null;B.heard=null;}
     else this.send(p.id,{t:'spawn',x:p.x,y:p.y,z:p.z,yaw:p.yaw});
   }
@@ -688,10 +727,13 @@ class Server{
         break;}
       case 'st':
         if(!p||!p.alive) return;
-        p.x=+m.x||0; p.y=+m.y||0; p.z=+m.z||0; p.vx=+m.vx||0; p.vz=+m.vz||0; p.yaw=+m.yw||0; p.pitch=+m.pt||0; p.w=(m.w|0)%3; p.sl=m.sl?1:0;
+        p.x=+m.x||0; p.y=+m.y||0; p.z=+m.z||0; p.vx=+m.vx||0; p.vz=+m.vz||0; p.yaw=+m.yw||0; p.pitch=+m.pt||0; if(this.held(p).includes(m.w|0)) p.w=m.w|0; p.sl=m.sl?1:0;
         break;
       case 'hit':{
-        if(!p||!p.alive) return; const v=this.players.get(m.v); const w=W[WKEYS[(m.w|0)%3]];
+        if(!p||!p.alive) return; const v=this.players.get(m.v); const w=W[WKEYS[(m.w|0)%NW]];
+        if(!v||!this.held(p).includes(m.w|0)) return;
+        if(w.melee&&Math.hypot(v.x-p.x,v.y-p.y,v.z-p.z)>3.6) return; // knife reach check
+        if(w.melee){ this.damage(v,p,this.isBackstab(p,v)?w.back:w.dmg,'🔪',false); break; } // server decides front/back
         const maxD=w.dmg*w.pellets*w.head*1.01;
         this.damage(v,p,Math.min(+m.d||0,maxD),w.name,!!m.h);
         break;}
@@ -700,7 +742,7 @@ class Server{
         const tx=String(m.m||'').replace(/[<>]/g,'').trim().slice(0,100); if(tx) this.say(p,tx,!!m.tm);
         break;}
       case 'cr':{ // crate damage reported by a client
-        if(!p||!p.alive) return; const w=W[WKEYS[(m.w|0)%3]];
+        if(!p||!p.alive) return; const w=W[WKEYS[(m.w|0)%NW]];
         this.damageCrate(m.i|0,Math.min(+m.d||0,w.dmg*w.pellets*1.01));
         break;}
       case 'sh':
@@ -708,6 +750,14 @@ class Server{
         this.bc({t:'tr',o:m.o,e:(m.e||[]).slice(0,4),w:m.w,s:id},id);
         this.noise(p,m.w===2?90:55);
         break;
+      case 'load':{ // pick primary + secondary; applies now during warmup (or while dead), otherwise at next respawn
+        if(!p) return; const pr=m.p|0, se=m.s|0; if(!PRIMS.includes(pr)||!SECS.includes(se)) return;
+        if(this.warm>0||!p.alive){ p.load={p:pr,s:se}; p.loadNext=null; if(!this.held(p).includes(p.w)) p.w=pr; } else p.loadNext={p:pr,s:se};
+        break;}
+      case 'pk':{ // swap primary with a weapon lying on the ground
+        if(!p||!p.alive) return; const i=this.wdrops.findIndex(d=>d.i===m.i); if(i<0) return; const d=this.wdrops[i];
+        if(Math.hypot(d.x-p.x,d.z-p.z)>2.6||Math.abs(d.y-p.y)>2) return;
+        this.swapWeapon(p,i); break;}
       case 'gr':
         if(!p||!p.alive||p.cd.gren>0.5) return;
         p.cd.gren=CD.gren-0.5; this.throwGren(p,m.o,m.v);
@@ -726,6 +776,12 @@ class Server{
     for(const [id,c] of this.clients){ const q=this.players.get(id); if(!team||(q&&q.team===p.team)) c.send(msg); } }
   // drop lands on the floor or the top of whatever box is under the player
   groundAt(x,y,z){ let g=0; for(const b of BOXES) if(!b.dead&&x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.y1<=y+0.05&&b.y1>g) g=b.y1; return g; }
+  swapWeapon(p,i){
+    const d=this.wdrops[i]; this.wdrops.splice(i,1);
+    this.wdrops.push({i:this.wid++,w:p.load.p,x:p.x,y:this.groundAt(p.x,p.y+0.1,p.z),z:p.z,t:20});
+    p.load={p:d.w,s:p.load.s}; p.loadNext=null; p.w=d.w; if(p.isBot) p.bot.mag[d.w]=W[WKEYS[d.w]].mag;
+    if(!p.isBot) this.send(p.id,{t:'gotw',w:d.w});
+  }
   // gunfire is audible: enemy bots in range turn toward it
   noise(src,range){
     for(const q of this.players.values()) if(q.isBot&&q.alive&&q.team!==src.team&&Math.hypot(q.x-src.x,q.z-src.z)<range)
@@ -741,7 +797,7 @@ class Server{
     this.proj.push({i:this.pid++,x:+o[0],y:+o[1],z:+o[2],vx:v[0]*k,vy:v[1]*k,vz:v[2]*k,f:1.7,o:p.id,tm:p.team});
   }
   damage(v,a,dmg,wn,head){
-    if(!v||!v.alive||v.sp>0||this.end) return;
+    if(!v||!v.alive||v.sp>0||this.end||this.warm>0) return;
     if(a&&a!==v&&a.team===v.team) return;
     if(a&&a!==v&&a.ut>0) dmg*=1.3;
     if(MODE==='ctf'&&this.isCarrier(v)) dmg*=0.6; // carriers are armored on top of double HP
@@ -760,7 +816,9 @@ class Server{
     if(a&&a!==v){a.k++; a.u=Math.min(100,a.u+15);
       if(MODE==='tdm'&&!this.end){this.score[a.team]++; if(this.score[a.team]>=SCORE_LIMIT) this.finish(a.team);}}
     this.dropFlag(v);
-    if(v.y>-5){ this.drops.push({i:this.did++,x:v.x,y:this.groundAt(v.x,v.y,v.z),z:v.z,t:DROP_LIFE}); if(this.drops.length>30) this.drops.shift(); }
+    if(v.y>-5){ const gy=this.groundAt(v.x,v.y,v.z);
+      this.drops.push({i:this.did++,x:v.x,y:gy,z:v.z,t:DROP_LIFE}); if(this.drops.length>30) this.drops.shift();
+      this.wdrops.push({i:this.wid++,w:v.load.p,x:v.x+rand(-0.6,0.6),y:gy,z:v.z+rand(-0.6,0.6),t:20}); if(this.wdrops.length>20) this.wdrops.shift(); }
     this.bc({t:'ev',k:'kill',a:a?a.name:'',ai:a?a.id:0,at:a?a.team:v.team,v:v.name,vi:v.id,vt:v.team,w:wn});
   }
   // Hypershot rule: if the carrier is eliminated the flag goes straight back to its base
@@ -799,7 +857,7 @@ class Server{
   finish(w){this.end={w,t:10}; this.bc({t:'ev',k:'end',w});
     for(const p of this.players.values()) if(p.isBot&&Math.random()<0.3) setTimeout(()=>this.say(p,Math.random()<0.7?'GG 🤝':'مباراة حلوة 👏',false),500+Math.random()*2500); }
   resetMatch(){
-    this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.proj=[]; this.hill=-1; this.drops=[];
+    this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.proj=[]; this.hill=-1; this.drops=[]; this.wdrops=[]; this.warm=WARMUP;
     this.flags.forEach(f=>this.returnFlag(f));
     this.pickups.forEach(k=>{k.on=true;k.rt=0;});
     CRATES.forEach((c,i)=>{c.dead=false;c.hp=c.mh;this.crt[i]=0;});
@@ -807,14 +865,16 @@ class Server{
     this.bc({t:'ev',k:'start'});
   }
   tick(dt){
+    if(this.warm>0){ this.warm-=dt; if(this.warm<=0){ this.warm=0; this.bc({t:'ev',k:'go'}); } }
     if(this.end){this.end.t-=dt; if(this.end.t<=0) this.resetMatch();}
+    else if(this.warm>0){}
     else{this.time-=dt; if(this.time<=0){this.time=0; const s=this.score.map(Math.floor); this.finish(s[0]===s[1]?-1:(s[0]>s[1]?0:1));}}
     for(const p of this.players.values()){
       if(!p.alive){p.rs-=dt; if(p.rs<=0&&!this.end) this.spawn(p); continue;}
       p.sp=Math.max(0,p.sp-dt); p.shT-=dt; if(p.shT<=0) p.sh=0; p.ut=Math.max(0,p.ut-dt);
       p.u=Math.min(100,p.u+dt*1.2); p.cd.gren-=dt; p.cd.shield-=dt; p.cd.dash=(p.cd.dash||0)-dt;
       p.lastHit+=dt; if(p.lastHit>6&&p.hp<p.mh) p.hp=Math.min(p.mh,p.hp+8*dt); p.twT=Math.max(0,(p.twT||0)-dt);
-      if(p.isBot&&!this.end) this.botThink(p,dt);
+      if(p.isBot&&!this.end&&!this.warm) this.botThink(p,dt);
       if(p.y<-20){this.kill(p,null,'☠');continue;}
       for(const k of this.pickups){
         if(k.on&&Math.hypot(p.x-k.x,p.z-k.z)<1.4&&Math.abs(p.y-k.y)<1.5){
@@ -822,9 +882,10 @@ class Server{
           k.on=false; k.rt=20; if(!p.isBot) this.send(p.id,{t:'pick',k:k.type});
         }
       }
-      if(!this.end&&MODE==='ctf') this.flagLogic(p);
+      if(!this.end&&!this.warm&&MODE==='ctf') this.flagLogic(p);
     }
-    if(!this.end&&MODE==='koth') this.hillLogic(dt);
+    if(!this.end&&!this.warm&&MODE==='koth') this.hillLogic(dt);
+    for(let i=this.wdrops.length-1;i>=0;i--) if((this.wdrops[i].t-=dt)<=0) this.wdrops.splice(i,1);
     for(let i=this.drops.length-1;i>=0;i--){ const d=this.drops[i]; d.t-=dt;
       if(d.t<=0){this.drops.splice(i,1); continue;}
       for(const p of this.players.values()) if(p.alive&&p.hp<p.mh&&Math.hypot(p.x-d.x,p.z-d.z)<1.4&&Math.abs(p.y-d.y)<1.6){
@@ -883,6 +944,7 @@ class Server{
       g:this.proj.map(g=>({i:g.i,x:r2(g.x),y:r2(g.y),z:r2(g.z)})),pk:this.pickups.map(k=>k.on?1:0),
       cr:CRATES.map(c=>c.dead?0:Math.max(1,Math.ceil(c.hp/c.mh*20))),hl:this.hill,
       dr:this.drops.map(d=>[d.i,r2(d.x),r2(d.y),r2(d.z),Math.ceil(d.t)]),
+      wd:this.wdrops.map(d=>[d.i,d.w,r2(d.x),r2(d.y),r2(d.z)]),ph:Math.ceil(this.warm),
       sc:this.score.map(Math.floor),tm:Math.ceil(this.time),end:this.end?{w:this.end.w,t:Math.ceil(this.end.t)}:null};
   }
   /* ---------------- BOT AI ----------------
@@ -953,19 +1015,27 @@ class Server{
     }
     let dx=tx-b.x,dz=tz-b.z,L=Math.hypot(dx,dz),wx=0,wz=0;
     if(L>0.9&&!hold){wx=dx/L;wz=dz/L;}
-    // ---- weapon choice by range & persona
-    if(tgt&&B.swapT<=0&&B.reloadT<=0){
-      const d=dist2(tgt.x,tgt.z), P=B.persona;
-      const want=d<9?(P==='sniper'?0:1):d>45?(P==='rusher'?0:2):(P==='sniper'&&d>25?2:P==='rusher'&&d<16?1:0);
-      if(want!==b.w){b.w=want; B.swapT=1.2; B.fireCd=Math.max(B.fireCd,0.35);}
-    }
+    // ---- weapon choice: primary by default; secondary when the primary is empty/reloading up close or a sniper gets rushed; knife point-blank
+    if(tgt&&B.swapT<=0){
+      const d=dist2(tgt.x,tgt.z), pr=b.load.p, se=b.load.s;
+      let want=pr;
+      if(d<3&&(B.persona==='rusher'||this.isBackstab(b,tgt)||B.mag[b.w]<=0||b.w===KNIFE)) want=KNIFE;
+      else if((B.mag[pr]<=0||(b.w===pr&&B.reloadT>0))&&d<30) want=se;
+      else if(pr===2&&d<10) want=se;      // sniper rushed → sidearm
+      else if(pr===1&&d>16) want=se;      // shotgun out of range → sidearm
+      if(want!==b.w){ if(B.reloadT>0&&b.w===pr) B.reloadT=0; b.w=want; B.swapT=want===KNIFE?0.5:0.9; B.fireCd=Math.max(B.fireCd,0.25); }
+    } else if(!tgt&&b.w!==b.load.p&&B.swapT<=0){ b.w=b.load.p; B.swapT=0.9; }
+    // pick up the gun it prefers when one is lying nearby and it's calm
+    if(!tgt&&!carrying){ const pref=B.persona==='sniper'?2:B.persona==='rusher'?1:0;
+      if(b.load.p!==pref) for(let i=0;i<this.wdrops.length;i++){ const d=this.wdrops[i]; if(d.w!==pref) continue; const dd=dist2(d.x,d.z);
+        if(dd<1.6){ this.swapWeapon(b,i); break; } if(dd<10){ dx=d.x-b.x; dz=d.z-b.z; L=Math.hypot(dx,dz); if(L>0.5){wx=dx/L;wz=dz/L;} break; } } }
     // ---- combat movement
     if(tgt){
       if(B.strafeT<=0){B.strafeT=rand(0.25,0.9)/BD.strafe; B.strafe=Math.random()<0.5?-1:1;}
       let ax=tgt.x-b.x,az=tgt.z-b.z,al=Math.hypot(ax,az)||1; ax/=al;az/=al;
       const sx=-az*B.strafe,sz=ax*B.strafe;
       // range keeping: snipers back off, shotguns close in, riflers hold mid range
-      const ideal=b.w===2?45:b.w===1?4:18, rk=clamp((al-ideal)/10,-1,1);
+      const ideal=[18,4,45,14,8,1.2][b.w], rk=clamp((al-ideal)/10,-1,1);
       const retreat=hpFrac<0.35&&!carrying&&B.persona!=='rusher';
       // objective bots keep pushing while they fight; the rest fight for position
       const pushing=(MODE==='ctf'&&B.role==='att'&&(wx||wz))||(MODE==='koth'&&!this.onHill(b)&&L>2);
@@ -1001,7 +1071,7 @@ class Server{
       b.vx=sdx*v; b.vz=sdz*v; b.slideT=0.7;
     }
     const jump=!(b.slideT>0)&&(B.jump||(dodge&&Math.random()<0.04*BD.dodge)); B.jump=false;
-    physMove(b,dt,wx,wz,jump,SPEED*(b.twT>0?1.4:1)*0.94);
+    physMove(b,dt,wx,wz,jump,SPEED*(b.twT>0?1.4:1)*0.94*(W[WKEYS[b.w]].speed||1));
     b.padHit=false;
     if(B.abilT<=0&&!carrying){
       B.abilT=rand(0.8,2);
@@ -1011,7 +1081,7 @@ class Server{
     }
     // ---- aim: rotate toward the aim point at limited speed, plus smooth wobble
     let ap=null;
-    if(tgt){ const lead=BD.react*0.5*(1.5-B.skill*0.5), slid=tgt.isBot?tgt.slideT>0:tgt.sl, hh=slid?0.6:(b.w===2||Math.random()<BD.head?1.62:1.05);
+    if(tgt){ const lead=BD.react*0.5*(1.5-B.skill*0.5), slid=tgt.isBot?tgt.slideT>0:tgt.sl, hh=slid?0.6:((b.w===2&&Math.random()<BD.head*3)||Math.random()<BD.head?1.62:1.05); // snipers go for heads more, scaled by difficulty
       ap=[tgt.x+(tgt.vx||0)*lead,tgt.y+hh,tgt.z+(tgt.vz||0)*lead]; }
     else if(B.crate){const c=B.crate; ap=[(c.x0+c.x1)/2,(c.y0+c.y1)/2,(c.z0+c.z1)/2];}
     else if(B.heard) ap=[B.heard.x,B.heard.y+1.2,B.heard.z];
@@ -1029,7 +1099,8 @@ class Server{
     const w=W[WKEYS[b.w]];
     if(B.reloadT<=0&&B.fireCd<=0&&B.react<=0&&B.swapT<0.8&&(tgt||B.crate)){
       const d=tgt?Math.hypot(tgt.x-b.x,tgt.z-b.z):2, tol=tgt?Math.atan2(0.5,d)+0.02:0.3;
-      if(err<tol&&d<w.range*0.9){
+      if(w.melee){ if(tgt&&d<2.3&&err<0.6){ this.botMelee(b,tgt,w); B.fireCd=w.rate; } }
+      else if(err<tol&&d<w.range*0.9){
         this.botShoot(b,w,eye);
         B.burst++; B.fireCd=w.rate*(b.ut>0?0.65:1)*(b.w===0?1.15:1);
         if(b.w===0&&B.burst>=rand(...BD.burst)){B.burst=0; B.fireCd+=rand(...BD.pause);}
@@ -1037,6 +1108,12 @@ class Server{
       }
     }
     if(!tgt&&!B.crate&&B.reloadT<=0&&B.mag[b.w]<w.mag*0.5) B.reloadT=w.reload; // tactical reload when safe
+  }
+  isBackstab(a,v){ const fx=-Math.sin(v.yaw), fz=-Math.cos(v.yaw), ax=a.x-v.x, az=a.z-v.z, al=Math.hypot(ax,az)||1; return (fx*ax+fz*az)/al<-0.3; }
+  botMelee(b,t,w){ // backstab when the victim faces away
+    const back=this.isBackstab(b,t);
+    this.bc({t:'tr',o:[r2(b.x),r2(b.y+1.3),r2(b.z)],e:[],w:KNIFE,s:b.id});
+    this.damage(t,b,back?w.back:w.dmg,'🔪',false);
   }
   // real raycast shot from the bot's (imperfect) aim, same hitboxes as human shots
   botShoot(b,w,eye){
@@ -1088,6 +1165,10 @@ const SAMPLE_DEFS={
   woodbreak: {files:[0,1,2].map(i=>'impactPlank_medium_00'+i), vol:0.9},
   metal:     {files:[0,1,2].map(i=>'impactMetal_light_00'+i), vol:0.6},
   metalbreak:{files:[0,1,2].map(i=>'impactMetal_heavy_00'+i), vol:0.9},
+  pistol:    {files:[0,1,2].map(i=>'laserRetro_00'+i), vol:0.55, thump:[150,60,0.06,0.2]},
+  smg:       {files:['laserRetro_003','laserRetro_004'], vol:0.4, rate:1.25, thump:[170,70,0.04,0.12]},
+  stab:      {files:[0,1,2].map(i=>'impactPunch_medium_00'+i), vol:0.9},
+  barrier:   {files:['forceField_000','forceField_001'], vol:0.6},
 };
 const SAMPLES={}; let samplesRequested=false;
 function loadSamples(){
@@ -1120,6 +1201,11 @@ function sfx(k,v=1){
     case 'sniper': tone(2600,350,0.04,0.25*v); noise(0.45,0.75*v,v>0.6?4200:1500); noise(0.9,0.3*v,230); tone(95,28,0.4,0.55*v,'sine'); break;
     case 'hit': tone(1700,1600,0.04,0.12,'triangle'); noise(0.03,0.08,5000,'highpass'); break;
     case 'head': tone(2600,2600,0.06,0.14,'triangle'); setTimeout(()=>tone(3900,3900,0.12,0.12,'sine'),45); break;
+    case 'pistol': tone(2200,400,0.03,0.2*v); noise(0.12,0.45*v,v>0.6?3000:1300); tone(140,60,0.06,0.25*v,'sine'); break;
+    case 'smg': tone(1700,300,0.02,0.15*v); noise(0.07,0.35*v,v>0.6?3800:1500); tone(170,70,0.05,0.18*v,'sine'); break;
+    case 'knife': noise(0.18,0.28*v,2600,'highpass'); break;
+    case 'stab': noise(0.08,0.45*v,800,'bandpass'); tone(200,90,0.08,0.22*v,'triangle'); break;
+    case 'barrier': tone(220,880,0.5,0.15*v,'sine'); break;
     case 'step': noise(0.07,0.13*v,650,'bandpass'); tone(85,55,0.05,0.07*v,'sine'); break;
     case 'kill': tone(900,1900,0.18,0.18,'triangle'); break;
     case 'boom': noise(0.8,0.9*v,500); tone(120,30,0.5,0.4*v,'sine'); break;
@@ -1485,6 +1571,30 @@ function animDrops(t){
     u.kit.position.y=0.55+Math.sin(t*3+g.id)*0.1; u.kit.rotation.y=t*2; g.scale.setScalar(Math.min(1,age*4));
     g.visible=u.t>4||Math.sin(t*14)>-0.3; u.ring.material.opacity=0.35+Math.sin(t*4)*0.25; }
 }
+// spawn barriers during warmup: animated neon walls in front of each base
+const BARRIER_X=45;
+const barriers=[0,1].map(t=>{
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  x.strokeStyle='rgba(255,255,255,0.9)'; x.lineWidth=3; for(let i=0;i<=128;i+=32){x.beginPath(); x.moveTo(i,0); x.lineTo(i,128); x.moveTo(0,i); x.lineTo(128,i); x.stroke();}
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(72/4,8/4);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(72,8),new THREE.MeshBasicMaterial({map:tex,color:TEAM_COLOR[t],transparent:true,opacity:0.35,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  const sx=Math.sign(SPAWNS[t][0][0]); m.rotation.y=Math.PI/2; m.position.set(sx*BARRIER_X,4,0); m.visible=false; scene.add(m);
+  TEAMREG.push(()=>m.material.color.setHex(TEAM_COLOR[t])); return m;
+});
+// weapons lying on the ground (dropped by eliminated players): slowly spinning, gold ring, F to swap
+const wdropMeshes=new Map();
+function syncWDrops(wd){
+  const seen=new Set();
+  for(const [i,w,x,y,z] of wd){ seen.add(i); let g=wdropMeshes.get(i);
+    if(!g){ g=new THREE.Group(); const src=AVATAR_MODELS[WKEYS[w]]; const mdl=src?src.clone():new THREE.Mesh(new THREE.BoxGeometry(0.1,0.12,0.6),DROP_MAT.box);
+      mdl.scale.setScalar(1.3); const holder=new THREE.Group(); holder.add(mdl); holder.position.y=0.45;
+      const ring=new THREE.Mesh(DROP_GEO.ring,new THREE.MeshBasicMaterial({color:0xffcc33,transparent:true,opacity:0.55,side:THREE.DoubleSide,depthWrite:false}));
+      ring.rotation.x=-Math.PI/2; ring.position.y=0.03; ring.scale.setScalar(1.3); g.add(holder,ring); g.userData={holder,ring,w,born:performance.now()/1000};
+      g.position.set(x,y,z); scene.add(g); wdropMeshes.set(i,g); }
+  }
+  for(const [i,g] of wdropMeshes) if(!seen.has(i)){ scene.remove(g); g.userData.ring.material.dispose(); wdropMeshes.delete(i); }
+}
+function animWDrops(t){ for(const g of wdropMeshes.values()){ const u=g.userData; u.holder.rotation.y=t*1.2; u.holder.position.y=0.45+Math.sin(t*2.5+g.id)*0.06; g.scale.setScalar(Math.min(1,(t-u.born)*4)); } }
 // labels / sprites
 function makeLabel(text,color,depth=true){
   const c=document.createElement('canvas'); c.width=256; c.height=64; const x=c.getContext('2d');
@@ -1636,6 +1746,13 @@ function buildGunModel(k){
     add(sideSlab([[0.26,0.05],[0.5,0.02],[0.5,-0.1],[0.26,-0.05]],0.07),M.poly,0,0,0);
     add(new THREE.BoxGeometry(0.075,0.018,0.04),M.accent,0,0.072,-0.6);       // front sight bead
     for(let i=0;i<4;i++) add(cyl(0.011,0.011,0.035,8),new THREE.MeshStandardMaterial({color:0xaa1e2a,metalness:0.3,roughness:0.5}),0.06,-0.01-i*0.026,0.12).rotation.set(0,Math.PI/2,0); // side shell carrier
+  } else if(k==='pistol'||k==='smg'){ // simple fallbacks until the GLB loads
+    const L_=k==='smg'?0.32:0.22;
+    add(new THREE.BoxGeometry(0.06,0.08,L_),M.metal,0,0.02,-L_/2+0.08); add(new THREE.BoxGeometry(0.05,0.13,0.06),M.grip,0,-0.07,0.06,0.25);
+    add(new THREE.BoxGeometry(0.062,0.012,L_*0.7),M.accent,0,0.065,-L_/2+0.08);
+  } else if(k==='knife'){
+    add(new THREE.BoxGeometry(0.012,0.05,0.26),M.metal,0,0,-0.15); add(new THREE.BoxGeometry(0.03,0.04,0.12),M.grip,0,-0.005,0.05);
+    add(new THREE.BoxGeometry(0.07,0.02,0.02),M.dark,0,0,-0.01);
   } else {
     add(sideSlab([[-0.3,-0.04],[0.24,-0.04],[0.26,0.0],[0.26,0.045],[-0.26,0.045],[-0.3,0.02]],0.065),M.metal,0,0,0);
     add(new THREE.BoxGeometry(0.067,0.006,0.48),M.accent,0,-0.02,-0.02);
@@ -1670,15 +1787,30 @@ const AVATAR_GUN=(()=>{
 function buildGun(k){
   const g=new THREE.Group(), model=buildGunModel(k); model.position.set(0,0,-0.22); model.scale.setScalar(0.8); g.add(model);
   const flash=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),new THREE.MeshBasicMaterial({color:0xffe08a})); flash.position.set(0,0.015,k==="sniper"?-0.92:k==="shotgun"?-0.66:-0.82); flash.visible=false; model.add(flash);
-  g.userData.flash=flash; g.visible=false; g.scale.setScalar(0.75); vmScene.add(g); return g;
+  g.userData.flash=flash; g.visible=false; g.scale.setScalar(0.75); vmScene.add(g);
+  const len=(GUN_GLB[k]||{len:0.8}).len, H=VM_HANDS(k,len);
+  const hand=(at,side)=>{ const h=new THREE.Group(); h.add(new THREE.Mesh(HAND_GEO.glove,HAND_MAT.glove));
+    const sl=new THREE.Mesh(HAND_GEO.sleeve,HAND_MAT.sleeve); sl.position.set(side*0.02,-0.05,0.26); sl.rotation.set(0.32,side*-0.12,0); h.add(sl);
+    h.position.set(...at); g.add(h); return h; };
+  g.userData.R=hand(H.R,1); g.userData.L=H.L?hand(H.L,-1):null; g.userData.Lrest=H.L?new THREE.Vector3(...H.L):null;
+  return g;
 }
-const vmGuns=WKEYS.map(buildGun);
+const HAND_GEO={glove:new THREE.BoxGeometry(0.075,0.085,0.11),sleeve:new THREE.BoxGeometry(0.085,0.085,0.46)};
+const HAND_MAT={glove:new THREE.MeshStandardMaterial({color:0x23262f,roughness:0.8}),sleeve:new THREE.MeshStandardMaterial({color:0x2b4f8a,roughness:0.7,metalness:0.2})};
+function VM_HANDS(k,len){ const z0=-0.12;
+  if(k==='knife') return {R:[0.03,-0.03,z0+len*0.36],L:null};
+  if(k==='pistol') return {R:[0.03,-0.09,z0+0.07],L:[-0.01,-0.12,z0+0.1]};
+  return {R:[0.03,-0.1,z0+len*0.18],L:[-0.005,-0.075,z0-len*0.22]};
+}
 // GLB weapon models (Kenney Blaster Kit, CC0) replace the procedural guns once loaded; procedural ones stay as fallback.
 // len = target length in meters, flip = model's muzzle points +Z
-const GUN_GLB={rifle:{url:'assets/weapons/rifle.glb',len:0.8,flip:false},shotgun:{url:'assets/weapons/shotgun.glb',len:0.62,flip:false},sniper:{url:'assets/weapons/sniper.glb',len:1.0,flip:false}};
+const GUN_GLB={rifle:{url:'assets/weapons/rifle.glb',len:0.8},shotgun:{url:'assets/weapons/shotgun.glb',len:0.62},sniper:{url:'assets/weapons/sniper.glb',len:1.0},
+  pistol:{url:'assets/weapons/pistol.glb',len:0.34},smg:{url:'assets/weapons/smg.glb',len:0.48},knife:{url:'assets/weapons/knife.glb',len:0.6,rx:-Math.PI/2}};
+const AVATAR_MODELS={}; // fitted GLB per weapon key, cloned into players' hands and onto the ground
+const vmGuns=WKEYS.map(buildGun);
 const avatarGuns=[];
 function fitGun(root,k){
-  const cfg=GUN_GLB[k]; if(cfg.flip) root.rotation.y=Math.PI;
+  const cfg=GUN_GLB[k]; if(cfg.flip) root.rotation.y=Math.PI; if(cfg.rx) root.rotation.x=cfg.rx;
   const wrap=new THREE.Group(); wrap.add(root); wrap.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(wrap), size=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
   const sc=cfg.len/size.z; root.position.sub(c); wrap.scale.setScalar(sc);
@@ -1686,12 +1818,14 @@ function fitGun(root,k){
   return {wrap,len:cfg.len,top:size.y*sc/2};
 }
 {
-  const loader=new GLTFLoader();
+  const loader=new GLTFLoader(), draco=new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/'); loader.setDRACOLoader(draco);
   WKEYS.forEach((k,i)=>loader.load(GUN_GLB[k].url,gl=>{
     const {wrap,len}=fitGun(gl.scene,k);
+    AVATAR_MODELS[k]=wrap.clone(); for(const av of client?client.avatars.values():[]) av.shownW=-1;
     const model=vmGuns[i].children[0], flash=vmGuns[i].userData.flash;
     model.clear(); model.add(wrap,flash); model.position.set(0.03,-0.02,-0.12); model.scale.setScalar(1);
-    flash.position.set(0,0.02,-len/2-0.04);
+    flash.position.set(0,0.02,-len/2-0.04); if(k==='knife') flash.visible=false;
+    const mag=wrap.getObjectByName('magazine'); vmGuns[i].userData.mag=mag||null; if(mag) vmGuns[i].userData.magBase=mag.position.clone();
     if(k==='rifle'){ AVATAR_GUN.clear(); AVATAR_GUN.add(wrap.clone()); for(const g of avatarGuns){g.clear(); g.add(wrap.clone());} }
   },undefined,e=>console.warn('weapon model failed, keeping procedural gun',k,e)));
 }
@@ -1748,7 +1882,8 @@ class Client{
     this.send=send; this.id=0; this.team=0;
     this.me={x:0,y:0,z:0,vx:0,vy:0,vz:0,onGround:false,dashT:0};
     this.yaw=0; this.pitch=0; this.alive=false; this.hp=100; this.sh=0; this.u=0; this.ut=0; this.rs=0;
-    this.w=0; this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; this.fireCd=0; this.cd={dash:0,gren:0,shield:0,slide:0};
+    this.load=Object.assign({p:0,s:3},SET.load||{}); this.nextLoad=null; this.slot=0; this.w=this.load.p; this.swing=0; this.warm=0; this.warmShown=false;
+    this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; this.fireCd=0; this.cd={dash:0,gren:0,shield:0,slide:0};
     this.eyeOff=0; this.roll=0; this.shake=0; this.streak=0; this.bloom=0; this.hill=-1;
     this.snap=null; this.stT=0; this.avatars=new Map(); this.kick=0; this.bob=0; this.zoomed=false; this.lastHp=100; this.killer='';
   }
@@ -1758,10 +1893,13 @@ class Client{
         if(m.map&&(m.map!==MAP_ID||m.mode!==MODE||m.diff!==DIFF)){ // host runs another map/mode: reload into it and rejoin
           try{sessionStorage.setItem('hs_auto','join');}catch(e){}
           location.replace(location.pathname+`?map=${m.map}&mode=${m.mode}&diff=${m.diff}#`+(location.hash.slice(1)||JOIN_CODE)); return; }
-        this.id=m.id; this.team=m.team; applyTeamView(m.team); setHillColor(-1);
+        this.id=m.id; this.team=m.team; applyTeamView(m.team); setHillColor(-1); this.send({t:'load',p:this.load.p,s:this.load.s});
         showMsg(`<span style="color:#2fa8ff">فريقك أزرق</span> • <span style="color:#ff3b5c">العدو أحمر</span> — ${MODE_HINT[MODE]}`,4000); break;
       case 'spawn': Object.assign(this.me,{x:m.x,y:m.y,z:m.z,vx:0,vy:0,vz:0,dashT:0,slideT:0}); this.streak=0; this.yaw=m.yaw; this.pitch=0; this.alive=true;
+        if(this.nextLoad){this.load=this.nextLoad; this.nextLoad=null;} this.slot=0; this.w=this.load.p;
         this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; $('dead').classList.add('hidden'); break;
+      case 'gotw': this.load.p=m.w; SET.load={...this.load}; saveSet(); this.ammo[m.w]=W[WKEYS[m.w]].mag; this.slot=-1; this.setSlot(0);
+        sfx('pick'); showMsg('حملت '+W[WKEYS[m.w]].name+' ✋',1200); break;
       case 'snap': if(this.id) this.onSnap(m); break;
       case 'tr':{ const col=m.s&&this.avatars.get(m.s)?.team===this.team?0x9fd8ff:0xffb08a;
         (m.e||[]).forEach(e=>addTracer(m.o,e,col)); sfx(W[WKEYS[m.w|0]].snd,this.vol(m.o)*0.8); break;}
@@ -1795,6 +1933,7 @@ class Client{
       case 'leave': feed([[m.n,'#aaa'],['غادر',null,'w']]); break;
       case 'start': showMsg('بدأت مباراة جديدة!',2000); break;
       case 'end': sfx('cap'); break;
+      case 'go': sfx('barrier'); showMsg('⚡ انطلقوا!',1500); closeLoadout(true); break;
       case 'hill': sfx('flag'); showMsg(m.tm===this.team?'فريقك سيطر على التلة!':'⚠ العدو سيطر على التلة!',1800); break;
     }
   }
@@ -1810,7 +1949,7 @@ class Client{
       seen.add(p.i); let av=this.avatars.get(p.i);
       if(!av||av.team!==p.t){ if(av) scene.remove(av.g); av=makeAvatar(p.t,p.n,p.t===this.team); this.avatars.set(p.i,av); scene.add(av.g);
         if(SHADOWS) av.g.traverse(o=>{ if(o.isMesh&&!(o.material&&o.material.transparent)) o.castShadow=true; }); av.pos.set(p.x,p.y,p.z); }
-      av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.team=p.t; av.name=p.n;
+      av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.w=p.w|0; av.team=p.t; av.name=p.n;
       if(av.wasAlive&&!p.al){ addPoof(av.pos,TEAM_COLOR[p.t]); deathBurst(av); }
       if(!av.wasAlive&&p.al) av.pos.copy(av.target);
       av.alive=!!p.al; av.wasAlive=av.alive; av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
@@ -1823,6 +1962,10 @@ class Client{
     s.pk.forEach((on,i)=>pickMeshes[i].visible=!!on);
     if(s.cr) syncCrates(s.cr);
     if(s.dr) syncDrops(s.dr);
+    if(s.wd) syncWDrops(s.wd);
+    this.warm=s.ph||0; barriers.forEach(b=>b.visible=this.warm>0);
+    if(this.warm>0&&!this.warmShown&&this.alive){ this.warmShown=true; openLoadout(); } if(!this.warm) this.warmShown=false;
+    const wm=$('warm'); wm.classList.toggle('hidden',!this.warm); if(this.warm) wm.innerHTML=`تبدأ المباراة بعد ${this.warm}<small>اختار أسلحتك (B) — الحاجز بينفتح لما يخلص العد</small>`;
     if(MODE==='koth'&&s.hl!==this.hill){this.hill=s.hl; setHillColor(s.hl);}
     updateHudSnap(this,s);
   }
@@ -1837,10 +1980,15 @@ class Client{
       let wx=fx_*fw+rx*st, wz=fz*fw+rz*st; const L=Math.hypot(wx,wz); if(L>1){wx/=L;wz/=L;}
       this.wish=[wx,wz];
       this.twT=Math.max(0,(this.twT||0)-dt);
-      physMove(me,dt,wx,wz,!!KEYS.Space,SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:1));
+      physMove(me,dt,wx,wz,!!KEYS.Space,SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:1)*(W[WKEYS[this.w]].speed||1));
       if(me.padHit){me.padHit=false; sfx('pad');}
       this.updateWeapon(dt);
     } else if(this.alive){ physMove(me,dt,0,0,false,SPEED); me.padHit=false; this.updateWeapon(dt); }
+    if(this.alive&&this.warm>0){ const sx=Math.sign(SPAWNS[this.team][0][0]); if(sx>0&&me.x<BARRIER_X+0.5){me.x=BARRIER_X+0.5; me.vx=Math.max(0,me.vx);} if(sx<0&&me.x>-BARRIER_X-0.5){me.x=-BARRIER_X-0.5; me.vx=Math.min(0,me.vx);} }
+    // nearest weapon on the ground → pickup prompt
+    this.nearW=null; if(this.alive){ let bd=2.2; for(const [i,g] of wdropMeshes){ const d=Math.hypot(g.position.x-me.x,g.position.z-me.z); if(d<bd&&Math.abs(g.position.y-me.y)<2&&g.userData.w!==this.load.p){bd=d; this.nearW=i;} } }
+    { const pp=$('pickp'), g=this.nearW?wdropMeshes.get(this.nearW):null; pp.classList.toggle('hidden',!g||TOUCH); $('tPick').classList.toggle('hidden',!g||!TOUCH);
+      if(g) pp.innerHTML=`<kbd>F</kbd> خذ ${W[WKEYS[g.userData.w]].name} (بدل ${W[WKEYS[this.load.p]].name})`; }
     if(this.alive){
       this.stT-=dt;
       if(this.stT<=0){this.stT=0.05; this.send({t:'st',x:r2(me.x),y:r2(me.y),z:r2(me.z),vx:r2(me.vx),vz:r2(me.vz),yw:r2(this.yaw),pt:r2(this.pitch),w:this.w,sl:me.slideT>0?1:0});}
@@ -1862,15 +2010,26 @@ class Client{
     $('speed').style.opacity=this.alive&&!zoom?clamp((spd-SPEED-2)/10,0,0.8):0; if(Math.abs(camera.fov-fov)>0.1){camera.fov+= (fov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix();}
     $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom);
     vmGuns.forEach((g,i)=>{g.visible=this.alive&&i===this.w&&!zoom;});
-    const g=vmGuns[this.w]; const rl=this.reloadT>0?Math.sin(Math.min(1,(W[WKEYS[this.w]].reload-this.reloadT)/W[WKEYS[this.w]].reload)*Math.PI):0;
-    g.position.set(0.24+Math.cos(this.bob)*0.012,-0.23+Math.abs(Math.sin(this.bob))*0.012-rl*0.15,-0.5+this.kick*0.08);
-    g.rotation.set(this.kick*0.25+rl*0.6,0,0);
+    const g=vmGuns[this.w], wk=W[WKEYS[this.w]];
+    const rp=this.reloadT>0?clamp(1-this.reloadT/wk.reload,0,1):0, rl=Math.sin(rp*Math.PI); // reload progress 0..1 and its dip curve
+    this.swing=Math.max(0,this.swing-dt*3.2); const sw=Math.sin((1-this.swing)*Math.PI)*(this.swing>0?1:0);
+    g.position.set(0.24+Math.cos(this.bob)*0.012-sw*0.12,-0.23+Math.abs(Math.sin(this.bob))*0.012-rl*0.08+sw*0.05,-0.5+this.kick*0.08-sw*0.12);
+    g.rotation.set(this.kick*0.25+rl*0.22-sw*0.5,sw*0.9,rl*0.3+sw*0.6);
+    // magazine out → new magazine in, left hand fetches it; mag-less guns pump/feed with the left hand instead
+    const U=g.userData;
+    if(U.mag){ const out=rp>0.12&&rp<0.42?(rp-0.12)/0.3:0, back=rp>=0.42&&rp<0.8?1-(rp-0.42)/0.38:0, off=rp>=0.12&&rp<0.8?(rp<0.42?out:back):0;
+      U.mag.position.copy(U.magBase); U.mag.position.y-=off*1.4; U.mag.visible=!(rp>0.38&&rp<0.48); }
+    if(U.L&&U.Lrest){ const t2=U.L.position; t2.copy(U.Lrest);
+      if(rp>0.08&&rp<0.9){ const k2=Math.sin((rp-0.08)/0.82*Math.PI);
+        if(U.mag){ g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(new THREE.Vector3()); g.worldToLocal(mp); t2.lerp(mp.add(new THREE.Vector3(-0.02,-0.04,0)),k2); }
+        else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } } }
     if(g.userData.flash.visible&&(this.flashT-=dt)<=0) g.userData.flash.visible=false;
     this.updateAvatars(dt);
   }
   updateWeapon(dt){
     this.fireCd-=dt;
     const k=WKEYS[this.w], w=W[k];
+    if(w.melee){ if(mouseDown&&playing&&this.fireCd<=0){ this.melee(); this.fireCd=w.rate; } this.zoomed=false; return; }
     if(this.reloadT>0){this.reloadT-=dt; if(this.reloadT<=0){this.reloadT=0; this.ammo[this.w]=w.mag;}}
     this.zoomed=!!(w.zoom&&rightDown&&this.reloadT<=0&&playing);
     if(mouseDown&&playing&&this.fireCd<=0&&this.reloadT<=0){
@@ -1879,8 +2038,25 @@ class Client{
       if(this.ut<=0){this.ammo[this.w]--; if(this.ammo[this.w]<=0) this.reload();}
     }
   }
-  reload(){const w=W[WKEYS[this.w]]; if(this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; sfx('reload');}
-  switchW(i){if(i===this.w||!this.alive) return; this.w=i; this.reloadT=0; this.fireCd=0.3; this.zoomed=false;}
+  reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; sfx('reload');}
+  // slots: 0 primary, 1 secondary, 2 knife
+  setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; }
+  switchW(sl){ this.setSlot(sl); }
+  pickup(){ if(this.nearW&&this.alive) this.send({t:'pk',i:this.nearW}); }
+  melee(){ // knife: hits the closest enemy in a short cone in front; from behind it's a one-shot
+    const me=this.me, w=W.knife; this.swing=1; sfx('knife');
+    const fx=-Math.sin(this.yaw)*Math.cos(this.pitch), fy=Math.sin(this.pitch), fz=-Math.cos(this.yaw)*Math.cos(this.pitch);
+    const eye=[me.x,me.y+EYE,me.z]; let best=null,bd=w.range+0.45;
+    for(const [id,av] of this.avatars){ if(!av.alive||av.team===this.team) continue;
+      const tx=av.pos.x-eye[0], ty=av.pos.y+1.1-eye[1], tz=av.pos.z-eye[2], d=Math.hypot(tx,ty,tz);
+      if(d<bd&&(tx*fx+ty*fy+tz*fz)/d>0.72&&clearLine(eye,[av.pos.x,av.pos.y+1.1,av.pos.z])){bd=d;best=[id,av];} }
+    this.send({t:'sh',o:eye.map(r2),e:[],w:KNIFE});
+    if(best){ const [id,av]=best, vf=[-Math.sin(av.ryaw),-Math.cos(av.ryaw)], ax=me.x-av.pos.x, az=me.z-av.pos.z, al=Math.hypot(ax,az)||1;
+      const back=(vf[0]*ax+vf[1]*az)/al<-0.3, dmg=back?w.back:w.dmg;
+      this.send({t:'hit',v:id,d:dmg,h:false,w:KNIFE}); av.flinch=0.18; hitMarker(false); sfx('stab');
+      dmgNum([av.pos.x,av.pos.y+1.3,av.pos.z],dmg,back); if(back) showMsg('🔪 طعنة من ورا!',900); this.kick=0.6; return; }
+    const t=rayWorld(eye,[fx,fy,fz],w.range); if(RAY_BOX&&RAY_BOX.crate&&t<w.range){ const end=[eye[0]+fx*t,eye[1]+fy*t,eye[2]+fz*t]; this.send({t:'cr',i:RAY_BOX.ci,d:w.dmg,w:KNIFE}); crateHit(RAY_BOX,end); }
+  }
   shoot(){
     const k=WKEYS[this.w], w=W[k], me=this.me;
     camera.updateMatrixWorld();
@@ -1963,6 +2139,7 @@ class Client{
       if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
       let dy=av.yaw-av.ryaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); av.ryaw+=dy*k;
       av.g.position.copy(av.pos); av.g.rotation.y=av.ryaw; av.g.visible=av.alive;
+      if(av.shownW!==av.w&&AVATAR_MODELS[WKEYS[av.w]]){ av.gun.clear(); av.gun.add(AVATAR_MODELS[WKEYS[av.w]].clone()); av.shownW=av.w; }
       av.mBody.emissiveIntensity=av.flinch>0.09?0.9:av.ult?0.6+Math.sin(t*12)*0.3:0.18;
       if(av.shield.visible) av.shield.rotation.y+=dt*1.5;
     }
@@ -2047,8 +2224,10 @@ function drawBoard(c,s){
 function updateHudFrame(c){
   const w=W[WKEYS[c.w]];
   $('wname').textContent=w.name+(c.reloadT>0?' — تلقيم...':'');
-  $('ammo').innerHTML=c.ut>0?'∞<small>/'+w.mag+'</small>':`${c.ammo[c.w]}<small>/${w.mag}</small>`;
-  document.querySelectorAll('.ws').forEach((e,i)=>e.classList.toggle('on',i===c.w));
+  $('ammo').innerHTML=w.melee?'🔪':c.ut>0?'∞<small>/'+w.mag+'</small>':`${c.ammo[c.w]}<small>/${w.mag}</small>`;
+  const sk=c.load.p+'.'+c.load.s; if(sk!==c._slotKey){ c._slotKey=sk; const n=[W[WKEYS[c.load.p]].name,W[WKEYS[c.load.s]].name,W.knife.name];
+    document.querySelectorAll('.ws').forEach((e,i)=>e.textContent=(i+1)+' '+n[i]); }
+  document.querySelectorAll('.ws').forEach((e,i)=>e.classList.toggle('on',i===c.slot));
   if(TOUCH){ document.querySelectorAll('.tb[data-cd]').forEach(el=>{const k=el.dataset.cd; el.style.setProperty('--cd',c.cd[k]/CD[k]*100);});
     const u=$('tUlt'); u.style.setProperty('--cd',c.ut>0?0:100-c.u); u.style.boxShadow=c.u>=100&&c.ut<=0?'0 0 18px #ffcc33':'';
     $('tScope').style.display=WKEYS[c.w]==='sniper'?'flex':'none'; }
@@ -2079,7 +2258,7 @@ function drawMini(c){
 let client=null, server=null, peer=null;
 const canvas=renderer.domElement;
 function lock(){ try{const p=canvas.requestPointerLock(); if(p&&p.catch) p.catch(()=>{});}catch(e){} }
-canvas.addEventListener('click',()=>{ if(client&&$('pause').classList.contains('hidden')) lock(); });
+canvas.addEventListener('click',()=>{ if(client&&$('pause').classList.contains('hidden')&&!loadoutOpen) lock(); });
 // ---------- pause menu (Esc on desktop, ☰ on touch): resume, settings, leave
 function openMenu(){
   if(!client) return; playing=false; mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
@@ -2100,9 +2279,38 @@ document.addEventListener('pointerlockchange',()=>{
   if(TOUCH) return;
   playing=document.pointerLockElement===canvas;
   if(playing) $('pause').classList.add('hidden');
-  else if(client){ closeChat(); closeQuick(); openMenu(); }
+  else if(client&&!loadoutOpen){ closeChat(); closeQuick(); openMenu(); }
   if(!playing){mouseDown=false;rightDown=false;}
 });
+// ---------- loadout screen (auto during warmup, B any time, button on the death screen)
+let loadoutOpen=false;
+const LO_INFO={0:'متوازن لكل المسافات',1:'قاتل من قريب، ضعيف من بعيد',2:'طلقة راس بتقتل — بطيء',3:'دقيق وموثوق',4:'رش سريع من قريب'};
+const LO_RANGE={0:60,1:14,2:150,3:40,4:24};
+function loCard(id,sel){
+  const w=W[WKEYS[id]], dps=w.dmg*w.pellets/w.rate, d=document.createElement('div'); d.className='lcard'+(sel?' on':'');
+  const bar=(l,v)=>`<div class="lst"><span>${l}</span><i style="--v:${Math.round(clamp(v,0.05,1)*100)}%"></i></div>`;
+  d.innerHTML=`<b>${w.name}</b><p>${LO_INFO[id]}</p>${bar('الضرر',dps/220)}${bar('المدى',LO_RANGE[id]/150)}${bar('الحركة',((w.speed||1)-0.85)/0.3)}${bar('المخزن',w.mag/32)}`;
+  return d;
+}
+function drawLoadout(){
+  const c=client; if(!c) return; const cur=c.nextLoad||c.load;
+  for(const [box,ids,key] of [[$('loP'),PRIMS,'p'],[$('loS'),SECS,'s']]){ box.innerHTML='';
+    for(const id of ids){ const d=loCard(id,cur[key]===id); d.onclick=()=>{ const nl={...cur,[key]:id}; chooseLoad(nl); }; box.appendChild(d); } }
+  $('loSub').textContent=c.warm>0?`المباراة بتبدأ بعد ${c.warm} ثواني`:!c.alive?'رح تنزل فيها بعد ما ترجع':'التغيير بيتطبّق لما ترجع تنزل (بعد ما تموت)';
+}
+function chooseLoad(nl){
+  const c=client; SET.load={...nl}; saveSet(); c.send({t:'load',p:nl.p,s:nl.s});
+  if(c.warm>0||!c.alive){ c.load={...nl}; c.nextLoad=null; c.slot=-1; c.setSlot(0); c.ammo=WKEYS.map(k=>W[k].mag); } else c.nextLoad={...nl};
+  drawLoadout();
+}
+function openLoadout(){ if(!client) return; loadoutOpen=true; drawLoadout(); $('loadout').classList.remove('hidden'); $('pause').classList.add('hidden');
+  closeChat(); closeQuick(); mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
+  if(TOUCH) playing=false; else if(document.pointerLockElement) document.exitPointerLock(); }
+function closeLoadout(auto){ if(!loadoutOpen) return; loadoutOpen=false; $('loadout').classList.add('hidden');
+  if(TOUCH) playing=true; else if(!auto) lock(); }
+$('loGo').onclick=()=>closeLoadout(false);
+$('deadLo').onclick=()=>openLoadout();
+setInterval(()=>{ if(loadoutOpen) $('loSub').textContent=client.warm>0?`المباراة بتبدأ بعد ${client.warm} ثواني`:$('loSub').textContent; },500);
 // ---------- chat: Enter = type (Tab switches team/all), T = quick messages
 const QUICK=['هاجموا! 🔥','دافعوا عن القاعدة! 🛡️','محتاج مساعدة! 🆘','العدو هون! 👀','تابعوني! ➡️','خذوا العلم! ⚑','شكراً 🙏','GG 🤝'];
 let chatTeam=true;
@@ -2133,9 +2341,11 @@ document.addEventListener('mousemove',e=>{
 document.addEventListener('mousedown',e=>{ if(!playing) return; if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; });
 document.addEventListener('mouseup',e=>{ if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; });
 document.addEventListener('contextmenu',e=>e.preventDefault());
-document.addEventListener('wheel',e=>{ if(playing&&client) client.switchW((client.w+(e.deltaY>0?1:2))%3); });
+document.addEventListener('wheel',e=>{ if(playing&&client) client.setSlot((Math.max(0,client.slot)+(e.deltaY>0?1:2))%3); });
 document.addEventListener('keydown',e=>{
   if(!client||document.activeElement===$('chatTxt')) return;
+  if(e.code==='KeyB'&&!e.repeat){ loadoutOpen?closeLoadout(false):openLoadout(); return; }
+  if(loadoutOpen) return;
   if(!$('quick').classList.contains('hidden')&&/^Digit[1-8]$/.test(e.code)){ sendQuick(+e.code.slice(5)-1); return; }
   if(playing&&(e.code==='Enter'||e.code==='NumpadEnter')){ e.preventDefault(); openChat(); return; }
   if(playing&&e.code==='KeyT'){ $('quick').classList.contains('hidden')?openQuick():closeQuick(); return; }
@@ -2147,7 +2357,7 @@ document.addEventListener('keydown',e=>{
     case 'KeyC': client.slide(); break;
     case 'KeyQ': client.gren(); break;
     case 'KeyE': client.shield(); break;
-    case 'KeyF': client.ult(); break;
+    case 'KeyF': client.pickup(); break;
     case 'KeyR': client.reload(); break;
     case 'Digit1': client.switchW(0); break;
     case 'Digit2': client.switchW(1); break;
@@ -2179,7 +2389,7 @@ function enterGame(){
     return;
   }
   lock();
-  setTimeout(()=>{ if(!playing&&!TOUCH) openMenu(); },300);
+  setTimeout(()=>{ if(!playing&&!TOUCH&&!loadoutOpen) openMenu(); },300);
 }
 /* ---------- touch input (handlers only fire on touch devices) ---------- */
 {
@@ -2210,7 +2420,8 @@ function enterGame(){
   btn('tScope',()=>{rightDown=!rightDown; $('tScope').style.borderColor=rightDown?'#00e5ff':'';});
   btn('tSlide',()=>client.slide()); btn('tDash',()=>client.dash()); btn('tGren',()=>client.gren()); btn('tShield',()=>client.shield());
   btn('tUlt',()=>client.ult()); btn('tReload',()=>client.reload());
-  btn('tWeap',()=>{client.switchW((client.w+1)%3); rightDown=false; $('tScope').style.borderColor='';});
+  btn('tWeap',()=>{client.setSlot((Math.max(0,client.slot)+1)%3); rightDown=false; $('tScope').style.borderColor='';});
+  btn('tPick',()=>client.pickup());
   btn('tMenu',()=>{ $('pause').classList.contains('hidden')?openMenu():resume(); });
   btn('tChat',()=>{ if($('quick').classList.contains('hidden')) openQuick(); else { closeQuick(); playing=false; openChat(); } });
   btn('tTab',()=>{ const b=$('board'); b.classList.toggle('hidden'); if(!b.classList.contains('hidden')&&client.snap) drawBoard(client,client.snap); });
@@ -2299,7 +2510,8 @@ function frame(){
   pickMeshes.forEach((m,i)=>{m.rotation.y=t*2; m.position.y=PICKUPS_DEF[i].y+0.9+Math.sin(t*3+i)*0.12;});
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
-  updateFx(dt); updateCrates(dt); animDrops(t); watchPerf(dt);
+  updateFx(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt);
+  if(barriers[0].visible) barriers.forEach(b=>{ b.material.map.offset.y=t*0.25; b.material.opacity=0.28+Math.sin(t*3)*0.08; });
   renderer.clear(); if(composer) composer.render(); else renderer.render(scene,camera); renderer.clearDepth(); renderer.render(vmScene,vmCam);
   updateDmgNums(dt);
 }

@@ -1,0 +1,4 @@
+Weapon models
+- rifle.glb, shotgun.glb, sniper.glb, smg.glb, pistol.glb: Kenney "Blaster Kit" (www.kenney.nl), CC0. See LICENSE-kenney.txt.
+- knife.glb (Sword172): "50 Swords" pack from itch.io. Free to use in projects, including commercial games; the asset itself may not be resold on its own.
+  Source link: (to be added)
