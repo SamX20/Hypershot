@@ -100,7 +100,7 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #endScr h1{font-size:64px;margin:0;text-shadow:0 0 30px currentColor}
 /* ---------- modern layer ---------- */
 :root{--panel:rgba(14,18,42,.55);--glass:blur(10px) saturate(140%)}
-.sc,#timer,.ab,.fi,#board,#room,.ws,#pause div,#mini{backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid rgba(140,160,255,.18)}
+.sc,#timer,.ab,.fi,#board,#room,.ws,#pause .pm,#mini{backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid rgba(140,160,255,.18)}
 .sc,#timer{box-shadow:0 8px 30px rgba(0,0,0,.35)}
 .sc.r{border-bottom:3px solid var(--red)} .sc.b{border-bottom:3px solid var(--blue)}
 .ab{border-radius:16px;transition:transform .12s}
@@ -202,6 +202,27 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #pause{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);direction:rtl;cursor:pointer}
 #pause div{background:var(--panel);padding:20px 34px;border-radius:14px;font-size:20px;text-align:center}
 #pause small{display:block;opacity:.7;font-size:13px;margin-top:8px}
+
+/* ---- pause menu, chat, quick chat, health drops ---- */
+#pause{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:30}
+#pause .pm{width:min(380px,90vw);padding:22px;border-radius:16px;background:rgba(12,16,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);text-align:center}
+#pause h2{margin:0 0 6px;font-size:22px} #pause .sub2{opacity:.7;font-size:12px;margin-bottom:6px}
+#pause .set{text-align:right;margin-top:12px} #pause .set label{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 4px;opacity:.85}
+#pause .set input[type=range]{width:100%} #pause .set select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid #33407e;background:#0d1330;color:var(--text);font-size:14px}
+#pause .warn{font-size:11px;opacity:.65;margin-top:6px}
+#chat{position:absolute;left:18px;bottom:118px;width:min(380px,60vw);direction:rtl;pointer-events:none;font-size:14px}
+#chatLog div{margin-top:3px;padding:3px 8px;border-radius:8px;background:rgba(6,10,30,.55);width:fit-content;max-width:100%;transition:opacity .6s;text-shadow:0 1px 2px #000;word-break:break-word}
+#chatLog div.old{opacity:0} #chat.open #chatLog div.old{opacity:.85}
+#chatLog .ch{opacity:.7;font-size:12px} #chatLog .nm{font-weight:700}
+#chatIn{margin-top:6px;display:flex;gap:6px;align-items:center;pointer-events:auto;background:rgba(6,10,30,.8);border:1px solid rgba(140,160,255,.35);border-radius:10px;padding:4px 8px}
+#chatIn input{flex:1;background:transparent;border:0;color:#fff;font-size:14px;outline:none;padding:4px 0}
+#chatCh{font-size:12px;padding:2px 8px;border-radius:6px;background:#1d3a7a;cursor:pointer;white-space:nowrap} #chatCh.all{background:#5a2a7a}
+#quick{position:absolute;left:18px;top:50%;transform:translateY(-50%);direction:rtl;background:rgba(10,14,36,.85);border:1px solid rgba(140,160,255,.3);border-radius:12px;padding:8px;min-width:200px;backdrop-filter:blur(10px)}
+#quick div{padding:6px 10px;border-radius:8px;cursor:pointer;font-size:14px} #quick div:hover{background:rgba(80,100,255,.25)} #quick b{display:inline-block;width:20px;color:#00e5ff}
+#quick .qh{opacity:.6;font-size:11px;cursor:default} #quick .qh:hover{background:none}
+#tMenu{left:10px;top:10px;width:44px;height:44px;font-size:20px} #tChat{right:180px;bottom:270px;width:52px;height:52px;font-size:20px}
+body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
+body.touch #mini{left:62px}
 </style>
 </head>
 <body>
@@ -244,6 +265,8 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
     <div id="wslots"><span class="ws on">1 رشاش</span><span class="ws">2 شوزن</span><span class="ws">3 قناص</span></div>
   </div>
   <div id="dead" class="hidden"><h2>💀 تم إقصاؤك</h2><p id="deadBy"></p><p id="deadT"></p></div>
+  <div id="chat"><div id="chatLog"></div><div id="chatIn" class="hidden"><span id="chatCh">الفريق</span><input id="chatTxt" maxlength="100" autocomplete="off" placeholder="اكتب رسالة… (Enter إرسال • Tab تبديل القناة)"></div></div>
+  <div id="quick" class="hidden"></div>
   <div id="board" class="hidden"></div>
   <div id="endScr" class="hidden"><h1 id="endT"></h1><p id="endS" style="font-size:20px"></p></div>
 </div>
@@ -261,9 +284,23 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
   <div class="tb" id="tReload">↻</div>
   <div class="tb" id="tWeap">⇄</div>
   <div class="tb" id="tTab">النتائج</div>
+  <div class="tb" id="tMenu">☰</div>
+  <div class="tb" id="tChat">💬</div>
 </div>
 
-<div id="pause" class="hidden"><div>انقر للعودة إلى اللعب<small>Esc لإظهار الماوس • Tab للنتائج</small></div></div>
+<div id="pause" class="hidden"><div class="pm">
+  <h2>⏸ متوقف مؤقتاً</h2><div class="sub2">اللعبة مستمرة عند الباقين</div>
+  <button class="btn" id="pmResume">▶ متابعة</button>
+  <div class="set">
+    <label><span>الجودة</span><span id="pmQv"></span></label>
+    <select id="pmQ"><option value="auto">تلقائي (حسب الجهاز)</option><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option></select>
+    <label><span>الصوت</span><span id="pmVolV"></span></label><input id="pmVol" type="range" min="0" max="1" step="0.05">
+    <label><span>حساسية الماوس</span><span id="pmSensV"></span></label><input id="pmSens" type="range" min="0.3" max="3" step="0.1">
+    <label><span>مجال الرؤية (FOV)</span><span id="pmFovV"></span></label><input id="pmFov" type="range" min="70" max="100" step="1">
+  </div>
+  <button class="btn ghost" id="pmLeave">🚪 الخروج للقائمة الرئيسية</button>
+  <div class="warn" id="pmWarn"></div>
+</div></div>
 
 <div id="lobby">
   <div class="lob">
@@ -282,7 +319,10 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
       <div><label>الوقت</label><select id="timeSel"><option value="day">☀️ نهار</option><option value="night">🌙 ليل</option></select></div>
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px"><input type="checkbox" id="hq" style="width:auto"> جودة عالية (توهّج نيون — أطفئه إذا اللعبة بطيئة)</label>
+    <div class="row">
+      <div><label>الجودة</label><select id="qSel"><option value="auto">تلقائي (حسب الجهاز)</option><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option></select></div>
+      <div><label>الصوت</label><input id="volSel" type="range" min="0" max="1" step="0.05" value="0.8"></div>
+    </div>
     <button class="btn" id="bOff">🎮 العب ضد البوتات</button>
     <button class="btn alt" id="bHost">🌐 أنشئ غرفة أونلاين</button>
     <div class="row" style="margin-top:12px">
@@ -294,6 +334,7 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
       <kbd>W A S D</kbd> حركة &nbsp; <kbd>Space</kbd> قفز &nbsp; <kbd>Mouse</kbd> تصويب/إطلاق &nbsp; <kbd>R</kbd> تلقيم<br>
       <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / العجلة: رشاش، شوزن، قناص (زر يمين للمنظار)<br>
       <kbd>C</kbd> سلايد &nbsp; <kbd>Q</kbd> Upward Shift (دفعة لأعلى) &nbsp; <kbd>Shift</kbd> Tailwind (سرعة) &nbsp; <kbd>E</kbd> جرعة شفاء<br>
+      <kbd>Enter</kbd> شات &nbsp; <kbd>T</kbd> رسائل سريعة &nbsp; <kbd>Esc</kbd> القائمة والإعدادات<br>
       <kbd>Tab</kbd> النتائج — امسك العلم: حامل العلم صحته مضاعفة بس بدون قدرات أو سلايد، وإذا مات يرجع العلم لقاعدته.<br>
       الصناديق الخشبية والحديدية تتكسر بالرصاص — استعملها كغطاء أو اكسرها لتفتح طريق.
     </div>
@@ -319,6 +360,7 @@ const R=0.4, H=1.8, EYE=1.6, STEP=1.05, GRAV=28, JUMP=9.5, SPEED=8.5;
 // display colors are relative (like Hypershot): your team = blue, enemy = red. Swapped in applyTeamView().
 const TEAM_COLOR=[0xff3b5c,0x2fa8ff], TEAM_CSS=['#ff3b5c','#2fa8ff'], TEAM_NAME=['العدو','فريقك'];
 const TEAMREG=[]; // recolor callbacks for team-tinted world objects
+const DROP_HP=40, DROP_LIFE=15; // health pack dropped by every eliminated player
 const MATCH_TIME=600, RESPAWN=5, MAX_HP=100, PREFIX='hypershot-v1-';
 // Balance notes (100 HP, carrier 200 HP):
 //  rifle   – 14 body / 21 head, 600 rpm → ~0.65s TTK up close, falls to 55% past 35m and blooms when sprayed
@@ -370,7 +412,8 @@ function CR(x,y,z,s=2,type='wood'){
   for(const sx of x?[x,-x]:[0]){const b=B(sx,y,z,s,s,s,type==='wood'?0x9a6a3a:0x6b7584); b.crate=type; b.hp=b.mh=CRATE_HP[type]*(s/2); b.ci=CRATES.length; CRATES.push(b);}
 }
 function P(x,z,dx,dz,vy,boost){PADS.push({x,z,dx,dz,vy,boost});PADS.push({x:-x,z,dx:-dx,dz,vy,boost});}
-function K(x,y,z,type){PICKUPS_DEF.push({x,y,z,type}); if(x) PICKUPS_DEF.push({x:-x,y,z,type});}
+function K(x,y,z,type){ if(type==='hp') return; // health comes from eliminations now (see Server.kill / drops)
+  PICKUPS_DEF.push({x,y,z,type}); if(x) PICKUPS_DEF.push({x:-x,y,z,type});}
 function N(x,z){NODES.push({x,z}); if(x) NODES.push({x:-x,z});}
 const PURPLE=0x3a2f6b;
 // shared outer walls + team bases (same on every map so spawns/flags stay fair)
@@ -583,6 +626,7 @@ class Server{
     this.proj=[]; this.pid=1; this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.snapT=0; this.hill=-1;
     this.crt=CRATES.map(()=>0); // crate respawn timers
     this.wave=[0,1].map(()=>({go:false,t:0,z:0})); // CTF attack waves: gather, then push together
+    this.drops=[]; this.did=1;
     this.balanceBots();
   }
   send(id,m){const c=this.clients.get(id); if(c) c.send(m);}
@@ -651,6 +695,10 @@ class Server{
         const maxD=w.dmg*w.pellets*w.head*1.01;
         this.damage(v,p,Math.min(+m.d||0,maxD),w.name,!!m.h);
         break;}
+      case 'chat':{
+        if(!p) return; const now=performance.now(); if(now-(p.chatT||0)<700) return; p.chatT=now;
+        const tx=String(m.m||'').replace(/[<>]/g,'').trim().slice(0,100); if(tx) this.say(p,tx,!!m.tm);
+        break;}
       case 'cr':{ // crate damage reported by a client
         if(!p||!p.alive) return; const w=W[WKEYS[(m.w|0)%3]];
         this.damageCrate(m.i|0,Math.min(+m.d||0,w.dmg*w.pellets*1.01));
@@ -674,6 +722,10 @@ class Server{
         break;
     }
   }
+  say(p,tx,team){ const msg={t:'chat',n:p.name,tm:p.team,tx,team};
+    for(const [id,c] of this.clients){ const q=this.players.get(id); if(!team||(q&&q.team===p.team)) c.send(msg); } }
+  // drop lands on the floor or the top of whatever box is under the player
+  groundAt(x,y,z){ let g=0; for(const b of BOXES) if(!b.dead&&x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.y1<=y+0.05&&b.y1>g) g=b.y1; return g; }
   // gunfire is audible: enemy bots in range turn toward it
   noise(src,range){
     for(const q of this.players.values()) if(q.isBot&&q.alive&&q.team!==src.team&&Math.hypot(q.x-src.x,q.z-src.z)<range)
@@ -708,6 +760,7 @@ class Server{
     if(a&&a!==v){a.k++; a.u=Math.min(100,a.u+15);
       if(MODE==='tdm'&&!this.end){this.score[a.team]++; if(this.score[a.team]>=SCORE_LIMIT) this.finish(a.team);}}
     this.dropFlag(v);
+    if(v.y>-5){ this.drops.push({i:this.did++,x:v.x,y:this.groundAt(v.x,v.y,v.z),z:v.z,t:DROP_LIFE}); if(this.drops.length>30) this.drops.shift(); }
     this.bc({t:'ev',k:'kill',a:a?a.name:'',ai:a?a.id:0,at:a?a.team:v.team,v:v.name,vi:v.id,vt:v.team,w:wn});
   }
   // Hypershot rule: if the carrier is eliminated the flag goes straight back to its base
@@ -722,7 +775,8 @@ class Server{
   flagLogic(p){
     const ef=this.flags[1-p.team], mf=this.flags[p.team];
     const near=(f,r)=>Math.hypot(p.x-f.x,p.z-f.z)<r&&Math.abs(p.y-f.y)<2;
-    if(ef.s!=='carried'&&near(ef,1.6)){ef.s='carried';ef.c=p.id;p.mh=MAX_HP*2;p.hp=Math.min(p.mh,p.hp*2);p.slideT=0;p.ut=0;p.twT=2.5;this.bc({t:'ev',k:'take',ft:ef.t,pi:p.id,n:p.name});}
+    if(ef.s!=='carried'&&near(ef,1.6)){ if(p.isBot&&Math.random()<0.6) this.say(p,'معي العلم! غطّوني 🛡️',true);
+      ef.s='carried';ef.c=p.id;p.mh=MAX_HP*2;p.hp=Math.min(p.mh,p.hp*2);p.slideT=0;p.ut=0;p.twT=2.5;this.bc({t:'ev',k:'take',ft:ef.t,pi:p.id,n:p.name});}
     if(mf.s==='dropped'&&near(mf,1.6)){this.returnFlag(mf);this.bc({t:'ev',k:'return',ft:mf.t,n:p.name});}
     if(ef.c===p.id&&mf.s==='home'&&near(mf,2.2)){
       this.score[p.team]++; p.c++; this.returnFlag(ef); p.mh=MAX_HP; p.hp=Math.min(p.hp,MAX_HP);
@@ -742,9 +796,10 @@ class Server{
     }
     if(prev!==this.hill&&(this.hill===0||this.hill===1)) this.bc({t:'ev',k:'hill',tm:this.hill});
   }
-  finish(w){this.end={w,t:10}; this.bc({t:'ev',k:'end',w});}
+  finish(w){this.end={w,t:10}; this.bc({t:'ev',k:'end',w});
+    for(const p of this.players.values()) if(p.isBot&&Math.random()<0.3) setTimeout(()=>this.say(p,Math.random()<0.7?'GG 🤝':'مباراة حلوة 👏',false),500+Math.random()*2500); }
   resetMatch(){
-    this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.proj=[]; this.hill=-1;
+    this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.proj=[]; this.hill=-1; this.drops=[];
     this.flags.forEach(f=>this.returnFlag(f));
     this.pickups.forEach(k=>{k.on=true;k.rt=0;});
     CRATES.forEach((c,i)=>{c.dead=false;c.hp=c.mh;this.crt[i]=0;});
@@ -770,6 +825,10 @@ class Server{
       if(!this.end&&MODE==='ctf') this.flagLogic(p);
     }
     if(!this.end&&MODE==='koth') this.hillLogic(dt);
+    for(let i=this.drops.length-1;i>=0;i--){ const d=this.drops[i]; d.t-=dt;
+      if(d.t<=0){this.drops.splice(i,1); continue;}
+      for(const p of this.players.values()) if(p.alive&&p.hp<p.mh&&Math.hypot(p.x-d.x,p.z-d.z)<1.4&&Math.abs(p.y-d.y)<1.6){
+        p.hp=Math.min(p.mh,p.hp+DROP_HP); this.drops.splice(i,1); if(!p.isBot) this.send(p.id,{t:'pick',k:'hp'}); break; } }
     if(MODE==='ctf') for(const t of [0,1]){
       const W_=this.wave[t], st=this.stagePoint(t), att=[...this.players.values()].filter(p=>p.isBot&&p.alive&&p.team===t&&p.bot.role==='att');
       W_.t+=dt;
@@ -823,6 +882,7 @@ class Server{
     return {t:'snap',p,f:this.flags.map(f=>({s:f.s,x:r2(f.x),y:r2(f.y),z:r2(f.z),c:f.c,rt:Math.ceil(f.rt)})),
       g:this.proj.map(g=>({i:g.i,x:r2(g.x),y:r2(g.y),z:r2(g.z)})),pk:this.pickups.map(k=>k.on?1:0),
       cr:CRATES.map(c=>c.dead?0:Math.max(1,Math.ceil(c.hp/c.mh*20))),hl:this.hill,
+      dr:this.drops.map(d=>[d.i,r2(d.x),r2(d.y),r2(d.z),Math.ceil(d.t)]),
       sc:this.score.map(Math.floor),tm:Math.ceil(this.time),end:this.end?{w:this.end.w,t:Math.ceil(this.end.t)}:null};
   }
   /* ---------------- BOT AI ----------------
@@ -856,8 +916,8 @@ class Server{
     const dist2=(x,z)=>Math.hypot(x-b.x,z-b.z);
     // ---- goal
     const ef=this.flags[1-b.team], mf=this.flags[b.team]; let goal=null, hold=false;
-    const nearestHp=()=>{let k=null,kd=32; for(const q of this.pickups) if(q.on&&q.type==='hp'){const d=dist2(q.x,q.z); if(d<kd){kd=d;k=q;}} return k;};
-    const hpk=hpFrac<0.45&&!tgt?nearestHp():null;
+    const nearestHp=r=>{let k=null,kd=r; for(const q of this.drops){const d=dist2(q.x,q.z); if(d<kd&&d/SPEED<q.t){kd=d;k=q;}} return k;};
+    const hpk=!tgt&&!carrying?(hpFrac<0.6?nearestHp(30):hpFrac<0.9?nearestHp(8):null):null; // hurt: go get it; scratched: grab it if it's right there
     if(carrying) goal=[FLAG_HOME[b.team][0],FLAG_HOME[b.team][2]];
     else if(hpk) goal=[hpk.x,hpk.z];
     else if(MODE==='ctf'){
@@ -1006,7 +1066,7 @@ class Server{
    AUDIO (synthesized)
 ===================================================================== */
 let AC=null,MASTER=null,NB=null;
-function ac(){ if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)(); MASTER=AC.createGain(); MASTER.gain.value=0.45; MASTER.connect(AC.destination);
+function ac(){ if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)(); MASTER=AC.createGain(); MASTER.gain.value=0.55*SET.vol; MASTER.connect(AC.destination);
   // small arena reverb: synthetic decaying-noise impulse on a send
   { const len=AC.sampleRate*1.3|0, ir=AC.createBuffer(2,len,AC.sampleRate);
     for(let c=0;c<2;c++){const d=ir.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
@@ -1085,6 +1145,10 @@ function sfx(k,v=1){
 /* =====================================================================
    RENDERING SETUP
 ===================================================================== */
+// player settings, saved on this device
+const SET={q:'auto',vol:0.8,sens:1.2,fov:80};
+try{ const j=JSON.parse(localStorage.getItem('hs_set')||'{}'); Object.assign(SET,j); }catch(e){}
+const saveSet=()=>{ try{ localStorage.setItem('hs_set',JSON.stringify(SET)); }catch(e){} };
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1:1.5)); renderer.setSize(innerWidth,innerHeight); renderer.autoClear=false;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=DAY?1.0:1.15;
@@ -1103,9 +1167,7 @@ function setHQ(on){
     composer.addPass(new OutputPass());
   } else if(!on&&composer){ composer.dispose(); composer=null; }
 }
-setHQ(!LOWFX);
-document.getElementById('hq').checked=!LOWFX;
-document.getElementById('hq').addEventListener('change',e=>setHQ(e.target.checked));
+
 // narrow/portrait screens: widen the weapon camera so the gun doesn't swallow the view
 const fitVm=()=>{const a=innerWidth/innerHeight; vmCam.aspect=a; vmCam.fov=a<1.4?Math.min(100,65*Math.pow(1.4/a,0.7)):65; vmCam.updateProjectionMatrix();};
 fitVm();
@@ -1113,10 +1175,9 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight); if(comp
 
 scene.add(new THREE.HemisphereLight(...THEME.hemi));
 const sun=new THREE.DirectionalLight(DAY?0xfff1d6:0xffffff,DAY?2.4:0.7); sun.position.set(DAY?40:20,DAY?80:60,DAY?25:10); scene.add(sun);
-const SHADOWS=DAY&&!LOWFX;
+const SHADOWS=DAY; // objects get shadow flags in daytime; whether shadows actually render depends on the quality level
 if(SHADOWS){
-  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.05;
+  sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.05;
   Object.assign(sun.shadow.camera,{left:-75,right:75,top:75,bottom:-75,near:1,far:220}); sun.shadow.camera.updateProjectionMatrix();
 }
 if(DAY){ // gradient sky dome, sun disc and a few clouds
@@ -1156,6 +1217,42 @@ if(DAY){ // gradient sky dome, sun disc and a few clouds
   // team zones tint
   for(const t2 of [0,1]){const z=new THREE.Mesh(new THREE.PlaneGeometry(20,37),new THREE.MeshBasicMaterial({color:TEAM_COLOR[t2],transparent:true,opacity:0.07}));
     z.rotation.x=-Math.PI/2; z.position.set(t2?54:-54,0.01,0); scene.add(z); TEAMREG.push(()=>z.material.color.setHex(TEAM_COLOR[t2]));}
+}
+// ---------- quality presets: auto picks by device, then steps down if the frame rate can't keep up
+const QUALITY={
+  low:   {name:'منخفضة',pr:0.75,bloom:false,shadow:0,   debris:50},
+  medium:{name:'متوسطة',pr:1,   bloom:false,shadow:1024,debris:110},
+  high:  {name:'عالية', pr:1.5, bloom:true, shadow:2048,debris:160},
+};
+const QORDER=['low','medium','high'];
+let QLEVEL='high', MAX_DEBRIS=160;
+function detectQuality(){
+  if(matchMedia('(pointer: coarse)').matches) return 'low';          // phones / tablets: small screen, weak GPU, battery
+  try{ const gl=renderer.getContext(), ext=gl.getExtension('WEBGL_debug_renderer_info');
+    const r=String(ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));
+    if(/swiftshader|llvmpipe|software|basic render/i.test(r)) return 'low';
+    if(/intel|uhd|iris|mali|adreno|powervr|apple gpu|vega [0-9] |radeon\(tm\) graphics/i.test(r)) return 'medium'; // integrated GPUs
+  }catch(e){}
+  return 'high';
+}
+function applyQuality(level){
+  QLEVEL=level; const q=QUALITY[level]; MAX_DEBRIS=q.debris;
+  renderer.setPixelRatio(Math.min(devicePixelRatio,level==='low'?Math.min(devicePixelRatio,1)*q.pr:q.pr));
+  setHQ(false); if(q.bloom) setHQ(true); else if(composer) setHQ(false);
+  if(SHADOWS){ const on=q.shadow>0;
+    if(renderer.shadowMap.enabled!==on){ renderer.shadowMap.enabled=on; scene.traverse(o=>{ if(o.material) [].concat(o.material).forEach(m=>m.needsUpdate=true); }); }
+    sun.castShadow=on; renderer.shadowMap.type=level==='high'?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
+    if(on&&sun.shadow.mapSize.x!==q.shadow){ sun.shadow.mapSize.set(q.shadow,q.shadow); if(sun.shadow.map){sun.shadow.map.dispose(); sun.shadow.map=null;} } }
+  const lbl=document.getElementById('pmQv'); if(lbl) lbl.textContent=(SET.q==='auto'?'تلقائي: ':'')+q.name;
+}
+applyQuality(SET.q==='auto'?detectQuality():SET.q);
+const perf={n:0,t:0,cool:8};
+function watchPerf(dt){ // auto mode only: drop one level when we average under 40 fps for 5s of play
+  if(SET.q!=='auto'||document.visibilityState!=='visible'||!playing||QLEVEL==='low') return;
+  perf.cool-=dt; if(perf.cool>0) return;
+  perf.n++; perf.t+=dt; if(perf.t<5) return;
+  const fps=perf.n/perf.t; perf.n=0; perf.t=0;
+  if(fps<40){ applyQuality(QORDER[QORDER.indexOf(QLEVEL)-1]); perf.cool=6; showMsg('خفّضنا الجودة تلقائياً لتصير اللعبة أسلس',2500); }
 }
 // procedural sci-fi panel textures: albedo + bump + roughness + glowing seams
 function panelTextures(seed){
@@ -1280,7 +1377,7 @@ for(const c of CRATES){
 const debris=[];
 const _chipGeo=new THREE.BoxGeometry(0.09,0.09,0.09), _dustTex=(()=>{const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d');
   const g=x.createRadialGradient(32,32,0,32,32,32); g.addColorStop(0,'rgba(255,255,255,0.8)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c);})();
-function addDebris(mesh,v,spin,life,ground){ scene.add(mesh); debris.push({m:mesh,v,spin,t:life,life,ground}); if(debris.length>160){const d=debris.shift(); scene.remove(d.m); if(d.own) d.m.material.dispose();} }
+function addDebris(mesh,v,spin,life,ground){ scene.add(mesh); debris.push({m:mesh,v,spin,t:life,life,ground}); if(debris.length>MAX_DEBRIS){const d=debris.shift(); scene.remove(d.m); if(d.own) d.m.material.dispose();} }
 function crateHit(c,p){
   const V=c.view; V.shakeT=0.12;
   const cols=CRATE_COL[c.crate];
@@ -1366,6 +1463,28 @@ const pickMeshes=PICKUPS_DEF.map(p=>{
   base.position.set(p.x,p.y+0.05,p.z); scene.add(base);
   g.position.set(p.x,p.y+0.9,p.z); scene.add(g); return g;
 });
+// health drops from eliminated players: glowing medkit that spins, bobs and blinks before it expires
+const dropMeshes=new Map();
+const DROP_GEO={box:new THREE.BoxGeometry(0.44,0.44,0.44),barH:new THREE.BoxGeometry(0.3,0.09,0.46),barV:new THREE.BoxGeometry(0.09,0.3,0.46),ring:new THREE.RingGeometry(0.45,0.6,24)};
+const DROP_MAT={box:new THREE.MeshStandardMaterial({color:0xf2f5f8,roughness:0.4,emissive:0x2a3a30,emissiveIntensity:0.4}),
+  cross:new THREE.MeshStandardMaterial({color:0x1aff7a,emissive:0x1aff7a,emissiveIntensity:1.2})};
+function syncDrops(dr){
+  const seen=new Set();
+  for(const [i,x,y,z,t] of dr){ seen.add(i); let g=dropMeshes.get(i);
+    if(!g){ g=new THREE.Group(); const kit=new THREE.Group();
+      kit.add(new THREE.Mesh(DROP_GEO.box,DROP_MAT.box));
+      for(const ry of [0,Math.PI/2]) for(const geo of [DROP_GEO.barH,DROP_GEO.barV]){ const m=new THREE.Mesh(geo,DROP_MAT.cross); m.rotation.y=ry; kit.add(m); } // cross on all 4 sides
+      const ring=new THREE.Mesh(DROP_GEO.ring,new THREE.MeshBasicMaterial({color:0x1aff7a,transparent:true,opacity:0.6,side:THREE.DoubleSide,depthWrite:false}));
+      ring.rotation.x=-Math.PI/2; ring.position.y=0.03; g.add(kit,ring); g.userData={kit,ring,born:performance.now()/1000};
+      g.position.set(x,y,z); scene.add(g); dropMeshes.set(i,g); }
+    g.userData.t=t; }
+  for(const [i,g] of dropMeshes) if(!seen.has(i)){ scene.remove(g); g.userData.ring.material.dispose(); dropMeshes.delete(i); }
+}
+function animDrops(t){
+  for(const g of dropMeshes.values()){ const u=g.userData, age=t-u.born;
+    u.kit.position.y=0.55+Math.sin(t*3+g.id)*0.1; u.kit.rotation.y=t*2; g.scale.setScalar(Math.min(1,age*4));
+    g.visible=u.t>4||Math.sin(t*14)>-0.3; u.ring.material.opacity=0.35+Math.sin(t*4)*0.25; }
+}
 // labels / sprites
 function makeLabel(text,color,depth=true){
   const c=document.createElement('canvas'); c.width=256; c.height=64; const x=c.getContext('2d');
@@ -1649,8 +1768,9 @@ class Client{
       case 'boom': addBoom(m.x,m.y,m.z); {const v=this.vol([m.x,m.y,m.z]); sfx('boom',v); this.shake=Math.max(this.shake,v*1.2);} break;
       case 'hc': hitMarker(m.k); if(m.k) sfx('kill'); break;
       case 'hurt': sfx('hurt'); flash('hurt'); break;
-      case 'pick': sfx('pick'); showMsg(m.k==='hp'?'<span style="color:#3dff8a">+50 صحة</span>':'<span style="color:#ffcc33">+40 طاقة خارقة</span>',1000); break;
+      case 'pick': sfx('pick'); showMsg(m.k==='hp'?'<span style="color:#3dff8a">+40 صحة</span>':'<span style="color:#ffcc33">+40 طاقة خارقة</span>',1000); break;
       case 'ev': this.onEvent(m); break;
+      case 'chat': addChat(m.n,m.tm,m.tx,m.team); sfx('pick',0.25); break;
     }
   }
   vol(p){return clamp(1-Math.hypot(p[0]-this.me.x,p[1]-this.me.y,p[2]-this.me.z)/70,0,1);}
@@ -1702,6 +1822,7 @@ class Client{
     for(const [i,m] of grenMeshes) if(!gs.has(i)){scene.remove(m); grenMeshes.delete(i);}
     s.pk.forEach((on,i)=>pickMeshes[i].visible=!!on);
     if(s.cr) syncCrates(s.cr);
+    if(s.dr) syncDrops(s.dr);
     if(MODE==='koth'&&s.hl!==this.hill){this.hill=s.hl; setHillColor(s.hl);}
     updateHudSnap(this,s);
   }
@@ -1737,7 +1858,7 @@ class Client{
     camera.position.set(me.x+(Math.random()-0.5)*sh,camY+(Math.random()-0.5)*sh,me.z+(Math.random()-0.5)*sh);
     camera.rotation.set(this.pitch,this.yaw,this.roll);
     const zoom=this.alive&&this.zoomed;
-    const fov=zoom?22:(this.ut>0?92:80)+clamp((spd-SPEED)*0.9,0,14);
+    const fov=zoom?22:(this.ut>0?SET.fov+12:SET.fov)+clamp((spd-SPEED)*0.9,0,14);
     $('speed').style.opacity=this.alive&&!zoom?clamp((spd-SPEED-2)/10,0,0.8):0; if(Math.abs(camera.fov-fov)>0.1){camera.fov+= (fov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix();}
     $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom);
     vmGuns.forEach((g,i)=>{g.visible=this.alive&&i===this.w&&!zoom;});
@@ -1958,14 +2079,53 @@ function drawMini(c){
 let client=null, server=null, peer=null;
 const canvas=renderer.domElement;
 function lock(){ try{const p=canvas.requestPointerLock(); if(p&&p.catch) p.catch(()=>{});}catch(e){} }
-canvas.addEventListener('click',()=>{ if(client) lock(); });
-$('pause').addEventListener('click',()=>{ if(TOUCH){playing=true;$('pause').classList.add('hidden');} else lock(); });
+canvas.addEventListener('click',()=>{ if(client&&$('pause').classList.contains('hidden')) lock(); });
+// ---------- pause menu (Esc on desktop, ☰ on touch): resume, settings, leave
+function openMenu(){
+  if(!client) return; playing=false; mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
+  $('pmQ').value=SET.q; $('pmVol').value=SET.vol; $('pmSens').value=SET.sens; $('pmFov').value=SET.fov; menuLabels();
+  $('pmWarn').textContent=peer&&server?'أنت المضيف — إذا طلعت رح تتسكّر الغرفة على الكل':'';
+  $('pause').classList.remove('hidden');
+}
+function resume(){ $('pause').classList.add('hidden'); if(TOUCH) playing=true; else lock(); }
+const menuLabels=()=>{ $('pmVolV').textContent=Math.round(SET.vol*100)+'%'; $('pmSensV').textContent=(+SET.sens).toFixed(1); $('pmFovV').textContent=SET.fov+'°';
+  $('pmQv').textContent=(SET.q==='auto'?'تلقائي: ':'')+QUALITY[QLEVEL].name; };
+$('pmResume').onclick=resume;
+$('pmQ').onchange=e=>{ SET.q=e.target.value; saveSet(); applyQuality(SET.q==='auto'?detectQuality():SET.q); menuLabels(); };
+$('pmVol').oninput=e=>{ SET.vol=+e.target.value; if(MASTER) MASTER.gain.value=0.55*SET.vol; saveSet(); menuLabels(); };
+$('pmSens').oninput=e=>{ SET.sens=+e.target.value; SENS=0.0018*SET.sens; $('sens').value=SET.sens; saveSet(); menuLabels(); };
+$('pmFov').oninput=e=>{ SET.fov=+e.target.value; saveSet(); menuLabels(); };
+$('pmLeave').onclick=()=>{ try{ if(peer) peer.destroy(); }catch(e){} location.href=location.pathname+location.search; };
 document.addEventListener('pointerlockchange',()=>{
   if(TOUCH) return;
   playing=document.pointerLockElement===canvas;
-  $('pause').classList.toggle('hidden',playing||!client);
+  if(playing) $('pause').classList.add('hidden');
+  else if(client){ closeChat(); closeQuick(); openMenu(); }
   if(!playing){mouseDown=false;rightDown=false;}
 });
+// ---------- chat: Enter = type (Tab switches team/all), T = quick messages
+const QUICK=['هاجموا! 🔥','دافعوا عن القاعدة! 🛡️','محتاج مساعدة! 🆘','العدو هون! 👀','تابعوني! ➡️','خذوا العلم! ⚑','شكراً 🙏','GG 🤝'];
+let chatTeam=true;
+function addChat(name,tm,text,team){
+  const d=document.createElement('div'), ch=document.createElement('span'), nm=document.createElement('span'), tx=document.createElement('span');
+  ch.className='ch'; ch.textContent=team?'[الفريق] ':'[الكل] '; nm.className='nm'; nm.textContent=name+': '; nm.style.color=TEAM_CSS[tm]||'#fff'; tx.textContent=text;
+  d.append(ch,nm,tx); const log=$('chatLog'); log.appendChild(d); while(log.children.length>8) log.firstChild.remove();
+  setTimeout(()=>d.classList.add('old'),8000);
+}
+function openChat(){ if(!client) return; for(const k in KEYS) KEYS[k]=false; mouseDown=false; closeQuick();
+  $('chat').classList.add('open'); $('chatIn').classList.remove('hidden'); chatChLabel(); const t=$('chatTxt'); t.value=''; t.focus(); }
+function closeChat(){ $('chat').classList.remove('open'); $('chatIn').classList.add('hidden'); $('chatTxt').blur(); }
+const chatChLabel=()=>{ const c=$('chatCh'); c.textContent=chatTeam?'الفريق':'الكل'; c.classList.toggle('all',!chatTeam); };
+$('chatCh').onclick=()=>{ chatTeam=!chatTeam; chatChLabel(); $('chatTxt').focus(); };
+$('chatTxt').addEventListener('keydown',e=>{ e.stopPropagation();
+  if(e.key==='Enter'){ const v=e.target.value.trim(); if(v&&client) client.send({t:'chat',m:v,tm:chatTeam}); closeChat(); if(TOUCH) playing=true; }
+  else if(e.key==='Tab'){ e.preventDefault(); chatTeam=!chatTeam; chatChLabel(); }
+  else if(e.key==='Escape'){ closeChat(); } });
+function openQuick(){ const q=$('quick'); q.innerHTML='<div class="qh">رسالة سريعة لفريقك — اضغط الرقم</div>';
+  QUICK.forEach((t,i)=>{ const d=document.createElement('div'); d.innerHTML=`<b>${i+1}</b>`; d.append(t); d.onclick=()=>sendQuick(i); q.appendChild(d); });
+  q.classList.remove('hidden'); }
+function closeQuick(){ $('quick').classList.add('hidden'); }
+function sendQuick(i){ if(client&&QUICK[i]) client.send({t:'chat',m:QUICK[i],tm:true}); closeQuick(); }
 document.addEventListener('mousemove',e=>{
   if(!playing||!client) return; const s=SENS*(client.zoomed?0.35:1);
   client.yaw-=e.movementX*s; client.pitch=clamp(client.pitch-e.movementY*s,-1.55,1.55);
@@ -1975,7 +2135,10 @@ document.addEventListener('mouseup',e=>{ if(e.button===0) mouseDown=false; if(e.
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('wheel',e=>{ if(playing&&client) client.switchW((client.w+(e.deltaY>0?1:2))%3); });
 document.addEventListener('keydown',e=>{
-  if(!client) return;
+  if(!client||document.activeElement===$('chatTxt')) return;
+  if(!$('quick').classList.contains('hidden')&&/^Digit[1-8]$/.test(e.code)){ sendQuick(+e.code.slice(5)-1); return; }
+  if(playing&&(e.code==='Enter'||e.code==='NumpadEnter')){ e.preventDefault(); openChat(); return; }
+  if(playing&&e.code==='KeyT'){ $('quick').classList.contains('hidden')?openQuick():closeQuick(); return; }
   if(e.code==='Tab'){e.preventDefault(); $('board').classList.remove('hidden'); if(client.snap) drawBoard(client,client.snap); return;}
   if(!playing) return;
   KEYS[e.code]=true;
@@ -2001,9 +2164,12 @@ addEventListener('blur',()=>{for(const k in KEYS) KEYS[k]=false; mouseDown=false
 const lobMsg=t=>$('lobMsg').textContent=t;
 const getName=()=>($('name').value.trim()||'Player'+(Math.random()*900+100|0)).slice(0,14);
 try{ $('name').value=localStorage.getItem('hs_name')||''; }catch(e){}
+$('qSel').value=SET.q; $('volSel').value=SET.vol; $('sens').value=SET.sens; SENS=0.0018*SET.sens;
+$('qSel').onchange=e=>{ SET.q=e.target.value; saveSet(); applyQuality(SET.q==='auto'?detectQuality():SET.q); };
 function enterGame(){
   try{ localStorage.setItem('hs_name',$('name').value.trim()); }catch(e){}
-  SENS=0.0018*parseFloat($('sens').value);
+  SET.sens=parseFloat($('sens').value); SET.vol=parseFloat($('volSel').value); SET.q=$('qSel').value; saveSet();
+  SENS=0.0018*SET.sens; if(MASTER) MASTER.gain.value=0.55*SET.vol;
   ac(); $('lobby').classList.add('hidden'); $('hud').classList.remove('hidden');
   if(!TOUCH&&detectTouch()) setTouch(true);
   if(TOUCH){
@@ -2013,7 +2179,7 @@ function enterGame(){
     return;
   }
   lock();
-  setTimeout(()=>{ if(!playing&&!TOUCH) $('pause').classList.remove('hidden'); },300);
+  setTimeout(()=>{ if(!playing&&!TOUCH) openMenu(); },300);
 }
 /* ---------- touch input (handlers only fire on touch devices) ---------- */
 {
@@ -2045,6 +2211,8 @@ function enterGame(){
   btn('tSlide',()=>client.slide()); btn('tDash',()=>client.dash()); btn('tGren',()=>client.gren()); btn('tShield',()=>client.shield());
   btn('tUlt',()=>client.ult()); btn('tReload',()=>client.reload());
   btn('tWeap',()=>{client.switchW((client.w+1)%3); rightDown=false; $('tScope').style.borderColor='';});
+  btn('tMenu',()=>{ $('pause').classList.contains('hidden')?openMenu():resume(); });
+  btn('tChat',()=>{ if($('quick').classList.contains('hidden')) openQuick(); else { closeQuick(); playing=false; openChat(); } });
   btn('tTab',()=>{ const b=$('board'); b.classList.toggle('hidden'); if(!b.classList.contains('hidden')&&client.snap) drawBoard(client,client.snap); });
 }
 function startServerLoop(){
@@ -2131,7 +2299,7 @@ function frame(){
   pickMeshes.forEach((m,i)=>{m.rotation.y=t*2; m.position.y=PICKUPS_DEF[i].y+0.9+Math.sin(t*3+i)*0.12;});
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
-  updateFx(dt); updateCrates(dt);
+  updateFx(dt); updateCrates(dt); animDrops(t); watchPerf(dt);
   renderer.clear(); if(composer) composer.render(); else renderer.render(scene,camera); renderer.clearDepth(); renderer.render(vmScene,vmCam);
   updateDmgNums(dt);
 }
