@@ -282,6 +282,29 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 .sw{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:10px;background:#121a40;border:2px solid #26306a;cursor:pointer;font-size:11px;text-align:center}
 .sw{border-bottom:3px solid var(--rc,#26306a)} .sw em{font-style:normal;font-size:10px;font-weight:700}
 .sw.on{border-color:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.3)} .sw i{width:34px;height:34px;border-radius:8px;display:block;border:1px solid rgba(255,255,255,.2)}
+#armory{position:fixed;inset:0;z-index:32;direction:rtl;background:radial-gradient(ellipse at 50% 45%,#2a2f6a 0%,#0d1030 55%,#05060f 100%)}
+#armCv{position:absolute;inset:0;width:100%;height:100%;cursor:grab} #armCv:active{cursor:grabbing}
+#armory .ahead{position:absolute;top:16px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+#armory .at{font-size:34px;font-weight:700;letter-spacing:10px;color:#fff;text-shadow:0 0 18px #b07bff} #armory .as{opacity:.7;font-size:13px}
+#armory .aright{position:absolute;top:84px;right:20px;bottom:140px;width:220px;display:flex;flex-direction:column;gap:8px}
+#armory .aslots{display:flex;flex-direction:column;gap:6px}
+#armory .aslot{padding:6px 12px;border-radius:12px;background:rgba(12,16,40,.85);border:2px solid #26306a;cursor:pointer;transition:.15s}
+#armory .aslot:hover{border-color:#5f73ff} #armory .aslot.on{border-color:#b07bff;box-shadow:0 0 16px rgba(176,123,255,.4)}
+#armory .aslot small{display:block;opacity:.6;font-size:11px} #armory .aslot b{font-size:17px} #armory .aslot i{display:block;font-style:normal;font-size:12px;margin-top:2px}
+#armory .ainfo{position:absolute;top:90px;left:20px;width:240px;pointer-events:none}
+#armName{font-size:30px;font-weight:700;line-height:1} #armSkinName{font-size:15px;margin:4px 0 10px}
+#armStats .lst{margin:5px 0}
+#armory .askins{flex:1;min-height:0;overflow:auto;padding:8px;border-radius:12px;background:rgba(12,16,40,.85);border:1px solid #26306a}
+#armory .ah{font-weight:700;margin-bottom:6px;font-size:14px}
+#armSkins{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#armory .aguns{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);display:flex;gap:8px;max-width:min(900px,92vw);overflow-x:auto;padding:4px}
+#armory .ag{min-width:120px;padding:8px 12px;border-radius:10px;background:rgba(12,16,40,.9);border:2px solid #26306a;cursor:pointer;text-align:center;font-weight:700;transition:.15s}
+#armory .ag:hover{transform:translateY(-2px)} #armory .ag.on{border-color:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.35)} #armory .ag.eq:after{content:' ✓';color:#3dff8a}
+#armory .ag small{display:block;font-weight:400;opacity:.65;font-size:11px}
+#armory .abtns{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+#armory .abtns .btn{font-size:17px;padding:10px 26px}
+#armory .ahint{position:absolute;bottom:26px;left:20px;font-size:12px;opacity:.5}
+@media (max-width:820px){#armory .ainfo{top:70px;width:180px} #armName{font-size:22px} #armory .aright{width:170px} #armSkins{grid-template-columns:1fr}}
 #loadout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.5);z-index:31}
 #loadout .lo{width:min(640px,94vw);max-height:92vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);direction:rtl}
 #loadout h2{margin:0;text-align:center} #loSub{text-align:center;opacity:.8;font-size:13px;margin:4px 0 8px;min-height:16px}
@@ -446,6 +469,16 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="lnote">🔪 السكين معك دايماً (زر 3) — بتركض فيه أسرع، و3 طعنات بتقتل<br>إذا مات حدا بيوقع سلاحه — قرّب منه واضغط <b>F</b> لتبدّله بسلاحك</div>
   <button class="btn" id="loGo">✓ جاهز</button>
 </div></div>
+<div id="armory" class="hidden">
+  <canvas id="armCv"></canvas>
+  <div class="ahead"><div class="at">ARMORY</div><div class="as">معرض الأسلحة</div></div>
+  <div class="ainfo"><div id="armName"></div><div id="armSkinName"></div><div id="armStats"></div></div>
+  <div class="aright"><div class="aslots" id="armSlots"></div>
+  <div class="askins"><div class="ah">السكنات</div><div id="armSkins"></div></div></div>
+  <div class="aguns" id="armGuns"></div>
+  <div class="abtns"><button class="btn" id="armSave">✓ تجهيز وحفظ</button><button class="btn ghost" id="armBack">✕ رجوع</button></div>
+  <div class="ahint">اسحب بالماوس لتلف السلاح • العجلة للتقريب</div>
+</div>
 <div id="pause" class="hidden"><div class="pm">
   <h2>⏸ متوقف مؤقتاً</h2><div class="sub2">اللعبة مستمرة عند الباقين</div>
   <button class="btn" id="pmResume">▶ متابعة</button>
@@ -911,7 +944,7 @@ class Server{
       case 'load':{ // pick primary + secondary (+ skins); applies now during warmup (or while dead), otherwise at next respawn
         if(!p) return; const pr=m.p|0, se=m.s|0; if(!PRIMS.includes(pr)||!SECS.includes(se)) return;
         if(Array.isArray(m.sk)){ p.skins=p.skins||{}; [pr,se,KNIFE].forEach((w,i)=>{ p.skins[w]=clamp(m.sk[i]|0,0,SKINS.length-1); }); }
-        if(this.warm>0||!p.alive){ p.load={p:pr,s:se}; p.loadNext=null; if(!this.held(p).includes(p.w)) p.w=pr; } else p.loadNext={p:pr,s:se};
+        if(this.warm>0||!p.alive||this.lobby){ p.load={p:pr,s:se}; p.loadNext=null; if(!this.held(p).includes(p.w)) p.w=pr; } else p.loadNext={p:pr,s:se};
         break;}
       case 'pk':{ // swap primary with a weapon lying on the ground
         if(!p||!p.alive) return; const i=this.wdrops.findIndex(d=>d.i===m.i); if(i<0) return; const d=this.wdrops[i];
@@ -3089,13 +3122,13 @@ function drawLoadout(){
 }
 function chooseLoad(nl){
   const c=client; SET.load={...nl}; saveSet(); c.send({t:'load',p:nl.p,s:nl.s,sk:[mySkin(WKEYS[nl.p]),mySkin(WKEYS[nl.s]),mySkin('knife')]});
-  if(c.warm>0||!c.alive){ c.load={...nl}; c.nextLoad=null; c.slot=-1; c.setSlot(0); c.ammo=WKEYS.map(k=>W[k].mag); } else c.nextLoad={...nl};
+  if(c.warm>0||!c.alive||c.lobbyOn){ c.load={...nl}; c.nextLoad=null; c.slot=-1; c.setSlot(0); c.ammo=WKEYS.map(k=>W[k].mag); } else c.nextLoad={...nl};
   drawLoadout();
 }
 function openLoadout(){ if(!client) return; loadoutOpen=true; drawLoadout(); $('loadout').classList.remove('hidden'); $('pause').classList.add('hidden');
   closeChat(); closeQuick(); mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
   if(TOUCH) playing=false; else if(document.pointerLockElement) document.exitPointerLock(); }
-function closeLoadout(auto){ if(!loadoutOpen) return; loadoutOpen=false; $('loadout').classList.add('hidden');
+function closeLoadout(auto){ if(!loadoutOpen) return; loadoutOpen=false; $('loadout').classList.add('hidden'); if(typeof closeArmory==='function') closeArmory();
   if(TOUCH) playing=true; else if(!auto) lock(); }
 $('loGo').onclick=()=>closeLoadout(false);
 // skin picker: tabs for primary / secondary / knife, swatches, live rotating preview
@@ -3133,6 +3166,62 @@ function renderLoPreview(dt){
   loR.render(loScene,loCam);
 }
 $('deadLo').onclick=()=>openLoadout();
+// ---------- ARMORY (lobby): full-screen weapon showcase — pick slot → browse guns → browse skins → equip & save
+let armOpen=false; const ARM={slot:'p',w:0,sk:0,rotY:0.6,rotX:0.15,zoom:1,drag:null};
+const ARM_SLOTS=[['p','السلاح الرئيسي',PRIMS],['s','السلاح الثانوي',SECS],['k','السكين',[KNIFE]]];
+function armCur(){ const c=client, cur=c.nextLoad||c.load; return {p:cur.p,s:cur.s,k:KNIFE}; }
+function openArmory(){ if(!client) return; openLoadout(); $('loadout').classList.add('hidden'); armOpen=true; $('armory').classList.remove('hidden');
+  armSelectSlot(ARM.slot); }
+function closeArmory(){ if(!armOpen) return; armOpen=false; $('armory').classList.add('hidden'); }
+function armSelectSlot(sl){ ARM.slot=sl; ARM.w=armCur()[sl]; ARM.sk=mySkin(WKEYS[ARM.w]); drawArmory(); }
+function drawArmory(){
+  const cur=armCur(), k=WKEYS[ARM.w], w=W[k], R=RARITY[SKINS[ARM.sk].rarity||0];
+  $('armSlots').innerHTML=ARM_SLOTS.map(([sl,lab])=>{ const wk=WKEYS[cur[sl]], sk=SKINS[mySkin(wk)];
+    return `<div class="aslot${sl===ARM.slot?' on':''}" data-s="${sl}"><small>${lab}</small><b>${W[wk].name}</b><i style="color:${RARITY[sk.rarity||0].c}">${sk.name}</i></div>`; }).join('');
+  document.querySelectorAll('#armSlots .aslot').forEach(d=>d.onclick=()=>armSelectSlot(d.dataset.s));
+  const ids=ARM_SLOTS.find(a=>a[0]===ARM.slot)[2];
+  $('armGuns').innerHTML=ids.map(id=>`<div class="ag${id===ARM.w?' on':''}${id===cur[ARM.slot]?' eq':''}" data-i="${id}">${W[WKEYS[id]].name}<small>${(LO_INFO[id]||'قتال قريب')}</small></div>`).join('');
+  document.querySelectorAll('#armGuns .ag').forEach(d=>d.onclick=()=>{ ARM.w=+d.dataset.i; ARM.sk=mySkin(WKEYS[ARM.w]); drawArmory(); sfx('pick',0.4); });
+  $('armName').textContent=w.name;
+  $('armSkinName').innerHTML=`${SKINS[ARM.sk].name} <b style="color:${R.c}">${R.n}</b>`;
+  const dps=w.dmg*w.pellets/w.rate, bar=(l,v)=>`<div class="lst"><span>${l}</span><i style="--v:${Math.round(clamp(v,0.05,1)*100)}%"></i></div>`;
+  $('armStats').innerHTML=w.melee?bar('الضرر',0.5)+bar('الحركة',0.9):bar('الضرر',dps/220)+bar('المدى',(LO_RANGE[ARM.w]||20)/150)+bar('الحركة',((w.speed||1)-0.85)/0.3)+bar('المخزن',w.mag/32);
+  const box=$('armSkins'); box.innerHTML='';
+  SKINS.forEach((sk,i)=>{ const d=document.createElement('div'); d.className='sw'+(i===ARM.sk?' on':''); const RR=RARITY[sk.rarity||0];
+    const bg=sk.anim?`linear-gradient(135deg,#${new THREE.Color(sk.a).getHexString()},${sk.sw},#${new THREE.Color(sk.c).getHexString()})`:sk.pattern?'linear-gradient(135deg,'+(sk.pattern[1]||['#2a2d33','#14161a']).join(',')+')':sk.sw;
+    d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
+    d.onclick=()=>{ ARM.sk=i; drawArmory(); }; box.appendChild(d); });
+}
+$('armSave').onclick=()=>{ const cur=client.nextLoad||client.load, k=WKEYS[ARM.w];
+  if(ARM.slot!=='k'&&cur[ARM.slot]!==ARM.w) chooseLoad({...cur,[ARM.slot]:ARM.w});
+  chooseSkin(k,ARM.sk); sfx('pick'); drawArmory(); showMsg('✓ انحفظ',900); };
+$('armBack').onclick=()=>{ closeArmory(); closeLoadout(false); };
+{ const cv=$('armCv');
+  cv.addEventListener('pointerdown',e=>{ ARM.drag=[e.clientX,e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove',e=>{ if(!ARM.drag) return; ARM.rotY+=(e.clientX-ARM.drag[0])*0.01; ARM.rotX=clamp(ARM.rotX+(e.clientY-ARM.drag[1])*0.006,-0.8,0.8); ARM.drag=[e.clientX,e.clientY]; ARM.idle=0; });
+  cv.addEventListener('pointerup',()=>ARM.drag=null);
+  cv.addEventListener('wheel',e=>{ ARM.zoom=clamp(ARM.zoom*(e.deltaY>0?0.9:1.1),0.6,2.2); e.preventDefault(); },{passive:false}); }
+let armR=null, armScene=null, armCam=null, armObj=null, armKey='', armPlat=null;
+function renderArmory(dt){
+  const cv=$('armCv');
+  if(!armR){ armR=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); armR.setPixelRatio(Math.min(devicePixelRatio,1.5)); armR.toneMapping=THREE.ACESFilmicToneMapping;
+    armScene=new THREE.Scene(); armScene.environment=new THREE.PMREMGenerator(armR).fromScene(new RoomEnvironment(),0.04).texture;
+    const d=new THREE.DirectionalLight(0xffffff,1.6); d.position.set(1,2,2); const r=new THREE.DirectionalLight(0xb07bff,1.2); r.position.set(-2,0.5,-1.5);
+    armScene.add(d,r,new THREE.HemisphereLight(0xffffff,0x334466,0.6));
+    armPlat=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.45,0.04,64),new THREE.MeshStandardMaterial({color:0x1a1f40,metalness:0.8,roughness:0.3,emissive:0x3a2a80,emissiveIntensity:0.5}));
+    armPlat.position.y=-0.42; armScene.add(armPlat);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.007,8,96),new THREE.MeshBasicMaterial({color:0xb07bff})); ring.rotation.x=Math.PI/2; ring.position.y=-0.4; armScene.add(ring);
+    armCam=new THREE.PerspectiveCamera(30,1,0.01,20); }
+  const w=cv.clientWidth, h=cv.clientHeight; if(cv.width!==Math.round(w*armR.getPixelRatio())){ armR.setSize(w,h,false); armCam.aspect=w/h; armCam.updateProjectionMatrix(); }
+  const k=WKEYS[ARM.w], key=k+':'+ARM.sk;
+  if(key!==armKey&&AVATAR_MODELS[k]){ if(armObj) armScene.remove(armObj); const g=worldGun(k,ARM.sk,'full'); armObj=new THREE.Group(); armObj.add(g);
+    if(k==='knife') g.rotation.y=Math.PI/2; armObj.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(armObj), sz=bb.getSize(new THREE.Vector3()), ct=bb.getCenter(new THREE.Vector3());
+    g.position.sub(ct); armObj.scale.setScalar((k==='knife'?0.5:0.72)/Math.max(sz.x,sz.y,sz.z,0.05)); armScene.add(armObj); armKey=key; }
+  ARM.idle=(ARM.idle||0)+dt; if(!ARM.drag&&ARM.idle>1.5) ARM.rotY+=dt*0.35;
+  if(armObj){ armObj.rotation.set(ARM.rotX,ARM.rotY,0); armObj.position.y=Math.sin(performance.now()/900)*0.015; }
+  const dist=2.2/ARM.zoom; armCam.position.set(0,0.2,dist); armCam.lookAt(0,-0.02,0);
+  armR.render(armScene,armCam);
+}
 setInterval(()=>{ if(loadoutOpen) $('loSub').textContent=client.warm>0?`المباراة بتبدأ بعد ${client.warm} ثواني`:$('loSub').textContent; },500);
 // ---------- chat: Enter = type (Tab switches team/all), T = quick messages
 const QUICK=['هاجموا! 🔥','دافعوا عن القاعدة! 🛡️','محتاج مساعدة! 🆘','العدو هون! 👀','تابعوني! ➡️','خذوا العلم! ⚑','شكراً 🙏','GG 🤝'];
@@ -3167,7 +3256,7 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('wheel',e=>{ if(playing&&client) client.setSlot((Math.max(0,client.slot)+(e.deltaY>0?1:2))%3); });
 document.addEventListener('keydown',e=>{
   if(!client||document.activeElement===$('chatTxt')) return;
-  if(e.code==='KeyB'&&!e.repeat){ loadoutOpen?closeLoadout(false):openLoadout(); return; }
+  if(e.code==='KeyB'&&!e.repeat){ loadoutOpen?closeLoadout(false):(client&&client.lobbyOn?openArmory():openLoadout()); return; }
   if(loadoutOpen) return;
   if(!$('quick').classList.contains('hidden')&&/^Digit[1-8]$/.test(e.code)){ sendQuick(+e.code.slice(5)-1); return; }
   if(playing&&(e.code==='Enter'||e.code==='NumpadEnter')){ e.preventDefault(); openChat(); return; }
@@ -3335,13 +3424,13 @@ function frame(){
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
   updateFx(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt); AURA_T.value=t;
-  if(loadoutOpen) renderLoPreview(dt);
+  if(armOpen) renderArmory(dt); else if(loadoutOpen) renderLoPreview(dt);
   if(barriers[0].visible) barriers.forEach(b=>{ b.material.map.offset.y=t*0.25; b.material.opacity=0.28+Math.sin(t*3)*0.08; });
   renderer.clear(); if(composer) composer.render(); else renderer.render(scene,camera); renderer.clearDepth(); renderer.render(vmScene,vmCam);
   updateDmgNums(dt);
 }
 $('cl').textContent={ctf:`أول من يجمع ${SCORE_LIMIT} أعلام`,tdm:`أول من يوصل ${SCORE_LIMIT} قتلة`,koth:`أول من يوصل ${SCORE_LIMIT} نقطة`}[MODE];
-window.HS={get client(){return client;},get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
+window.HS={get client(){return client;},get armObj(){return armObj;},get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
 frame();
 </script>
 </body>
