@@ -242,6 +242,14 @@ body.touch #room{top:66px}
 body.touch,body.touch *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 body.touch input,body.touch select{-webkit-user-select:auto;user-select:auto}
 .lob button,.lob select,.lob input{touch-action:manipulation}
+.mmv.hidden{display:none}
+#mmMain{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.mmb{display:flex;align-items:center;gap:14px;width:100%;padding:16px 22px;border-radius:14px;border:1px solid rgba(140,160,255,.3);background:linear-gradient(90deg,rgba(40,55,140,.75),rgba(18,24,60,.75));color:#fff;font:700 22px "Rajdhani","Cairo",sans-serif;cursor:pointer;text-align:right;transition:transform .12s,border-color .12s,box-shadow .12s}
+.mmb span{width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,.1);font-size:18px}
+.mmb:hover,.mmb:focus-visible{transform:translateX(-4px);border-color:#00e5ff;box-shadow:0 0 18px rgba(0,229,255,.25);outline:none}
+.mmb.exit{background:linear-gradient(90deg,rgba(120,30,50,.6),rgba(40,14,24,.6))} .mmb.exit:hover{border-color:#ff4d6d;box-shadow:0 0 18px rgba(255,77,109,.25)}
+#mmExitMsg{text-align:center;font-size:13px;opacity:.85;min-height:18px}
+.mmback{margin-top:12px}
 body.touch #msg{font-size:17px;white-space:normal;width:92vw}
 body.touch #streak{font-size:30px}
 body.touch .tb{-webkit-tap-highlight-color:transparent}
@@ -595,22 +603,24 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="lob">
     <div class="logo">HYPER SHOT</div>
     <div class="sub">شوتر أونلاين — امسك العلم مع قدرات خارقة</div>
+    <div id="mmMain" class="mmv">
+      <button class="mmb" data-go="mmPlay"><span>▶</span>العب</button>
+      <button class="mmb" data-go="mmSet"><span>⚙</span>الإعدادات</button>
+      <button class="mmb" data-go="mmHelp"><span>?</span>طريقة اللعب</button>
+      <button class="mmb exit" id="mmExit"><span>✕</span>خروج</button>
+      <div id="mmExitMsg"></div>
+    </div>
+    <div id="mmPlay" class="mmv hidden">
     <label>اسمك</label>
     <input id="name" maxlength="14" placeholder="Player">
     <div class="row">
       <div><label>عدد اللاعبين لكل فريق (يكمّل بالبوتات)</label>
         <select id="tsize"><option value="1">1 ضد 1</option><option value="2">2 ضد 2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option></select></div>
-      <div><label>حساسية الماوس</label><input id="sens" type="range" min="0.5" max="3" step="0.1" value="1.2"></div>
     </div>
     <div class="row">
       <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option></select></div>
       <div><label>النمط</label><select id="modeSel"><option value="ctf">امسك العلم</option><option value="tdm">فريق ضد فريق</option><option value="koth">ملك التلة</option></select></div>
-      <div><label>الوقت</label><select id="timeSel"><option value="day">☀️ نهار</option><option value="night">🌙 ليل</option></select></div>
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
-    </div>
-    <div class="row">
-      <div><label>الجودة</label><select id="qSel"><option value="auto">تلقائي (حسب الجهاز)</option><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option></select></div>
-      <div><label>الصوت</label><input id="volSel" type="range" min="0" max="1" step="0.05" value="0.8"></div>
     </div>
     <button class="btn" id="bOff">🎮 العب ضد البوتات</button>
     <button class="btn alt" id="bHost">🌐 أنشئ غرفة أونلاين</button>
@@ -619,6 +629,18 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
       <button class="btn ghost" id="bJoin" style="margin-top:0">انضم</button>
     </div>
     <div id="lobMsg"></div>
+    <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
+    </div>
+    <div id="mmSet" class="mmv hidden">
+      <div class="row"><div><label>حساسية الماوس</label><input id="sens" type="range" min="0.5" max="3" step="0.1" value="1.2"></div>
+        <div><label>الوقت</label><select id="timeSel"><option value="day">☀️ نهار</option><option value="night">🌙 ليل</option></select></div></div>
+    <div class="row">
+      <div><label>الجودة</label><select id="qSel"><option value="auto">تلقائي (حسب الجهاز)</option><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option></select></div>
+      <div><label>الصوت</label><input id="volSel" type="range" min="0" max="1" step="0.05" value="0.8"></div>
+    </div>
+      <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
+    </div>
+    <div id="mmHelp" class="mmv hidden">
     <div class="controls">
       <kbd>W A S D</kbd> حركة &nbsp; <kbd>Space</kbd> قفز &nbsp; <kbd>Mouse</kbd> تصويب/إطلاق &nbsp; <kbd>R</kbd> تلقيم<br>
       <kbd>1</kbd> رئيسي &nbsp; <kbd>2</kbd> ثانوي &nbsp; <kbd>3</kbd> سكين &nbsp; <kbd>B</kbd> اختيار الأسلحة &nbsp; <kbd>F</kbd> التقاط سلاح (زر يمين للمنظار)<br>
@@ -626,6 +648,8 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
       <kbd>Enter</kbd> شات &nbsp; <kbd>T</kbd> رسائل سريعة &nbsp; <kbd>Esc</kbd> القائمة والإعدادات<br>
       <kbd>Tab</kbd> النتائج — امسك العلم: حامل العلم صحته مضاعفة بس بدون قدرات أو سلايد، وإذا مات يرجع العلم لقاعدته.<br>
       الصناديق الخشبية والحديدية تتكسر بالرصاص — استعملها كغطاء أو اكسرها لتفتح طريق.
+    </div>
+    <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
     </div>
   </div>
 </div>
@@ -3729,6 +3753,12 @@ function joinRoom(code){
 // map / mode / difficulty live in the URL; changing them reloads the page and starts automatically
 $('mapSel').value=MAP_ID; $('modeSel').value=MODE; $('diffSel').value=DIFF;
 $('timeSel').value=DAY?'day':'night';
+// ---------- main menu views
+function mmShow(id){ document.querySelectorAll('.mmv').forEach(v=>v.classList.toggle('hidden',v.id!==id)); }
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>mmShow(b.dataset.go));
+$('mmExit').onclick=()=>{ try{ window.close(); }catch(e){}
+  setTimeout(()=>{ if(!window.closed) $('mmExitMsg').textContent='المتصفح ما بيسمح للموقع يسكّر التاب — سكّره من المتصفح 🙏'; },300); };
+if(location.hash.length>1) mmShow('mmPlay'); // invite link: straight to the join screen
 $('timeSel').addEventListener('change',e=>{ try{ localStorage.setItem('hs_time',e.target.value); localStorage.setItem('hs_name',$('name').value.trim()); }catch(err){} location.reload(); });
 function startWithConfig(kind){
   const m=$('mapSel').value, md=$('modeSel').value, df=$('diffSel').value;
