@@ -37,6 +37,14 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
 /* phones: keep HUD + buttons inside the safe area (notch, rounded corners, a status bar that may slide in) */
 body.touch #hud,body.touch #touch{top:calc(env(safe-area-inset-top,0px) + 12px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);bottom:env(safe-area-inset-bottom,0px)}
+#dmgLog{position:absolute;left:12px;top:46%;display:flex;flex-direction:column;gap:3px;direction:rtl;pointer-events:none;font-size:13px;font-weight:700}
+#dmgLog .dl{padding:2px 9px;border-radius:5px;background:rgba(8,12,30,.7);transition:opacity .6s;white-space:nowrap}
+#dmgLog .dl.out{color:#ffd54a;border-right:3px solid #ffd54a} #dmgLog .dl.in{color:#ff6b7d;border-right:3px solid #ff4d5e} #dmgLog .dl.old{opacity:0}
+body.touch #dmgLog{top:auto;bottom:38%;left:8px;font-size:11px}
+#deadSum .dsc{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px auto;width:min(560px,92vw);text-align:right;direction:rtl;background:rgba(8,12,30,.85);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;pointer-events:none}
+#deadSum h4{margin:0 0 6px;font-size:16px;opacity:.9} #deadSum em{opacity:.5}
+#deadSum .dsr{display:grid;grid-template-columns:1fr auto auto;gap:8px;font-size:16px;font-weight:700;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.06);margin-bottom:3px}
+#deadSum .dsr.out b{color:#ffd54a} #deadSum .dsr.in b{color:#ff6b7d}
 #perfHud{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:60;pointer-events:none;font:600 12px/1.35 ui-monospace,Consolas,monospace;color:#cfe;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px;white-space:pre;direction:ltr}
 #adsDot{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 4px #ff3b5c,0 0 0 1px rgba(0,0,0,.6)}
 #cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
@@ -514,6 +522,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div id="feed"></div>
   <div id="hyper"></div>
   <div id="hurt"></div>
+  <div id="dmgLog"></div>
   <div id="perfHud" class="hidden"></div>
   <div id="adsDot" class="hidden"></div>
   <div id="speed"></div>
@@ -542,7 +551,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
     <div id="ammo">30<small>/30</small></div>
     <div id="wslots"><span class="ws on">1 رشاش</span><span class="ws">2 مسدس</span><span class="ws">3 سكين</span></div>
   </div>
-  <div id="dead" class="hidden"><h2>💀 تم إقصاؤك</h2><p id="deadBy"></p><p id="deadT"></p><button class="btn ghost" id="deadLo">🔫 تغيير السلاح (B)</button></div>
+  <div id="dead" class="hidden"><h2>💀 تم إقصاؤك</h2><p id="deadBy"></p><div id="deadSum"></div><p id="deadT"></p><button class="btn ghost" id="deadLo">🔫 تغيير السلاح (B)</button></div>
   <div id="warm" class="hidden"></div>
   <div id="armHint" class="hidden">اكبس <kbd>B</kbd> لفتح معرض الأسلحة</div>
   <div id="lobbyHud" class="hidden"><div class="lt">اللوبي</div><div id="lobbyMsg"></div><div id="lobbyList"></div></div>
@@ -1250,8 +1259,9 @@ class Server{
     if(v.isBot&&a&&a!==v){v.bot.alert=a.id; v.bot.alertT=2.5;}
     if(a&&a!==v) a.u=Math.min(100,a.u+dmg*0.5);
     const kill=v.hp<=0;
-    if(a&&!a.isBot&&a!==v) this.send(a.id,{t:'hc',k:kill,h:head});
-    if(!v.isBot) this.send(v.id,{t:'hurt'});
+    const dd=Math.round(dmg);
+    if(a&&!a.isBot&&a!==v) this.send(a.id,{t:'hc',k:kill,h:head,d:dd,v:v.id,n:v.name});
+    if(!v.isBot) this.send(v.id,{t:'hurt',d:dd,a:a&&a!==v?a.name:'',h:head});
     if(kill) this.kill(v,a,wn,head);
   }
   kill(v,a,wn,head){
@@ -2446,8 +2456,18 @@ function makeAvatar(team,name,friendly){
   const bodyM=[], faceM=[]; inner.traverse(o=>{ if(!o.isMesh) return; if(o.material.isMeshStandardMaterial) bodyM.push(o); else if(o.parent===head&&!o.userData.ghost) faceM.push(o); });
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   g.add(inner,tag);
-  return {g,inner,legs,torso,head,gun,arms,bodyM,faceM,lod:-1,grip:null,idle:Math.random()*6,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
+  // bots only: small health bar with the number (sprite, always faces the camera)
+  let hpBar=null;
+  if(String(name).includes('🤖')){ const cv=document.createElement('canvas'); cv.width=128; cv.height=24; const tex=new THREE.CanvasTexture(cv);
+    hpBar=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true})); hpBar.scale.set(1.1,0.21,1); hpBar.position.y=2.12; hpBar.renderOrder=30; g.add(hpBar);
+    hpBar.userData={cv,tex,last:-1}; }
+  return {g,inner,legs,torso,head,gun,arms,bodyM,faceM,hpBar,lod:-1,grip:null,idle:Math.random()*6,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
 }
+function drawHpBar(spr,hp,mh){ const u=spr.userData, v=Math.max(0,Math.round(hp)); if(u.last===v) return; u.last=v;
+  const x=u.cv.getContext('2d'), k=clamp(v/mh,0,1); x.clearRect(0,0,128,24);
+  x.fillStyle='rgba(0,0,0,.65)'; x.fillRect(0,4,128,16); x.fillStyle=k>0.5?'#3dff8a':k>0.25?'#ffd54a':'#ff4d5e'; x.fillRect(2,6,124*k,12);
+  x.font='bold 14px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.lineWidth=3; x.strokeStyle='#000'; x.strokeText(v,64,12.5); x.fillStyle='#fff'; x.fillText(v,64,12.5);
+  u.tex.needsUpdate=true; }
 // first-person hands use your own look: skin-coloured hands, jacket sleeves
 function setOwnLook(name){ const L=playerLook(name); HAND_MAT.glove.color.setHex(L.skin); HAND_MAT.glove.roughness=0.8; HAND_MAT.sleeve.color.setHex(L.jacket); HAND_MAT.sleeve.roughness=0.85; HAND_MAT.sleeve.metalness=0.05; }
 // death: the soldier's pieces fly apart (uses the crate debris system)
@@ -3044,7 +3064,7 @@ class Client{
     this.load=Object.assign({p:0,s:3},SET.load||{}); this.nextLoad=null; this.slot=0; this.w=this.load.p; this.swing=0; this.warm=0; this.warmShown=false;
     this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; this.fireCd=0; this.cd={dash:0,gren:0,shield:0,slide:0};
     this.eyeOff=0; this.roll=0; this.shake=0; this.streak=0; this.bloom=0; this.hill=-1;
-    this.snap=null; this.stT=0; this.avatars=new Map(); this.kick=0; this.bob=0; this.zoomed=false; this.lastHp=100; this.killer='';
+    this.snap=null; this.stT=0; this.dealt={}; this.taken={}; this.avatars=new Map(); this.kick=0; this.bob=0; this.zoomed=false; this.lastHp=100; this.killer='';
   }
   onMessage(m){
     switch(m.t){
@@ -3056,7 +3076,7 @@ class Client{
         showMsg(`<span style="color:#2fa8ff">فريقك أزرق</span> • <span style="color:#ff3b5c">العدو أحمر</span> — ${MODE_HINT[MODE]}`,4000); break;
       case 'spawn': Object.assign(this.me,{x:m.x,y:m.y,z:m.z,vx:0,vy:0,vz:0,dashT:0,slideT:0}); this.streak=0; this.yaw=m.yaw; this.pitch=0; this.alive=true;
         if(this.nextLoad){this.load=this.nextLoad; this.nextLoad=null;} this.slot=0; this.w=this.load.p;
-        this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; $('dead').classList.add('hidden'); break;
+        this.ammo=WKEYS.map(k=>W[k].mag); this.reloadT=0; $('dead').classList.add('hidden'); this.dealt={}; this.taken={}; this.deathShown=false; break;
       case 'gotw': this.load.p=m.w; SET.load={...this.load}; saveSet(); this.ammo[m.w]=W[WKEYS[m.w]].mag; this.slot=-1; this.setSlot(0);
         sfx('pick'); showMsg('حملت '+W[WKEYS[m.w]].name+' ✋',1200); break;
       case 'snap': if(this.id) this.onSnap(m); break;
@@ -3065,8 +3085,12 @@ class Client{
       case 'boom': addBoom(m.x,m.y,m.z); {const v=this.vol([m.x,m.y,m.z]); sfx('boom',v,[m.x,m.y,m.z]); this.shake=Math.max(this.shake,v*1.2);} break;
       case 'pg': this.send({t:'po',s:m.s}); if(m.r!=null) this.ping=Math.round(m.r*1000); break;
       case 'fix': this.me.x=m.x; this.me.y=m.y; this.me.z=m.z; this.me.vx=this.me.vz=this.me.vy=0; break;
-      case 'hc': hitMarker(m.k); if(m.k) sfx('kill'); break;
-      case 'hurt': sfx('hurt'); flash('hurt'); break;
+      case 'hc': hitMarker(m.k); if(m.k) sfx('kill');
+        if(m.d!=null){ dmgLog(`${String(m.n).replace(' 🤖',' 🤖')}  −${m.d}${m.h?' 🎯':''}${m.k?'  ☠':''}`,'out'); const t=this.dealt[m.n]||(this.dealt[m.n]={d:0,h:0,k:0}); t.d+=m.d; t.h+=m.h?1:0; t.k+=m.k?1:0; }
+        break;
+      case 'hurt': sfx('hurt'); flash('hurt');
+        if(m.d!=null&&m.a){ dmgLog(`${m.a}  ⟶  −${m.d}${m.h?' 🎯':''}`,'in'); const t=this.taken[m.a]||(this.taken[m.a]={d:0,h:0}); t.d+=m.d; t.h+=m.h?1:0; }
+        break;
       case 'pick': sfx('pick'); showMsg(m.k==='hp'?'<span style="color:#3dff8a">+40 صحة</span>':'<span style="color:#ffcc33">+40 طاقة خارقة</span>',1000); break;
       case 'ev': this.onEvent(m); break;
       case 'chat': addChat(m.n,m.tm,m.tx,m.team); sfx('pick',0.25); break;
@@ -3115,7 +3139,7 @@ class Client{
       av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.w=p.w|0; av.sk=p.sk|0; av.team=p.t; av.name=p.n;
       if(av.wasAlive&&!p.al){ addPoof(av.pos,TEAM_COLOR[p.t]); deathBurst(av); }
       if(!av.wasAlive&&p.al) av.pos.copy(av.target);
-      av.alive=!!p.al; av.wasAlive=av.alive; av.sp=!!p.sp; av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
+      av.alive=!!p.al; av.wasAlive=av.alive; av.sp=!!p.sp; if(av.hpBar) drawHpBar(av.hpBar,p.hp,p.mh||MAX_HP); av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
     }
     for(const [id,av] of this.avatars) if(!seen.has(id)){scene.remove(av.g); this.avatars.delete(id);}
     // grenades
@@ -3487,7 +3511,8 @@ function updateHudSnap(c,s){
   $('ab-ult').querySelector('.cd').style.height=c.ut>0?'0%':(100-c.u)+'%';
   $('hyper').style.opacity=c.ut>0?1:0;
   $('carry').classList.toggle('hidden',!c.carrying());
-  const d=$('dead'); if(!c.alive&&!s.end){d.classList.remove('hidden'); $('deadBy').textContent=c.killer?('قتلك '+c.killer):''; $('deadT').textContent='العودة بعد '+Math.max(0,Math.ceil(c.rs))+' ثوانٍ';} else d.classList.add('hidden');
+  const d=$('dead'); if(!c.alive&&!s.end&&!c.deathShown){ c.deathShown=true; drawDeathSummary(c); }
+  if(!c.alive&&!s.end){d.classList.remove('hidden'); $('deadBy').textContent=c.killer?('قتلك '+c.killer):''; $('deadT').textContent='العودة بعد '+Math.max(0,Math.ceil(c.rs))+' ثوانٍ';} else d.classList.add('hidden');
   drawEnd(c,s);
   if(!$('board').classList.contains('hidden')) drawBoard(c,s);
   drawRanks(c,s);
@@ -3539,6 +3564,15 @@ function drawEnd(c,s){
 }
 $('endVote').onclick=()=>{ if(!client||endVoted) return; endVoted=true; $('endVote').classList.add('on'); client.send({t:'vote'}); sfx('pick'); };
 $('endMenu').onclick=()=>$('pmLeave').onclick();
+// ---------- damage log (side) + death summary — numbers come from the server, so they're what really counted
+function dmgLog(text,kind){ const box=$('dmgLog'), e=document.createElement('div'); e.className='dl '+kind; e.textContent=text; box.prepend(e);
+  while(box.children.length>6) box.lastChild.remove(); setTimeout(()=>e.classList.add('old'),3500); setTimeout(()=>e.remove(),4200); }
+function drawDeathSummary(c){
+  const row=(n,t,dir)=>`<div class="dsr ${dir}"><span>${escapeHtml(String(n))}</span><b>${Math.round(t.d)}</b><i>${t.h?t.h+' 🎯':''}${t.k?' ☠':''}</i></div>`;
+  const dl=Object.entries(c.dealt).sort((a,b)=>b[1].d-a[1].d), tk=Object.entries(c.taken).sort((a,b)=>b[1].d-a[1].d);
+  const sum=o=>Math.round(Object.values(o).reduce((a,t)=>a+t.d,0));
+  $('deadSum').innerHTML=(dl.length||tk.length)?`<div class="dsc"><div><h4>ضرر عملته · ${sum(c.dealt)}</h4>${dl.map(([n,t])=>row(n,t,'out')).join('')||'<em>—</em>'}</div>
+    <div><h4>ضرر أخذته · ${sum(c.taken)}</h4>${tk.map(([n,t])=>row(n,t,'in')).join('')||'<em>—</em>'}</div></div>`:''; }
 function drawRanks(c,s){
   const ps=[...s.p].sort((a,b)=>b.k-a.k||b.c-a.c||a.d-b.d).slice(0,10);
   const key=ps.map(p=>p.i+':'+p.k+':'+p.t+':'+p.al+':'+p.n).join('|'); if(key===_ranksKey) return; _ranksKey=key;
