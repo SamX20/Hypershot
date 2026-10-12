@@ -324,6 +324,16 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #armory .abtns .btn{font-size:17px;padding:10px 26px;white-space:nowrap}
 #armory .ahint{position:absolute;bottom:26px;left:20px;font-size:12px;opacity:.5}
 @media (max-width:820px){#armory .ainfo{top:70px;width:180px} #armName{font-size:22px} #armory .aright{width:170px} #armSkins{grid-template-columns:1fr}}
+@media (max-height:520px){
+  #armory .ahead{top:4px} #armory .at{font-size:20px;letter-spacing:6px} #armory .as{display:none}
+  #armory .aright{top:6px;bottom:6px;width:190px;gap:4px} #armory .aslots{gap:3px}
+  #armory .aslot{padding:3px 8px} #armory .aslot small{font-size:9px} #armory .aslot b{font-size:13px} #armory .aslot i{font-size:10px;margin:0}
+  #armory .askins{padding:5px} #armSkins .sw{padding:3px;font-size:9px} #armSkins .sw i{width:24px;height:24px}
+  #armory .ainfo{top:34px;left:10px;width:170px} #armName{font-size:18px} #armSkinName{font-size:12px;margin:2px 0 4px} #armStats .lst{margin:2px 0}
+  #armory .aguns{bottom:48px;left:calc(50% - 100px);max-width:calc(100vw - 230px);gap:5px} #armory .ag{min-width:74px;padding:4px 8px;font-size:12px} #armory .ag small{display:none}
+  #armory .abtns{bottom:6px;left:calc(50% - 100px)} #armory .abtns .btn{font-size:13px;padding:6px 14px}
+  #armory .ahint{display:none} #armSkins{grid-template-columns:1fr 1fr}
+}
 #loadout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.5);z-index:31}
 #loadout .lo{width:min(640px,94vw);max-height:92vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);direction:rtl}
 #loadout h2{margin:0;text-align:center} #loSub{text-align:center;opacity:.8;font-size:13px;margin:4px 0 8px;min-height:16px}
