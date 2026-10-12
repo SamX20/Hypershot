@@ -1,0 +1,8 @@
+{
+  "name": "hyper-shot-server",
+  "private": true,
+  "description": "Dedicated WebSocket server for Hyper Shot (the static game itself is served by GitHub Pages)",
+  "scripts": { "start": "node server/server.js" },
+  "dependencies": { "ws": "^8.18.0" },
+  "engines": { "node": ">=18" }
+}

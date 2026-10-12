@@ -656,7 +656,8 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
     </div>
     <button class="btn" id="bOff">🎮 العب ضد البوتات</button>
-    <button class="btn alt" id="bHost">🌐 أنشئ غرفة أونلاين</button>
+    <button class="btn alt" id="bSrv">🖥️ غرفة على السيرفر (أفضل اتصال)</button>
+    <button class="btn alt" id="bHost">🌐 أنشئ غرفة من جهازك (P2P)</button>
     <div class="row" style="margin-top:12px">
       <input id="code" placeholder="كود الغرفة" maxlength="6" style="text-transform:uppercase;direction:ltr;text-align:center">
       <button class="btn ghost" id="bJoin" style="margin-top:0">انضم</button>
@@ -703,6 +704,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
+// @@SHARED-BEGIN (game rules, maps, physics, authoritative Server: also loaded by server/server.js on Node)
 /* =====================================================================
    CONSTANTS
 ===================================================================== */
@@ -1500,6 +1502,7 @@ class Server{
   }
 }
 
+// @@SHARED-END
 /* =====================================================================
    AUDIO (synthesized)
 ===================================================================== */
@@ -3766,7 +3769,36 @@ function hostRoom(){
   });
   peer.on('error',e=>{ if(e.type==='unavailable-id'){peer.destroy(); hostRoom();} else room.textContent='خطأ في الشبكة: '+e.type; });
 }
+// ---------- dedicated server rooms (Railway): same game protocol over a WebSocket; P2P stays as the fallback
+const SRV_URL=(()=>{ try{ const o=QS.get('srv')||localStorage.getItem('hs_srv'); if(o) return o; }catch(e){} return 'wss://hyper-shot-server-production.up.railway.app/ws'; })();
+let ws=null;
+function srvStart(q,onFail){
+  try{ ws=new WebSocket(SRV_URL+'?'+q); }catch(e){ return onFail('تعذّر الاتصال بالسيرفر'); }
+  let opened=false; const to=setTimeout(()=>{ if(!opened){ try{ws.close();}catch(e){} onFail('السيرفر ما ردّ'); } },6000);
+  ws.onmessage=ev=>{ let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(!opened){ clearTimeout(to);
+      if(m.t==='err'){ opened=true; try{ws.close();}catch(e){} return onFail(m.m||'خطأ'); }
+      if(m.t==='room'){ opened=true;
+        if(m.map!==MAP_ID||m.mode!==MODE||m.diff!==DIFF){ // this page was built for another map: reload into the room's config
+          try{ ws.onclose=null; ws.close(); sessionStorage.setItem('hs_auto','sjoin'); localStorage.setItem('hs_name',$('name').value.trim()); }catch(e){}
+          location.replace(location.pathname+`?map=${m.map}&mode=${m.mode}&diff=${m.diff}#${m.code}`); return; }
+        client=new Client(x=>{ if(ws.readyState===1) ws.send(JSON.stringify(x)); });
+        ws.send(JSON.stringify({t:'ready'})); client.send({t:'join',name:getName()});
+        const room=$('room'); room.classList.remove('hidden'); room.innerHTML='<span class="rx">🖥️ غرفة السيرفر: </span><b></b><span class="rx"> — أرسل الكود لأصحابك</span>'; room.querySelector('b').textContent=m.code;
+        JOIN_CODE=m.code; ws.onclose=()=>{ showMsg('انقطع الاتصال بالسيرفر',100000); setTimeout(()=>location.reload(),3000); };
+        enterGame(); }
+      return; }
+    client&&client.onMessage(m); };
+  ws.onerror=()=>{ if(!opened){ clearTimeout(to); opened=true; onFail('تعذّر الاتصال بالسيرفر'); } };
+}
+function hostServer(){ lobMsg('جارٍ إنشاء غرفة على السيرفر...');
+  srvStart(`op=create&map=${MAP_ID}&mode=${MODE}&diff=${DIFF}&ts=${$('tsize').value}`,t=>lobMsg(t+' — جرّب «من جهازك»')); }
 function joinRoom(code){
+  // try the dedicated server first; if it doesn't know the code, it's a P2P room
+  code=String(code||'').trim().toUpperCase(); if(code.length<4){lobMsg('أدخل كود الغرفة'); return;}
+  lobMsg('جارٍ الاتصال...'); srvStart('op=join&code='+code,()=>joinRoomP2P(code));
+}
+function joinRoomP2P(code){
   if(typeof Peer==='undefined'){lobMsg('تعذّر تحميل مكتبة الشبكة — تأكد من الإنترنت'); return;}
   code=code.trim().toUpperCase(); if(code.length<4){lobMsg('أدخل كود الغرفة'); return;} JOIN_CODE=code;
   lobMsg('جارٍ الاتصال...');
@@ -3800,17 +3832,20 @@ if(location.hash.length>1) mmShow('mmPlay'); // invite link: straight to the joi
 $('timeSel').addEventListener('change',e=>{ try{ localStorage.setItem('hs_time',e.target.value); localStorage.setItem('hs_name',$('name').value.trim()); }catch(err){} location.reload(); });
 function startWithConfig(kind){
   const m=$('mapSel').value, md=$('modeSel').value, df=$('diffSel').value;
-  if(m===MAP_ID&&md===MODE&&df===DIFF) return startLocal(kind==='host');
+  if(m===MAP_ID&&md===MODE&&df===DIFF) return kind==='srv'?hostServer():startLocal(kind==='host');
   try{ localStorage.setItem('hs_name',$('name').value.trim()); sessionStorage.setItem('hs_auto',kind); sessionStorage.setItem('hs_ts',$('tsize').value); }catch(e){}
   location.replace(location.pathname+`?map=${m}&mode=${md}&diff=${df}`);
 }
 $('bOff').onclick=()=>startWithConfig('off');
 $('bHost').onclick=()=>startWithConfig('host');
+$('bSrv').onclick=()=>startWithConfig('srv');
 $('bJoin').onclick=()=>joinRoom($('code').value);
 $('code').addEventListener('keydown',e=>{ if(e.key==='Enter') joinRoom($('code').value); });
 if(location.hash.length>4) $('code').value=location.hash.slice(1);
 { let auto=null; try{ auto=sessionStorage.getItem('hs_auto'); sessionStorage.removeItem('hs_auto'); const ts=sessionStorage.getItem('hs_ts'); if(ts) $('tsize').value=ts; }catch(e){}
   if(auto==='off'||auto==='host') startLocal(auto==='host');
+  else if(auto==='srv') hostServer();
+  else if(auto==='sjoin'&&location.hash.length>4) srvStart('op=join&code='+location.hash.slice(1),t=>lobMsg(t));
   else if(auto==='join'&&location.hash.length>4) joinRoom(location.hash.slice(1)); }
 $('lobby').querySelector('.sub').textContent=`${MODES[MODE].name} • ${MAPS[MAP_ID].name} — شوتر أونلاين مع قدرات خارقة`;
 

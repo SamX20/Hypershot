@@ -1,3 +1,4 @@
 *.zip
 _handoff/
 .claude/
+node_modules/
