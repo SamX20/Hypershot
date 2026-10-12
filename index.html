@@ -739,10 +739,10 @@ function findPath(sx,sz,gx,gz,sy=0){
 const BOT_NAMES=['Blitz','Nova','Raptor','Volt','Ghost','Viper','Echo','Pulse','Zed','Kai','Rex','Storm','Jet','Orbit','Flux','Neon','Bolt','Rogue'];
 // bot difficulty: reaction time, turn speed (rad/s), aim wobble (rad), head-aim chance, view cone (cos), dodge chance
 const DIFFS={
-  easy:  {react:0.6, turn:3.5,wob:0.075,head:0.04,fov:0.35,dodge:0.1, burst:[3,5],  pause:[0.45,0.8], strafe:0.5},
-  normal:{react:0.38,turn:6,  wob:0.045,head:0.12,fov:0.2, dodge:0.3, burst:[5,9],  pause:[0.25,0.5], strafe:0.8},
-  hard:  {react:0.24,turn:9,  wob:0.028,head:0.22,fov:0.0, dodge:0.55,burst:[8,14], pause:[0.15,0.3], strafe:1},
-  insane:{react:0.14,turn:14, wob:0.016,head:0.35,fov:-0.3,dodge:0.8, burst:[12,30],pause:[0.08,0.15],strafe:1},
+  easy:  {react:0.6, turn:3.5,wob:0.075,head:0.04,fov:0.35,dodge:0.1, burst:[3,5],  pause:[0.45,0.8], strafe:0.5, heal:0},
+  normal:{react:0.38,turn:6,  wob:0.045,head:0.12,fov:0.2, dodge:0.3, burst:[5,9],  pause:[0.25,0.5], strafe:0.8, heal:1},
+  hard:  {react:0.24,turn:9,  wob:0.028,head:0.22,fov:0.0, dodge:0.55,burst:[8,14], pause:[0.15,0.3], strafe:1, heal:2},
+  insane:{react:0.14,turn:14, wob:0.016,head:0.35,fov:-0.3,dodge:0.8, burst:[12,30],pause:[0.08,0.15],strafe:1, heal:99},
 };
 const BD=DIFFS[DIFF];
 const PERSONAS=['rifler','rifler','rusher','sniper','rifler','rusher'];
@@ -810,7 +810,7 @@ class Server{
     p.x=best[0]+rand(-0.8,0.8); p.z=best[1]+rand(-0.8,0.8); p.y=0; p.vx=p.vy=p.vz=0;
     p.mh=MAX_HP; p.hp=MAX_HP; p.sh=0; p.alive=true; p.sp=2; p.slideT=0; p.twT=0; p.sl=0; p.dashT=0; p.lastHit=99; p.yaw=p.team===1?Math.PI/2:-Math.PI/2; p.pitch=0;
     if(p.loadNext){p.load=p.loadNext; p.loadNext=null;} p.w=p.load.p;
-    if(p.isBot){const B=p.bot; B.path=[];B.target=0;B.mag=WKEYS.map(k=>W[k].mag);B.reloadT=0;B.crate=null;B.lastSeen=null;B.heard=null;}
+    if(p.isBot){const B=p.bot; B.path=[];B.target=0;B.mag=WKEYS.map(k=>W[k].mag);B.reloadT=0;B.heals=0;B.crate=null;B.lastSeen=null;B.heard=null;}
     else this.send(p.id,{t:'spawn',x:p.x,y:p.y,z:p.z,yaw:p.yaw});
   }
   onMessage(id,m){
@@ -1178,7 +1178,7 @@ class Server{
     if(B.abilT<=0&&!carrying){
       B.abilT=rand(0.8,2);
       if(dodge&&b.cd.gren<=0&&b.onGround&&Math.random()<BD.dodge*0.6){b.cd.gren=CD.gren; b.vy=16; b.onGround=false;}   // Upward Shift to break aim
-      if(hpFrac<0.55&&b.cd.shield<=0){b.cd.shield=CD.shield; b.hp=Math.min(b.mh,b.hp+50);}                                 // Healing Potion
+      if(hpFrac<0.55&&b.cd.shield<=0&&(B.heals|0)<BD.heal){b.cd.shield=CD.shield; B.heals=(B.heals|0)+1; b.hp=Math.min(b.mh,b.hp+50);} /* potions per life depend on difficulty */                                 // Healing Potion
       if(b.cd.dash<=0&&((!tgt&&L>25)||(tgt&&B.persona==='rusher'))&&Math.random()<0.6){b.cd.dash=CD.dash; b.twT=4;}         // Tailwind
     }
     // ---- aim: rotate toward the aim point at limited speed, plus smooth wobble
