@@ -203,7 +203,7 @@ body.touch.inlobby #tTab,body.touch.inlobby #room{display:none}
 @keyframes kbXh{0%{opacity:0;transform:scale(2.2) rotate(90deg)}14%{opacity:1;transform:scale(.9) rotate(0)}22%{transform:scale(1)}70%{opacity:.9}100%{opacity:0;transform:scale(1.1)}}
 body.touch #kb{top:58%;transform:scale(.75)}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
-#tSlide{right:290px;bottom:60px;width:60px;height:60px}
+#tSlide{right:calc(290px*var(--bs,1));bottom:calc(60px*var(--bs,1));width:calc(60px*var(--bs,1));height:calc(60px*var(--bs,1))}
 /* ---------- touch controls ---------- */
 body.touch{touch-action:none}
 #touch{position:fixed;inset:0;z-index:6;touch-action:none}
@@ -214,18 +214,18 @@ body.touch{touch-action:none}
 .tb:after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.7) calc(var(--cd)*1%),transparent 0)}
 .tb.act{background:rgba(0,229,255,.35)}
 .tb .ti{width:52%;height:52%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
-#tTab .ti,#tPick .ti{width:20px;height:20px;flex:none} #tTab small,#tPick small{position:static;font-size:13px;opacity:1;margin-inline-start:5px}
+#tTab .ti,#tPick .ti{width:calc(20px*var(--bs,1));height:calc(20px*var(--bs,1));flex:none} #tTab small,#tPick small{position:static;font-size:13px;opacity:1;margin-inline-start:5px}
 .tb small{position:absolute;bottom:-16px;font-size:10px;opacity:.8;white-space:nowrap}
-#tFire{right:22px;bottom:120px;width:92px;height:92px;font-size:34px;border-color:#ff3b5c}
-#tJump{right:130px;bottom:40px;width:66px;height:66px}
-#tScope{right:130px;bottom:150px;width:52px;height:52px;font-size:18px}
-#tDash{right:20px;bottom:24px;width:62px;height:62px}
-#tGren{right:215px;bottom:30px;width:56px;height:56px}
-#tShield{right:205px;bottom:110px;width:56px;height:56px}
-#tUlt{right:30px;bottom:240px;width:60px;height:60px;border-color:#ffcc33}
-#tReload{right:110px;bottom:230px;width:48px;height:48px;font-size:18px}
-#tWeap{right:180px;bottom:200px;width:52px;height:52px;font-size:18px}
-#tTab{left:50%;top:84px;transform:translateX(-50%);width:auto;height:auto;border-radius:8px;padding:2px 10px;font-size:13px}
+#tFire{right:calc(22px*var(--bs,1));bottom:calc(120px*var(--bs,1));width:calc(92px*var(--bs,1));height:calc(92px*var(--bs,1));font-size:34px;border-color:#ff3b5c}
+#tJump{right:calc(130px*var(--bs,1));bottom:calc(40px*var(--bs,1));width:calc(66px*var(--bs,1));height:calc(66px*var(--bs,1))}
+#tScope{right:calc(130px*var(--bs,1));bottom:calc(150px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1));font-size:18px}
+#tDash{right:calc(20px*var(--bs,1));bottom:calc(24px*var(--bs,1));width:calc(62px*var(--bs,1));height:calc(62px*var(--bs,1))}
+#tGren{right:calc(215px*var(--bs,1));bottom:calc(30px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+#tShield{right:calc(205px*var(--bs,1));bottom:calc(110px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+#tUlt{right:calc(30px*var(--bs,1));bottom:calc(240px*var(--bs,1));width:calc(60px*var(--bs,1));height:calc(60px*var(--bs,1));border-color:#ffcc33}
+#tReload{right:calc(110px*var(--bs,1));bottom:calc(230px*var(--bs,1));width:calc(48px*var(--bs,1));height:calc(48px*var(--bs,1));font-size:18px}
+#tWeap{right:calc(180px*var(--bs,1));bottom:calc(200px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1));font-size:18px}
+#tTab{left:50%;top:calc(84px*var(--bs,1));transform:translateX(-50%);width:auto;height:auto;border-radius:8px;padding:2px 10px;font-size:13px}
 body.touch #abil,body.touch #wslots,body.touch .controls,body.touch #cl{display:none}
 body.touch #bl{bottom:auto;top:96px;left:10px;width:180px}
 body.touch #hpt{font-size:22px}
@@ -244,22 +244,22 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 /* portrait: joystick owns the left half, every button lives on the right half */
 @media (orientation:portrait){
   body.touch #joy{width:50%;height:60%}
-  body.touch #tFire{right:14px;bottom:112px;width:84px;height:84px}
-  body.touch #tDash{right:14px;bottom:30px;width:56px;height:56px}
-  body.touch #tJump{right:80px;bottom:26px;width:62px;height:62px}
-  body.touch #tSlide{right:108px;bottom:104px;width:54px;height:54px}
-  body.touch #tGren{right:108px;bottom:174px;width:50px;height:50px}
-  body.touch #tShield{right:14px;bottom:212px;width:50px;height:50px}
-  body.touch #tReload{right:70px;bottom:224px;width:44px;height:44px}
-  body.touch #tWeap{right:124px;bottom:240px;width:46px;height:46px}
-  body.touch #tScope{right:124px;bottom:300px;width:46px;height:46px}
+  body.touch #tFire{right:calc(14px*var(--bs,1));bottom:calc(112px*var(--bs,1));width:calc(84px*var(--bs,1));height:calc(84px*var(--bs,1))}
+  body.touch #tDash{right:calc(14px*var(--bs,1));bottom:calc(30px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+  body.touch #tJump{right:calc(80px*var(--bs,1));bottom:calc(26px*var(--bs,1));width:calc(62px*var(--bs,1));height:calc(62px*var(--bs,1))}
+  body.touch #tSlide{right:calc(108px*var(--bs,1));bottom:calc(104px*var(--bs,1));width:calc(54px*var(--bs,1));height:calc(54px*var(--bs,1))}
+  body.touch #tGren{right:calc(108px*var(--bs,1));bottom:calc(174px*var(--bs,1));width:calc(50px*var(--bs,1));height:calc(50px*var(--bs,1))}
+  body.touch #tShield{right:calc(14px*var(--bs,1));bottom:calc(212px*var(--bs,1));width:calc(50px*var(--bs,1));height:calc(50px*var(--bs,1))}
+  body.touch #tReload{right:calc(70px*var(--bs,1));bottom:calc(224px*var(--bs,1));width:calc(44px*var(--bs,1));height:calc(44px*var(--bs,1))}
+  body.touch #tWeap{right:calc(124px*var(--bs,1));bottom:calc(240px*var(--bs,1));width:calc(46px*var(--bs,1));height:calc(46px*var(--bs,1))}
+  body.touch #tScope{right:calc(124px*var(--bs,1));bottom:calc(300px*var(--bs,1));width:calc(46px*var(--bs,1));height:calc(46px*var(--bs,1))}
   body.touch #top{transform:translateX(-50%) scale(.78);transform-origin:top center;top:6px}
   body.touch #mini{top:72px;left:8px;transform:scale(.6);transform-origin:top left}
   body.touch #bl{top:146px;left:10px;width:150px}
   body.touch #br{top:146px;left:auto;right:10px}
   body.touch #feed{top:72px;right:8px;width:200px}
   body.touch .fi{font-size:11px;padding:3px 7px}
-  body.touch #tTab{top:62px}
+  body.touch #tTab{top:calc(62px*var(--bs,1))}
   body.touch #room{top:200px;font-size:11px}
 }
 /* landscape phones: keep the top-right corner for the kill feed, stack minimap / HP / ammo on the left */
@@ -272,21 +272,21 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
   body.touch .fi{font-size:11px;padding:3px 7px}
   /* Roblox-style: thumbstick bottom-left, big jump bottom-right, fire right next to it, abilities in an arc around them,
      menu + chat top-left; everything the right thumb needs sits inside a ~260px quarter circle */
-  body.touch #tJump{right:22px;bottom:20px;width:76px;height:76px}
-  body.touch #tFire{right:112px;bottom:56px;width:88px;height:88px}
-  body.touch #tDash{right:22px;bottom:108px;width:56px;height:56px}
-  body.touch #tUlt{right:22px;bottom:176px;width:56px;height:56px}
-  body.touch #tSlide{right:212px;bottom:18px;width:56px;height:56px}
-  body.touch #tGren{right:216px;bottom:88px;width:52px;height:52px}
-  body.touch #tShield{right:200px;bottom:156px;width:52px;height:52px}
-  body.touch #tScope{right:130px;bottom:160px;width:52px;height:52px}
-  body.touch #tReload{right:84px;bottom:226px;width:46px;height:46px}
-  body.touch #tWeap{right:140px;bottom:228px;width:46px;height:46px}
-  body.touch #tMenu{left:10px;top:10px} body.touch #tChat{left:62px;top:10px;right:auto;bottom:auto;width:44px;height:44px}
-  body.touch #tLoad{left:114px;top:10px;width:44px;height:44px}
+  body.touch #tJump{right:calc(22px*var(--bs,1));bottom:calc(20px*var(--bs,1));width:calc(76px*var(--bs,1));height:calc(76px*var(--bs,1))}
+  body.touch #tFire{right:calc(112px*var(--bs,1));bottom:calc(56px*var(--bs,1));width:calc(88px*var(--bs,1));height:calc(88px*var(--bs,1))}
+  body.touch #tDash{right:calc(22px*var(--bs,1));bottom:calc(108px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+  body.touch #tUlt{right:calc(22px*var(--bs,1));bottom:calc(176px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+  body.touch #tSlide{right:calc(212px*var(--bs,1));bottom:calc(18px*var(--bs,1));width:calc(56px*var(--bs,1));height:calc(56px*var(--bs,1))}
+  body.touch #tGren{right:calc(216px*var(--bs,1));bottom:calc(88px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1))}
+  body.touch #tShield{right:calc(200px*var(--bs,1));bottom:calc(156px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1))}
+  body.touch #tScope{right:calc(130px*var(--bs,1));bottom:calc(160px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1))}
+  body.touch #tReload{right:calc(84px*var(--bs,1));bottom:calc(226px*var(--bs,1));width:calc(46px*var(--bs,1));height:calc(46px*var(--bs,1))}
+  body.touch #tWeap{right:calc(140px*var(--bs,1));bottom:calc(228px*var(--bs,1));width:calc(46px*var(--bs,1));height:calc(46px*var(--bs,1))}
+  body.touch #tMenu{left:calc(10px*var(--bs,1));top:calc(10px*var(--bs,1))} body.touch #tChat{left:calc(62px*var(--bs,1));top:calc(10px*var(--bs,1));right:auto;bottom:auto;width:calc(44px*var(--bs,1));height:calc(44px*var(--bs,1))}
+  body.touch #tLoad{left:calc(114px*var(--bs,1));top:calc(10px*var(--bs,1));width:calc(44px*var(--bs,1));height:calc(44px*var(--bs,1))}
   /* online room on phones: code becomes a small badge under the minimap, results button top-right, kill feed below it */
   body.touch #room{left:10px;top:136px;transform:none;font-size:11px;padding:2px 8px;border-radius:7px} body.touch #room .rx{display:none} body.touch #room b:before{content:'🔑 '}
-  body.touch #tTab{right:10px;left:auto;top:8px;transform:none;padding:4px 10px}
+  body.touch #tTab{right:calc(10px*var(--bs,1));left:auto;top:calc(8px*var(--bs,1));transform:none;padding:4px 10px}
   body.touch #feed{top:46px}
   body.touch #mini{left:166px}
 }
@@ -370,7 +370,8 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #tPick{left:50%;top:62%;transform:translateX(-50%);width:auto;height:auto;padding:6px 14px;border-radius:12px;font-size:14px;border-color:#ffcc33}
 /* ---- pause menu, chat, quick chat, health drops ---- */
 #pause{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:30}
-#pmGyroBox label{display:flex;justify-content:space-between;align-items:center} #pmGyro{width:22px;height:22px;accent-color:#00e5ff}
+#pmGyroBox label{display:flex;justify-content:space-between;align-items:center} #pmGyroBox input[type=checkbox]{width:22px;height:22px;accent-color:#00e5ff}
+.pm,.lcol,.askins,#keyList,#armSkins{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y} input[type=range]{touch-action:none}
 #keys{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.6);z-index:41;direction:rtl}
 #keys .pm{width:min(440px,92vw);max-height:90vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.95);border:1px solid rgba(140,160,255,.25);text-align:center}
 #keyList{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
@@ -411,9 +412,9 @@ body:not(.inlobby) #room .rx{display:none} body:not(.inlobby) #room b:before{con
 #quick{position:absolute;left:18px;top:50%;transform:translateY(-50%);direction:rtl;background:rgba(10,14,36,.85);border:1px solid rgba(140,160,255,.3);border-radius:12px;padding:8px;min-width:200px;backdrop-filter:blur(10px)}
 #quick div{padding:6px 10px;border-radius:8px;cursor:pointer;font-size:14px} #quick div:hover{background:rgba(80,100,255,.25)} #quick b{display:inline-block;width:20px;color:#00e5ff}
 #quick .qh{opacity:.6;font-size:11px;cursor:default} #quick .qh:hover{background:none}
-#tMenu{left:10px;top:10px;width:44px;height:44px;font-size:20px} #tChat{right:180px;bottom:270px;width:52px;height:52px;font-size:20px}
+#tMenu{left:calc(10px*var(--bs,1));top:calc(10px*var(--bs,1));width:calc(44px*var(--bs,1));height:calc(44px*var(--bs,1));font-size:20px} #tChat{right:calc(180px*var(--bs,1));bottom:calc(270px*var(--bs,1));width:calc(52px*var(--bs,1));height:calc(52px*var(--bs,1));font-size:20px}
 body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
-body.touch #mini{left:166px} #tLoad{left:114px;top:10px;width:44px;height:44px}
+body.touch #mini{left:166px} #tLoad{left:calc(114px*var(--bs,1));top:calc(10px*var(--bs,1));width:calc(44px*var(--bs,1));height:calc(44px*var(--bs,1))}
 
 /* ---------- HUD v2 (Hyper Shot style) ---------- */
 #ranks{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
@@ -575,7 +576,10 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
     <label><span>حساسية الماوس</span><span id="pmSensV"></span></label><input id="pmSens" type="range" min="0.3" max="3" step="0.1">
     <label><span>مجال الرؤية (FOV)</span><span id="pmFovV"></span></label><input id="pmFov" type="range" min="70" max="100" step="1">
     <div id="pmGyroBox"><label><span>🎯 التصويب بالجيروسكوب</span><input id="pmGyro" type="checkbox"></label>
-    <label><span>حساسية الجيروسكوب</span><span id="pmGyroV"></span></label><input id="pmGyroS" type="range" min="0.2" max="3" step="0.1"></div>
+    <label><span>حساسية الجيروسكوب</span><span id="pmGyroV"></span></label><input id="pmGyroS" type="range" min="0.2" max="3" step="0.1">
+    <label><span>حجم الأزرار</span><span id="pmBtnV"></span></label><input id="pmBtn" type="range" min="0.7" max="1.6" step="0.05">
+    <label><span>عكس المحور العمودي (Y)</span><input id="pmGyroIY" type="checkbox"></label>
+    <label><span>عكس المحور الأفقي (X)</span><input id="pmGyroIX" type="checkbox"></label></div>
   </div>
   <button class="btn ghost" id="pmKeys">⌨ أزرار الكيبورد</button>
   <button class="btn ghost" id="pmTouch">✥ تعديل أزرار الجوال</button>
@@ -668,6 +672,7 @@ const W={
 };
 const falloffMul=(w,d)=>w.falloff?clamp(1-(d-w.falloff[0])/w.falloff[1],w.fmin,1):1;
 const WKEYS=['rifle','shotgun','sniper','pistol','smg','knife','m16','scar','mp7','m1911t'], NW=WKEYS.length, PRIMS=[0,6,7,1,2], SECS=[3,9,4,8], KNIFE=5, RIFLES=[0,6,7];
+for(const k of WKEYS) if(W[k].reload&&k!=='shotgun') W[k].reload=+(W[k].reload*0.85).toFixed(2); // snappier mag swaps (shotgun loads shell by shell)
 const WARMUP=10, LOBBY_WARM=5; // seconds behind the spawn barrier to pick a loadout before each match
 // Hypershot active abilities: dash = Tailwind (speed), gren = Upward Shift (vertical boost), shield = Healing Potion
 // three ability slots on Q / E / X; the shop will let players swap what sits in each slot (replacements, not extra slots)
@@ -1500,9 +1505,9 @@ function sfx(k,v=1,pos){
   try{ sfxSynth(k,v); }catch(e){} DEST=null;
 }
 // reload foley timeline (fraction of the reload time, sound, only-when-empty)
-const RELOAD_EV={mag:[[0.1,'magout'],[0.6,'magin'],[0.76,'boltback',1],[0.84,'boltfwd',1]],
-  pis:[[0.1,'magout'],[0.6,'magin'],[0.78,'boltback',1],[0.82,'boltfwd',1]],
-  bolt:[[0.06,'boltback'],[0.2,'magout'],[0.6,'magin'],[0.86,'boltfwd']],
+const RELOAD_EV={mag:[[0.05,'magout'],[0.48,'magin'],[0.62,'boltback',1],[0.7,'boltfwd',1]],
+  pis:[[0.05,'magout'],[0.48,'magin'],[0.64,'boltback',1],[0.68,'boltfwd',1]],
+  bolt:[[0.03,'boltback'],[0.08,'magout'],[0.48,'magin'],[0.86,'boltfwd']],
   sg:[[0.14,'shell'],[0.26,'shell'],[0.38,'shell'],[0.5,'shell'],[0.62,'shell'],[0.74,'shell'],[0.86,'pump']]};
 const _chgT=new THREE.Vector3();
 // aim down sights: viewmodel position when aiming (x,y,z in camera space), camera zoom factor, spread reduction
@@ -2752,6 +2757,8 @@ const KEYS={}; let mouseDown=false, rightDown=false, SENS=0.0022, playing=false;
 const detectTouch=()=>navigator.maxTouchPoints>0&&(matchMedia('(pointer: coarse)').matches||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 let TOUCH=detectTouch();
 const JOY={x:0,y:0};
+function applyBtnScale(){ const m=Math.min(innerWidth,innerHeight), auto=clamp(m/330,1,1.6); document.documentElement.style.setProperty('--bs',(auto*(SET.btnS||1)).toFixed(3)); }
+addEventListener('resize',applyBtnScale); setTimeout(applyBtnScale,0);
 function setTouch(v){ TOUCH=v; document.body.classList.toggle('touch',v); const l=$('sens')?.previousElementSibling; if(l) l.textContent=v?'حساسية اللمس':'حساسية الماوس'; }
 setTouch(TOUCH);
 addEventListener('touchstart',()=>{ if(!TOUCH) setTouch(true);
@@ -2902,13 +2909,13 @@ class Client{
     const rk=WKEYS[this.w], rcls=rk==='shotgun'?'sg':rk==='sniper'?'bolt':(rk==='pistol'||rk==='m1911t')?'pis':'mag';
     if(rp>0) for(const [t,snd,emptyOnly] of RELOAD_EV[rcls]) if((this.rPrev||0)<t&&rp>=t&&(!emptyOnly||this.rEmpty)) sfx(snd,0.9);
     this.rPrev=rp;
-    const jolt=rcls!=='sg'&&rp>=0.6?Math.exp(-(rp-0.6)*28):0;                                   // magazine seated: gun bumps up
-    const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.72&&rp<0.9?Math.sin((rp-0.72)/0.18*Math.PI):0; // charging handle / slide rack
+    const jolt=rcls!=='sg'&&rp>=0.48?Math.exp(-(rp-0.48)*28):0;                                   // magazine seated: gun bumps up
+    const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.58&&rp<0.76?Math.sin((rp-0.58)/0.18*Math.PI):0; // charging handle / slide rack
     this.swing=Math.max(0,this.swing-dt*3.2); const sw=Math.sin((1-this.swing)*Math.PI)*(this.swing>0?1:0);
     const stab=this.w===KNIFE;
     const AD=aK>0.001&&!stab?adsPose(g,rk):null, AP=AD?[AD.pos.x,AD.pos.y,AD.pos.z]:(ADS_POS[rk]||ADS_POS.rifle), bobA=1-aK*0.9;
-    g.position.set((stab?0.2:0.24)*(1-aK)+AP[0]*aK+Math.cos(this.bob)*0.012*bobA-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)*(1-aK)+AP[1]*aK+Math.abs(Math.sin(this.bob))*0.012*bobA-rl*0.08+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)*(1-aK)+AP[2]*aK+this.kick*0.08*(1-aK*0.5)-sw*(stab?0.32:0.12)+chg*0.02);
-    g.rotation.set(this.kick*0.25*(1-aK*0.6)+rl*0.22-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15,rl*0.3+sw*(stab?-0.2:0.6)+chg*0.3);
+    g.position.set((stab?0.2:0.24)*(1-aK)+AP[0]*aK+Math.cos(this.bob)*0.012*bobA-rl*0.09-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)*(1-aK)+AP[1]*aK+Math.abs(Math.sin(this.bob))*0.012*bobA+rl*0.07+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)*(1-aK)+AP[2]*aK+this.kick*0.08*(1-aK*0.5)-sw*(stab?0.32:0.12)+chg*0.02);
+    g.rotation.set(this.kick*0.25*(1-aK*0.6)+rl*0.12-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15+rl*0.25,rl*0.6+sw*(stab?-0.2:0.6)+chg*0.3);
     if(AD){ _hipQ.setFromEuler(g.rotation); g.quaternion.copy(_hipQ).slerp(AD.q,aK); }
     // magazine out → new magazine in, left hand fetches it; mag-less guns pump/feed with the left hand instead
     const U=g.userData;
@@ -2917,11 +2924,17 @@ class Client{
     if(U.bolt){ U.bolt.rotation.x=-cy*1.1; U.bolt.position.x=-0.07*Math.max(0,cy*1.3-0.3);
       if(rp>0){ const o=rp<0.12?rp/0.12:rp<0.84?1:Math.max(0,1-(rp-0.84)/0.06); U.bolt.rotation.x=-o*1.1; U.bolt.position.x=-0.07*o; } } // bolt stays open during the reload
     if(U.pump&&rp>0.84) U.pump.position.x=-0.12*Math.sin(clamp((rp-0.84)/0.14,0,1)*Math.PI);
-    if(U.mag){ const out=rp>0.12&&rp<0.42?(rp-0.12)/0.3:0, back=rp>=0.42&&rp<0.8?1-(rp-0.42)/0.38:0, off=rp>=0.12&&rp<0.8?(rp<0.42?out:back):0;
-      U.mag.position.copy(U.magBase); U.mag.position.y-=off*1.4; U.mag.visible=!(rp>0.38&&rp<0.48); }
+    if(U.mag){ // old mag drops out of the gun (accelerating), hand brings a fresh one up into the well; distances in metres of gun space
+      if(!U.magDir){ g.updateMatrixWorld(true); const M=new THREE.Matrix4().copy(g.matrixWorld).invert().multiply(U.mag.parent.matrixWorld).invert();
+        const p0=new THREE.Vector3().applyMatrix4(M), p1=new THREE.Vector3(0,-1,0).applyMatrix4(M); U.magDir=p1.sub(p0); }
+      let d=0, vis=true;
+      if(rp>0.05&&rp<0.2){ const t=(rp-0.05)/0.15; d=t*t*0.45; }
+      else if(rp>=0.2&&rp<0.3) vis=false;
+      else if(rp>=0.3&&rp<0.48){ const t=(rp-0.3)/0.18; d=(1-t)*(1-t)*0.22; }
+      U.mag.position.copy(U.magBase).addScaledVector(U.magDir,d); U.mag.visible=vis||rp<=0; }
     if(U.L&&U.Lrest){ const t2=U.L.position; t2.copy(U.Lrest);
       if(U.oneHand){ U.L.visible=rp>0.04&&rp<0.96; t2.add(new THREE.Vector3(-0.06,-0.3,0.18).multiplyScalar(1-Math.sin(clamp((rp-0.04)/0.92,0,1)*Math.PI))); }
-      if(rp>0.08&&rp<0.9){ const k2=Math.sin((rp-0.08)/0.82*Math.PI);
+      if(rp>0.16&&rp<0.56){ const k2=Math.sin((rp-0.16)/0.4*Math.PI);
         if(U.mag){ g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(new THREE.Vector3()); g.worldToLocal(mp); t2.lerp(mp.add(new THREE.Vector3(-0.02,-0.04,0)),k2); }
         else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } }
       if(chg>0&&!U.oneHand) t2.lerp(_chgT.set(U.Lrest.x+0.03,U.Lrest.y+0.09,U.Lrest.z+0.3),chg); }
@@ -3288,7 +3301,7 @@ function openMenu(){
   if(!client) return; playing=false; mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
   $('pmQ').value=SET.q; $('pmVol').value=SET.vol; $('pmSens').value=SET.sens; $('pmFov').value=SET.fov; menuLabels();
   $('pmTouch').style.display=TOUCH?'':'none'; $('pmKeys').style.display=TOUCH?'none':''; $('pmGyroBox').style.display=TOUCH?'':'none';
-  $('pmGyro').checked=gyroOn; $('pmGyroS').value=SET.gyroS||1; $('pmGyroV').textContent=(+(SET.gyroS||1)).toFixed(1);
+  $('pmBtn').value=SET.btnS||1; $('pmBtnV').textContent=Math.round((SET.btnS||1)*100)+'%'; $('pmGyro').checked=gyroOn; $('pmGyroIY').checked=!!SET.gyroInvY; $('pmGyroIX').checked=!!SET.gyroInvX; $('pmGyroS').value=SET.gyroS||1; $('pmGyroV').textContent=(+(SET.gyroS||1)).toFixed(1);
   $('pmWarn').textContent=peer&&server?'أنت المضيف — إذا طلعت رح تتسكّر الغرفة على الكل':'';
   $('pause').classList.remove('hidden');
 }
@@ -3542,7 +3555,9 @@ function enterGame(){
   $('joy').addEventListener('touchstart',e=>{ e.preventDefault(); const t=e.changedTouches[0]; if(joyId!==null) return;
     joyId=t.identifier; jx=t.clientX; jy=t.clientY; base.style.display='block'; base.style.left=jx+'px'; base.style.top=(jy-($('joy').getBoundingClientRect().top))+'px'; },{passive:false});
   const tsens=()=>SENS*2.6*(client&&client.zoomed?0.35:client&&client.aiming?0.75:1);
-  document.addEventListener('touchmove',e=>{ if(!client) return; e.preventDefault();
+  // only swallow drags that steer the camera / joystick, so menus scroll and sliders drag natively
+  document.addEventListener('touchmove',e=>{ if(!client) return; let mine=false; for(const t of e.changedTouches) if(t.identifier===joyId||look.has(t.identifier)) mine=true;
+    if(!mine) return; e.preventDefault();
     for(const t of e.changedTouches){
       if(t.identifier===joyId){ let dx=t.clientX-jx, dy=t.clientY-jy; const L=Math.hypot(dx,dy), m=55; if(L>m){dx*=m/L;dy*=m/L;}
         JOY.x=dx/m; JOY.y=dy/m; knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`; }
@@ -3584,7 +3599,8 @@ function onGyro(e){ const r=e.rotationRate, g=e.accelerationIncludingGravity; if
   const yawRate=wx*ux+wy*uy+wz*uz;                                // turn about world up
   const [,pch]=gyroAxes(r);
   const k2=(SET.gyroS||1)*(client.zoomed?0.5:1)*Math.PI/180*dt;
-  client.yaw+=yawRate*k2; client.pitch=clamp(client.pitch+(pch||0)*k2,-1.55,1.55); }
+  const ix=SET.gyroInvX?-1:1, iy=SET.gyroInvY?1:-1;                          // default pitch: tilt the top away = look down
+  client.yaw+=yawRate*k2*ix; client.pitch=clamp(client.pitch+(pch||0)*k2*iy,-1.55,1.55); }
 async function setGyro(on){
   if(on&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){ // iOS asks once, on a tap
     try{ if(await DeviceMotionEvent.requestPermission()!=='granted'){ on=false; showMsg('ما في إذن للجيروسكوب',1500); } }catch(e){ on=false; } }
@@ -3592,6 +3608,9 @@ async function setGyro(on){
   gyroOn=on; SET.gyro=on; saveSet(); $('pmGyro').checked=on;
   removeEventListener('devicemotion',onGyro); if(on) addEventListener('devicemotion',onGyro); }
 $('pmGyro').onchange=e=>setGyro(e.target.checked);
+$('pmBtn').oninput=e=>{ SET.btnS=+e.target.value; saveSet(); applyBtnScale(); $('pmBtnV').textContent=Math.round(SET.btnS*100)+'%'; };
+$('pmGyroIY').onchange=e=>{ SET.gyroInvY=e.target.checked; saveSet(); };
+$('pmGyroIX').onchange=e=>{ SET.gyroInvX=e.target.checked; saveSet(); };
 $('pmGyroS').oninput=e=>{ SET.gyroS=+e.target.value; saveSet(); $('pmGyroV').textContent=(+SET.gyroS).toFixed(1); };
 if(SET.gyro&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission!=='function') setGyro(true); // Android: no prompt needed
 const TOUCH_IDS=['tLoad','tFire','tJump','tScope','tSlide','tDash','tGren','tShield','tUlt','tReload','tWeap','tTab','tMenu','tChat','tPick'];
