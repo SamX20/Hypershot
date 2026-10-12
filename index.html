@@ -1508,6 +1508,25 @@ const _chgT=new THREE.Vector3();
 // aim down sights: viewmodel position when aiming (x,y,z in camera space), camera zoom factor, spread reduction
 // y = minus the gun's highest point (measured with the gun at z -0.4), so the sights sit on the crosshair line
 const ADS_POS={rifle:[0,-0.111,-0.4],m16:[0,-0.073,-0.4],scar:[0,-0.082,-0.4],shotgun:[0,-0.072,-0.4],smg:[0,-0.1,-0.4],mp7:[0,-0.121,-0.4],pistol:[0,-0.069,-0.4],m1911t:[0,-0.075,-0.4]};
+const _sv=new THREE.Vector3(), _adsQ=new THREE.Quaternion(), _hipQ=new THREE.Quaternion();
+function adsPose(g,k){ const wrap=g.userData.wrap; if(!wrap) return null;
+  const key=wrap.uuid; if(g.userData.ads&&g.userData.ads.key===key) return g.userData.ads;
+  const sp=g.position.clone(), sq=g.quaternion.clone(); g.position.set(0,0,0); g.quaternion.identity(); g.updateMatrixWorld(true);
+  const pts=[]; wrap.traverse(o=>{ if(!o.isMesh||o.userData.aura||!o.geometry.attributes.position) return; let a=o; while(a&&a!==wrap){ if(a.userData.aura) return; a=a.parent; }
+    const pa=o.geometry.attributes.position, step=Math.max(1,Math.floor(pa.count/4000));
+    for(let j=0;j<pa.count;j+=step){ _sv.fromBufferAttribute(pa,j).applyMatrix4(o.matrixWorld); pts.push(_sv.x,_sv.y,_sv.z); } });
+  g.position.copy(sp); g.quaternion.copy(sq); g.updateMatrixWorld(true);
+  if(!pts.length) return null;
+  let zmin=1e9,zmax=-1e9; for(let i=2;i<pts.length;i+=3){ zmin=Math.min(zmin,pts[i]); zmax=Math.max(zmax,pts[i]); } const L=zmax-zmin;
+  // highest point of the front part (front sight) and of the middle-rear part (rear sight); x = centre of the topmost vertices
+  const top=(a,b)=>{ let my=-1e9; for(let i=0;i<pts.length;i+=3){ const t=(pts[i+2]-zmin)/L; if(t>=a&&t<=b&&pts[i+1]>my) my=pts[i+1]; }
+    let sx=0,sz=0,n=0; for(let i=0;i<pts.length;i+=3){ const t=(pts[i+2]-zmin)/L; if(t>=a&&t<=b&&pts[i+1]>my-0.004){ sx+=pts[i]; sz+=pts[i+2]; n++; } }
+    return new THREE.Vector3(sx/n,my,sz/n); };
+  const F=top(0,0.3), R=top(0.45,0.85), d=F.clone().sub(R).normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(d,new THREE.Vector3(0,0,-1));
+  const eye=(k==='pistol'||k==='m1911t')?-0.4:-0.3;                       // how far in front of the eye the rear sight sits
+  const pos=new THREE.Vector3(0,-0.004,eye).sub(R.clone().applyQuaternion(q));  // rear sight on the axis (top edge just under the line)
+  return (g.userData.ads={key,pos,q}); }
 const AIM_ZOOM={rifle:0.78,m16:0.76,scar:0.78,shotgun:0.86,smg:0.86,mp7:0.86,pistol:0.88,m1911t:0.88};
 const AIM_ACC={rifle:0.65,m16:0.7,scar:0.65,shotgun:0.3,smg:0.5,mp7:0.45,pistol:0.55,m1911t:0.55};
 function gunshot(v,o){ const near=v>0.6;
@@ -2860,7 +2879,7 @@ class Client{
     const aimZ=AIM_ZOOM[WKEYS[this.w]]||0.82;
     const fov=zoom?22:((this.ut>0?SET.fov+12:SET.fov)+clamp((spd-SPEED)*0.9,0,14)*(1-aK))*(1-(1-aimZ)*aK);
     $('speed').style.opacity=this.alive&&!zoom?clamp((spd-SPEED-2)/10,0,0.8):0; if(Math.abs(camera.fov-fov)>0.1){camera.fov+= (fov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix();}
-    $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom||aK>0.6); $('adsDot').classList.toggle('hidden',!(aK>0.6)||zoom);
+    $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom||aK>0.6); $('adsDot').classList.add('hidden');
     vmGuns.forEach((g,i)=>{g.visible=this.alive&&i===this.w&&!zoom;});
     const g=vmGuns[this.w], wk=W[WKEYS[this.w]];
     const rp=this.reloadT>0?clamp(1-this.reloadT/wk.reload,0,1):0, rl=Math.sin(rp*Math.PI); // reload progress 0..1 and its dip curve
@@ -2872,9 +2891,10 @@ class Client{
     const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.72&&rp<0.9?Math.sin((rp-0.72)/0.18*Math.PI):0; // charging handle / slide rack
     this.swing=Math.max(0,this.swing-dt*3.2); const sw=Math.sin((1-this.swing)*Math.PI)*(this.swing>0?1:0);
     const stab=this.w===KNIFE;
-    const AP=ADS_POS[rk]||ADS_POS.rifle, bobA=1-aK*0.85;
+    const AD=aK>0.001&&!stab?adsPose(g,rk):null, AP=AD?[AD.pos.x,AD.pos.y,AD.pos.z]:(ADS_POS[rk]||ADS_POS.rifle), bobA=1-aK*0.9;
     g.position.set((stab?0.2:0.24)*(1-aK)+AP[0]*aK+Math.cos(this.bob)*0.012*bobA-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)*(1-aK)+AP[1]*aK+Math.abs(Math.sin(this.bob))*0.012*bobA-rl*0.08+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)*(1-aK)+AP[2]*aK+this.kick*0.08*(1-aK*0.5)-sw*(stab?0.32:0.12)+chg*0.02);
     g.rotation.set(this.kick*0.25*(1-aK*0.6)+rl*0.22-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15,rl*0.3+sw*(stab?-0.2:0.6)+chg*0.3);
+    if(AD){ _hipQ.setFromEuler(g.rotation); g.quaternion.copy(_hipQ).slerp(AD.q,aK); }
     // magazine out → new magazine in, left hand fetches it; mag-less guns pump/feed with the left hand instead
     const U=g.userData;
     this.cycle=Math.max(0,(this.cycle||0)-dt*(WKEYS[this.w]==='sniper'?1.4:2.4)); const cy=this.cycle>0&&this.cycle<0.85?Math.sin((0.85-this.cycle)/0.85*Math.PI):0;
