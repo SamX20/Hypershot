@@ -1154,7 +1154,7 @@ class Server{
         break;}
       case 'fire':{ // the client only says "I fired from here in these directions" — hits and damage are worked out here
         if(!p||!p.alive||!Array.isArray(m.d)) return; const wi=m.w|0, w=W[WKEYS[wi%NW]];
-        const why=()=>{};
+        const why=r=>{ console.log('REJ',p.name,r); this.send(p.id,{t:'rej',r}); };
         if(!w||w.melee||!this.held(p).includes(wi)) return why('not held '+wi+' load '+JSON.stringify(p.load));
         if(!this.rateOk(p,wi,w.rate)) return why('rate');                                     // faster than the gun can fire (jitter-tolerant)
         if(!this.ammoReady(p,wi)||p.ammo[wi]<=0) return why('ammo '+p.ammo[wi]+' rl '+(p.rlEnd?(p.rlEnd-this.now).toFixed(2):0));
@@ -1173,6 +1173,7 @@ class Server{
           // 2) otherwise trace it ourselves against the lag-compensated positions
           if(!hit) for(const q of this.players.values()){ if(q===p||!q.alive||q.team===p.team) continue;
             const qp=this.posAt(q,t0), [t,h]=rayPlayer(o,d,qp,qp.sl); if(t<tBest){ tBest=t; hit=q; head=h; box=null; } }
+          if(!hit&&cq) console.log('MISS',p.name,'claim',cq.name,'head',!!cl[1],'rtt',(p.rtt||0).toFixed(3));
           if(hit){ const e=hits.get(hit)||{d:0,h:false}; e.d+=w.dmg*falloffMul(w,tBest)*(head?w.head:1); e.h=e.h||head; hits.set(hit,e); }
           else if(box&&box.crate) crates.set(box.ci,(crates.get(box.ci)||0)+w.dmg*falloffMul(w,tBest));
         });
@@ -3089,6 +3090,7 @@ class Client{
       case 'hc': hitMarker(m.k); if(m.k) sfx('kill');
         if(m.d!=null){ dmgLog(`${String(m.n).replace(' 🤖',' 🤖')}  −${m.d}${m.h?' 🎯':''}${m.k?'  ☠':''}`,'out'); const t=this.dealt[m.n]||(this.dealt[m.n]={d:0,h:0,k:0}); t.d+=m.d; t.h+=m.h?1:0; t.k+=m.k?1:0; }
         break;
+      case 'rej': console.warn('shot rejected:',m.r); break;
       case 'hurt': sfx('hurt'); flash('hurt');
         if(m.d!=null&&m.a){ dmgLog(`${m.a}  ⟶  −${m.d}${m.h?' 🎯':''}`,'in'); const t=this.taken[m.a]||(this.taken[m.a]={d:0,h:0}); t.d+=m.d; t.h+=m.h?1:0; }
         break;
