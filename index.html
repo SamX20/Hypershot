@@ -808,11 +808,17 @@ const CITY_DIM={'commercial/building-a':[0.884,1.293,0.94],'commercial/building-
   'industrial/shipping-container-a':[0.373,0.348,0.823],'industrial/shipping-container-b':[0.373,0.348,0.823],'industrial/detail-tank':[0.848,0.415,0.515],
   'suburban/building-type-a':[1.3,0.834,1.028],'suburban/building-type-c':[1.286,1.034,1.028],'suburban/building-type-g':[1.45,0.768,1.178],
   'cars/sedan':[1.5,1.15,2.55],'cars/taxi':[1.5,1.35,2.75],'cars/police':[1.5,1.1,2.9],'cars/van':[1.5,1.15,2.75],'cars/truck':[1.5,1.15,2.95],'cars/suv':[1.5,1.1,2.55],
-  'retro/detail-barrier-type-a':[0.433,0.4,0.134],'suburban/fence-1x3':[1.275,0.27,0.06],'suburban/tree-large':[0.08,0.7,0.08],'retro/detail-dumpster-closed':[0.6,0.545,0.454]};
+  'retro/detail-barrier-type-a':[0.433,0.4,0.134],'suburban/fence-1x3':[1.275,0.27,0.08,0.2],'suburban/tree-large':[0.08,0.7,0.08],'retro/detail-dumpster-closed':[0.6,0.545,0.454]};
 const CITY_DECOR=[]; // {m,x,y,z,ry,s} — client only
+// models whose solid parts aren't one box: [local x, local z, w, d] at scale 1 (the fence is U-shaped: back panel + two sides)
+const CITY_PARTS={'suburban/fence-1x3':[[0,0.2,1.275,0.08],[-0.6,0.01,0.07,0.43],[0.6,0.01,0.07,0.43]]};
 // solid model: collision box sized from the footprint (rotated 90° swaps w/d), mirrored to the red side like M()
-function CTM(m,x,z,ry=0,sc=8,y=0,mirror=true){ const d=CITY_DIM[m], rot=Math.abs(Math.sin(ry))>0.5, w=(rot?d[2]:d[0])*sc, dd=(rot?d[0]:d[2])*sc, h=d[1]*sc;
-  for(const sx of (mirror&&x)?[1,-1]:[1]){ const b=B(x*sx,y,z,w,h,dd); b.city=true; CITY_DECOR.push({m,x:x*sx,y:y+(m.startsWith('cars/')?0.4*sc/1.35:0),z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } }
+function CTM(m,x,z,ry=0,sc=8,y=0,mirror=true){ const d=CITY_DIM[m], rot=Math.abs(Math.sin(ry))>0.5, w=(rot?d[2]:d[0])*sc, dd=(rot?d[0]:d[2])*sc, h=d[1]*sc, oz=(d[3]||0)*sc;
+  for(const sx of (mirror&&x)?[1,-1]:[1]){ const r=sx<0?-ry+Math.PI:ry;
+    if(CITY_PARTS[m]){ for(const [lx,lz,pw,pd] of CITY_PARTS[m]){ const c=Math.cos(r), sn=Math.sin(r), pr=Math.abs(sn)>0.5;
+        const pb=B(x*sx+(lx*c+lz*sn)*sc,y,z+(-lx*sn+lz*c)*sc,(pr?pd:pw)*sc,h,(pr?pw:pd)*sc); pb.city=true; }
+      CITY_DECOR.push({m,x:x*sx,y,z,ry:r,s:sc}); continue; }
+    const b=B(x*sx+oz*Math.sin(r),y,z+oz*Math.cos(r),w,h,dd); /* off-centre solid part */ b.city=true; CITY_DECOR.push({m,x:x*sx,y:y+(m.startsWith('cars/')?0.4*sc/1.35:0),z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } }
 function CTD(m,x,z,ry=0,sc=8,y=0,mirror=true){ for(const sx of (mirror&&x)?[1,-1]:[1]) CITY_DECOR.push({m,x:x*sx,y,z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } // decoration only
 const MAPS={
   neon:{name:'الساحة النيون',build(){
