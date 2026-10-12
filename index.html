@@ -990,7 +990,7 @@ const PERSONAS=['rifler','rifler','rusher','sniper','rifler','rusher'];
 const angDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 // shared hit test (client + server): [t, isHead] against a player's body box + head sphere, Infinity if missed
 function rayPlayer(o,d,p,slid){
-  const bh=slid?0.85:1.42, hy=slid?1.0:1.68;
+  const bh=slid?0.85:1.5, hy=slid?1.1:1.84;   // head sphere follows the visual head (torso 1.05 + 0.79)
   const tb=rayAABB(o,d,[p.x-0.45,p.y,p.z-0.45],[p.x+0.45,p.y+bh,p.z+0.45]);
   const th=raySphere(o,d,[p.x,p.y+hy,p.z],0.32);
   return th<tb?[th,true]:[tb,false];
@@ -2234,7 +2234,8 @@ function makeAvatar(team,name,friendly){
   const torso=new THREE.Group(); torso.position.y=1.05; inner.add(torso);
   M(GEO.belly,mJacket,0,0,0,torso); M(GEO.chest,mJacket,0,0,0,torso);
   M(new THREE.BoxGeometry(0.2,0.12,0.03),mSkin,0,0.52,-0.235,torso);  // neck / collar opening
-  const head=new THREE.Group(); head.position.y=0.63; torso.add(head);
+  M(new THREE.BoxGeometry(0.2,0.14,0.2),mSkin,0,0.6,0,torso);           // neck
+  const head=new THREE.Group(); head.position.y=0.79; torso.add(head);   // head sits on the neck, clear of the chest
   M(new THREE.BoxGeometry(0.42,0.44,0.42),mSkin,0,0,0,head);           // head
   M(new THREE.BoxGeometry(0.45,0.12,0.47),mHair,0,0.2,0.005,head);     // hair top (front face 1.5cm ahead of the face: no z-fighting)
   M(new THREE.BoxGeometry(0.44,0.3,0.1),mHair,0,0.08,0.18,head);       // hair back
