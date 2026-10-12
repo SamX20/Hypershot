@@ -1522,11 +1522,21 @@ function adsPose(g,k){ const wrap=g.userData.wrap; if(!wrap) return null;
   const top=(a,b)=>{ let my=-1e9; for(let i=0;i<pts.length;i+=3){ const t=(pts[i+2]-zmin)/L; if(t>=a&&t<=b&&pts[i+1]>my) my=pts[i+1]; }
     let sx=0,sz=0,n=0; for(let i=0;i<pts.length;i+=3){ const t=(pts[i+2]-zmin)/L; if(t>=a&&t<=b&&pts[i+1]>my-0.004){ sx+=pts[i]; sz+=pts[i+2]; n++; } }
     return new THREE.Vector3(sx/n,my,sz/n); };
-  const F=top(0,0.3), R=top(0.45,0.85), d=F.clone().sub(R).normalize();
-  const q=new THREE.Quaternion().setFromUnitVectors(d,new THREE.Vector3(0,0,-1));
-  const eye=(k==='pistol'||k==='m1911t')?-0.28:-0.15;                     // how far in front of the eye the rear sight sits
-  const pos=new THREE.Vector3(0,-0.004,eye).sub(R.clone().applyQuaternion(q));  // rear sight on the axis (top edge just under the line)
-  return (g.userData.ads={key,pos,q}); }
+  // the gun stays parallel to the bore (models are built along -Z), front sight tip on the line of fire:
+  // the rear sight's ring then surrounds the front post, like real iron sights
+  // front post tip = highest point in the middle of the gun's width (the ring/ears around it sit to the sides)
+  let xmin=1e9,xmax=-1e9; for(let i=0;i<pts.length;i+=3){ xmin=Math.min(xmin,pts[i]); xmax=Math.max(xmax,pts[i]); }
+  const cx=(xmin+xmax)/2, post=(()=>{ let my=-1e9,mz=0; for(let i=0;i<pts.length;i+=3){ const t=(pts[i+2]-zmin)/L; if(t<=0.3&&Math.abs(pts[i]-cx)<0.004&&pts[i+1]>my){ my=pts[i+1]; mz=pts[i+2]; } } return new THREE.Vector3(cx,my,mz); })();
+  const F=post.y>-1e8?post:top(0,0.3), R=top(0.45,0.85), q=new THREE.Quaternion();
+  const eye=(k==='pistol'||k==='m1911t')?-0.22:-0.1;                      // rear sight distance from the eye
+  // rings/hoods: aim through their centres (radius ≈ half their width near the top); posts: through the tip
+  // radius from the curvature of the top edge: chord c at depth h below the top → r=(c²/4+h²)/(2h)
+  const ringR=P=>{ const h=0.004; let x0=1e9,x1=-1e9; for(let i=0;i<pts.length;i+=3){ if(Math.abs(pts[i+2]-P.z)<0.012&&pts[i+1]>P.y-h){ x0=Math.min(x0,pts[i]); x1=Math.max(x1,pts[i]); } }
+    if(!(x1>x0)) return 0; const c=x1-x0, r=(c*c/4+h*h)/(2*h); return r>0.03?0:r+0.001; }; // flat tops (r huge) = posts → aim at the tip
+  const Fc=F.clone(); Fc.y-=ringR(F); const Rc=R.clone(); Rc.y-=ringR(R); Rc.x=Fc.x=cx;
+  const qq=new THREE.Quaternion().setFromUnitVectors(Fc.clone().sub(Rc).normalize(),new THREE.Vector3(0,0,-1)); q.copy(qq);
+  const pos=new THREE.Vector3(0,0,eye).sub(Rc.clone().applyQuaternion(q));       // rear ring centre on the line of fire
+  return (g.userData.ads={key,pos,q,F,R}); }
 const AIM_ZOOM={rifle:0.78,m16:0.76,scar:0.78,shotgun:0.86,smg:0.86,mp7:0.86,pistol:0.88,m1911t:0.88};
 const AIM_ACC={rifle:0.65,m16:0.7,scar:0.65,shotgun:0.3,smg:0.5,mp7:0.45,pistol:0.55,m1911t:0.55};
 function gunshot(v,o){ const near=v>0.6;
