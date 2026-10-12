@@ -6,3 +6,6 @@ Weapon models
 - Shotgun and sniper: built procedurally in code for this game (index.html, buildShotgun / buildSniper).
 
 Sounds: Kenney (www.kenney.nl), CC0 — see assets/sounds/LICENSE-*.txt.
+
+Gun sounds (assets/sounds/guns): "Snake's Authentic Gun Sounds And More" (itch.io) — isolated shots (5.56, 7.62x39,
+7.62x54R, .22LR) and reload/cycling foley. Used under the pack's free-to-use terms; the files are not redistributed separately.

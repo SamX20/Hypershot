@@ -735,7 +735,7 @@ const W={
   smg:    {name:'MP5', dmg:10,rate:0.065,mag:32,reload:1.7,spread:0.026,pellets:1,range:90, head:1.4, recoil:0.008,falloff:[14,28],fmin:0.4,bloom:0.2,snd:'smg',speed:1.05},
   knife:  {name:'سكين',dmg:34,rate:0.5,mag:Infinity,reload:0,spread:0,pellets:1,range:2.4,head:1,recoil:0,melee:true,snd:'knife',speed:1.12},
   m16:    {name:'M16', dmg:16,rate:0.12,mag:30,reload:1.8,spread:0.008,pellets:1, range:260,head:1.6, recoil:0.012,falloff:[40,60],fmin:0.6,bloom:0.18,snd:'rifle'},
-  scar:   {name:'SCAR',dmg:19,rate:0.14,mag:20,reload:1.9,spread:0.012,pellets:1, range:250,head:1.5, recoil:0.016,falloff:[35,60],fmin:0.55,bloom:0.25,snd:'rifle',speed:0.97},
+  scar:   {name:'SCAR',dmg:19,rate:0.14,mag:20,reload:1.9,spread:0.012,pellets:1, range:250,head:1.5, recoil:0.016,falloff:[35,60],fmin:0.55,bloom:0.25,snd:'rifle762',speed:0.97},
   mp7:    {name:'MP7', dmg:9, rate:0.055,mag:40,reload:1.8,spread:0.03,pellets:1, range:85, head:1.4, recoil:0.007,falloff:[12,26],fmin:0.4,bloom:0.22,snd:'smg',speed:1.07},
   m1911t: {name:'M1911 تكتيكي',dmg:22,rate:0.21,mag:15,reload:1.4,spread:0.007,pellets:1,range:150,head:1.8,recoil:0.02,falloff:[25,45],fmin:0.5,snd:'pistol',speed:1.05},
 };
@@ -1578,6 +1578,19 @@ function updateListener(cam){ if(!AC) return; const L=AC.listener; cam.getWorldD
 // Kenney CC0 samples (assets/sounds). Loaded on first audio use; sfx() falls back to the synth below until/unless they load.
 const SND_DIR='assets/sounds/';
 const SAMPLE_DEFS={
+  // real recorded gunshots + reload foley ("Snake's Authentic Gun Sounds", itch.io) — isolated takes, the game adds its own room echo
+  rifle:     {files:['guns/556.mp3'], vol:0.5, jitter:0.04},
+  rifle762:  {files:['guns/762x39.mp3'], vol:0.55, jitter:0.04},
+  sniper:    {files:['guns/762x54r.mp3'], vol:0.75, jitter:0.03},
+  pistol:    {files:['guns/22lr.mp3'], vol:0.6, rate:0.78, jitter:0.04},
+  smg:       {files:['guns/22lr.mp3'], vol:0.42, rate:0.92, jitter:0.05},
+  shotgun:   {files:['guns/762x54r.mp3'], vol:0.8, rate:0.68, jitter:0.03, thump:[95,30,0.22,0.35]},
+  ar_magout: {files:['guns/ar_magout.mp3'], vol:0.7}, ar_magin:{files:['guns/ar_magin.mp3'], vol:0.7},
+  ar_charge: {files:['guns/ar_charge.mp3'], vol:0.7}, ar_release:{files:['guns/ar_release.mp3'], vol:0.7},
+  ak_magout: {files:['guns/ak_magout.mp3'], vol:0.7}, ak_magin:{files:['guns/ak_magin.mp3'], vol:0.7}, ak_rack:{files:['guns/ak_rack.mp3'], vol:0.7},
+  pis_magout:{files:['guns/pis_magout.mp3'], vol:0.7}, pis_magin:{files:['guns/pis_magin.mp3'], vol:0.7}, pis_rack:{files:['guns/pis_rack.mp3'], vol:0.7},
+  sn_magout: {files:['guns/sn_magout.mp3'], vol:0.7}, sn_magin:{files:['guns/sn_magin.mp3'], vol:0.7}, sn_bolt:{files:['guns/sn_bolt.mp3'], vol:0.7},
+  sg_shell:  {files:['guns/sg_shell.mp3'], vol:0.7}, sg_pump:{files:['guns/sg_pump.mp3'], vol:0.75},
   boom:      {files:['lowFrequency_explosion_000','lowFrequency_explosion_001','explosionCrunch_000'], vol:1.0},
   step:      {files:[0,1,2,3,4].map(i=>'footstep_concrete_00'+i), vol:0.5, jitter:0.12},
   wood:      {files:[0,1,2].map(i=>'impactWood_medium_00'+i), vol:0.7},
@@ -1591,7 +1604,7 @@ const SAMPLES={}; let samplesRequested=false;
 function loadSamples(){
   if(samplesRequested||!AC) return; samplesRequested=true;
   for(const [k,def] of Object.entries(SAMPLE_DEFS)){
-    Promise.all(def.files.map(f=>fetch(SND_DIR+f+'.ogg').then(r=>{if(!r.ok) throw r.status; return r.arrayBuffer();})
+    Promise.all(def.files.map(f=>fetch(SND_DIR+f+(f.includes('.')?'':'.ogg')).then(r=>{if(!r.ok) throw r.status; return r.arrayBuffer();})
       .then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).catch(()=>null)))
       .then(bufs=>{const ok=bufs.filter(Boolean); if(ok.length) SAMPLES[k]=ok;});
   }
@@ -1619,6 +1632,9 @@ const RELOAD_EV={mag:[[0.05,'magout'],[0.48,'magin'],[0.62,'boltback',1],[0.7,'b
   pis:[[0.05,'magout'],[0.48,'magin'],[0.64,'boltback',1],[0.68,'boltfwd',1]],
   bolt:[[0.03,'boltback'],[0.08,'magout'],[0.48,'magin'],[0.86,'boltfwd']],
   sg:[[0.14,'shell'],[0.26,'shell'],[0.38,'shell'],[0.5,'shell'],[0.62,'shell'],[0.74,'shell'],[0.86,'pump']]};
+const RELOAD_SFX=(()=>{ const ar={magout:'ar_magout',magin:'ar_magin',boltback:'ar_charge',boltfwd:'ar_release'}, pis={magout:'pis_magout',magin:'pis_magin',boltback:'pis_rack',boltfwd:'pis_rack'};
+  return {rifle:ar,m16:ar,smg:ar,mp7:ar,scar:{magout:'ak_magout',magin:'ak_magin',boltback:'ak_rack',boltfwd:'ak_rack'},pistol:pis,m1911t:pis,
+    sniper:{magout:'sn_magout',magin:'sn_magin',boltback:'sn_bolt',boltfwd:'none'},shotgun:{shell:'sg_shell',pump:'sg_pump'}}; })();
 const _chgT=new THREE.Vector3(), _lhT=new THREE.Vector3(), _lhO=new THREE.Vector3(), _lhM=new THREE.Vector3(), _lhD=new THREE.Vector3();
 // aim down sights: viewmodel position when aiming (x,y,z in camera space), camera zoom factor, spread reduction
 // y = minus the gun's highest point (measured with the gun at z -0.4), so the sights sit on the crosshair line
@@ -1666,6 +1682,7 @@ function gunshot(v,o){ const near=v>0.6;
   noise(o.tail,0.12*v,near?700:380);                                            // short room tail
 }
 function sfxSynth(k,v){
+  if(k==='rifle762') k='rifle';
   try{ switch(k){
     // gunshots: sharp transient + filtered body + low thump, distant shots lose their highs
     case 'rifle': gunshot(v,{crack:0.35,body:1300,bodyV:0.5,bodyT:0.11,boom:[130,45,0.09,0.4],tail:0.3}); break;
@@ -3074,7 +3091,7 @@ class Client{
     const rp=this.reloadT>0?clamp(1-this.reloadT/wk.reload,0,1):0, rl=Math.sin(rp*Math.PI); // reload progress 0..1 and its dip curve
     // staged reload: each mechanical step has its own sound and motion (charging handle / slide only when the gun was empty)
     const rk=WKEYS[this.w], rcls=rk==='shotgun'?'sg':rk==='sniper'?'bolt':(rk==='pistol'||rk==='m1911t')?'pis':'mag';
-    if(rp>0) for(const [t,snd,emptyOnly] of RELOAD_EV[rcls]) if((this.rPrev||0)<t&&rp>=t&&(!emptyOnly||this.rEmpty)) sfx(snd,0.9);
+    if(rp>0) for(const [t,snd,emptyOnly] of RELOAD_EV[rcls]) if((this.rPrev||0)<t&&rp>=t&&(!emptyOnly||this.rEmpty)) sfx((RELOAD_SFX[rk]&&RELOAD_SFX[rk][snd])||snd,0.9);
     this.rPrev=rp;
     const jolt=rcls!=='sg'&&rp>=0.48?Math.exp(-(rp-0.48)*28):0;                                   // magazine seated: gun bumps up
     const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.58&&rp<0.76?Math.sin((rp-0.58)/0.18*Math.PI):0; // charging handle / slide rack
