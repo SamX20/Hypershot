@@ -1820,7 +1820,7 @@ const GEO={
   boot:bev(0.27,0.14,0.38).translate(0,-0.47,-0.05), knee:bev(0.2,0.14,0.08).translate(0,0,-0.15),
   chest:bev(0.76,0.52,0.46).translate(0,0.3,0), belly:bev(0.58,0.24,0.38).translate(0,0.02,0), plate:bev(0.46,0.3,0.06).translate(0,0.34,-0.24),
   strip:bev(0.22,0.03,0.02).translate(0,0.48,-0.245), pack:bev(0.48,0.5,0.22).translate(0,0.3,0.32), packGlow:bev(0.06,0.36,0.02).translate(0,0.3,0.435),
-  pad:bev(0.3,0.18,0.38), arm:bev(0.17,0.5,0.17).translate(0,-0.22,0), hand:bev(0.14,0.14,0.14),
+  pad:bev(0.3,0.18,0.38), arm:bev(0.17,0.5,0.17).translate(0,-0.22,0), uarm:bev(0.19,0.42,0.19).translate(0,-0.17,0), farm:bev(0.16,0.38,0.16).translate(0,-0.19,0), hand:bev(0.14,0.14,0.14),
   helmet:bev(0.46,0.44,0.48), visor:bev(0.42,0.17,0.04), crest:bev(0.08,0.12,0.36), ear:bev(0.06,0.2,0.2),
   shield:new THREE.SphereGeometry(1.25,16,12)};
 const mDark=new THREE.MeshStandardMaterial({color:0x1a1f2e,roughness:0.6,metalness:0.3});
@@ -1842,10 +1842,16 @@ function outlineGeo(geo,t){ // copy of the box grown by t on every side around i
   geo.computeBoundingBox(); const bb=geo.boundingBox, c=bb.getCenter(new THREE.Vector3()), sz=bb.getSize(new THREE.Vector3());
   const g=geo.clone(); g.translate(-c.x,-c.y,-c.z); g.scale((sz.x+2*t)/Math.max(sz.x,1e-4),(sz.y+2*t)/Math.max(sz.y,1e-4),(sz.z+2*t)/Math.max(sz.z,1e-4)); g.translate(c.x,c.y,c.z);
   _outGeo.set(key,g); return g; }
-const _ad=new THREE.Vector3(), _dn=new THREE.Vector3(0,-1,0), _gb=new THREE.Box3();
-function aimArm(A,x,y,z,k){ _ad.set(x,y,z).sub(A.g.position); const len=clamp(_ad.length(),0.3,0.85); _ad.normalize();
-  const q=new THREE.Quaternion().setFromUnitVectors(_dn,_ad); A.g.quaternion.slerp(q,k);
-  const sc=len/0.55; A.arm.scale.y+=(sc-A.arm.scale.y)*k; A.hand.position.y+=(-len+0.04-A.hand.position.y)*k; }
+const ARM_A=0.38, ARM_B=0.38, _dn=new THREE.Vector3(0,-1,0), _gb=new THREE.Box3(), _T=new THREE.Vector3(), _E=new THREE.Vector3(), _P=new THREE.Vector3(), _q=new THREE.Quaternion();
+// analytic 2-bone IK in torso space: elbow pushed outward/down (pole) so the arm never passes through the chest
+function aimArm(A,x,y,z,k){ const S=A.u.position; _T.set(x,y,z).sub(S); let d=_T.length(); const dir=_T.clone().normalize();
+  const reach=ARM_A+ARM_B, st=Math.min(1.3,Math.max(1,d/(reach*0.98))), a=ARM_A*st, b=ARM_B*st; d=Math.min(d,(a+b)*0.999);
+  const xx=(a*a-b*b+d*d)/(2*d), h=Math.sqrt(Math.max(0,a*a-xx*xx));
+  _P.set(A.sd*1,-0.8,0.35); _P.addScaledVector(dir,-_P.dot(dir)).normalize();
+  _E.copy(dir).multiplyScalar(xx).addScaledVector(_P,h);                       // elbow, relative to the shoulder
+  _q.setFromUnitVectors(_dn,_E.clone().normalize()); A.u.quaternion.slerp(_q,k); A.u.scale.y+=(st-A.u.scale.y)*k;
+  _E.add(S); A.f.position.lerp(_E,k);
+  _T.set(x,y,z).sub(A.f.position).normalize(); _q.setFromUnitVectors(_dn,_T); A.f.quaternion.slerp(_q,k); A.f.scale.y+=(st-A.f.scale.y)*k; }
 // where the hands go on the current third-person gun (measured once per weapon, in torso space)
 function gunGrips(av){ const gun=av.gun, par=gun.parent; par.remove(gun); gun.updateMatrixWorld(true); _gb.setFromObject(gun); par.add(gun);
   if(_gb.isEmpty()) return null; const c=_gb.getCenter(new THREE.Vector3()), L=_gb.max.z-_gb.min.z, H=_gb.max.y-_gb.min.y;
@@ -1873,9 +1879,11 @@ function makeAvatar(team,name,friendly){
     M(new THREE.BoxGeometry(0.1,0.025,0.02),mHair,sx*0.09,0.1,-0.214,head); }   // eyes + brows
   M(new THREE.BoxGeometry(0.12,0.03,0.02),mMouth,0,-0.1,-0.213,head);   // mouth
   if(L.cap){ M(new THREE.BoxGeometry(0.46,0.12,0.46),mCap,0,0.25,0,head); M(new THREE.BoxGeometry(0.4,0.03,0.16),mCap,0,0.2,-0.28,head); }
-  const arms=[0.42,-0.42].map(x=>{ const a=new THREE.Group(); a.position.set(x,0.45,0); torso.add(a);
-    return {g:a,arm:M(GEO.arm,mJacket,0,0,0,a),hand:M(GEO.hand,mSkin,0,-0.5,0,a)}; });
-  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.16,0.32,-0.42); torso.add(gun); avatarGuns.push(gun);
+  // two-bone arms (shoulder → elbow → hand) so they bend around the body instead of cutting through it
+  const arms=[1,-1].map(sd=>{ const u=new THREE.Group(), f=new THREE.Group(); u.position.set(sd*0.47,0.42,-0.02); torso.add(u,f);
+    M(GEO.uarm,mJacket,0,0,0,u); M(GEO.farm,mJacket,0,0,0,f); const hand=M(GEO.hand,mSkin,0,-ARM_B-0.02,0,f);
+    u.rotation.x=0.3; f.position.set(sd*0.47,0.14,-0.05); return {sd,u,f,hand}; });
+  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.12,0.28,-0.66); torso.add(gun); avatarGuns.push(gun);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false; inner.add(shield);
   // outline on the body parts (not the tiny face details), plus the behind-walls silhouette for teammates
   const body=[]; inner.traverse(o=>{ if(o.isMesh&&o!==shield&&o.material.isMeshStandardMaterial) body.push(o); });
@@ -2010,7 +2018,7 @@ function buildGun(k){
 }
 const HAND_GEO={glove:new THREE.BoxGeometry(0.075,0.085,0.11),sleeve:new THREE.BoxGeometry(0.085,0.085,0.46),
   palm:new THREE.BoxGeometry(0.026,0.075,0.085),fing:new THREE.BoxGeometry(0.022,0.068,0.075),knuck:new THREE.BoxGeometry(0.07,0.06,0.024),
-  thumb:new THREE.BoxGeometry(0.02,0.02,0.06),cuff:new THREE.BoxGeometry(0.075,0.075,0.05),arm:new THREE.BoxGeometry(0.07,0.07,1.0)};
+  thumb:new THREE.BoxGeometry(0.02,0.02,0.06),cuff:new THREE.BoxGeometry(0.1,0.1,0.05),arm:new THREE.BoxGeometry(0.1,0.1,1.0)};
 // gloved hand that wraps the gun: 'grip' = right hand around a vertical pistol grip (palm on the right, fingers around the front),
 // 'fore' = left hand cupping the handguard from below (palm under, fingers up the left side, thumb on the right). Forearms angle out to their side.
 // forearm starting at the wrist (x,y,z) and running back along its rotated +Z
@@ -2665,7 +2673,7 @@ class Client{
       if(av.grip){ const G=av.grip, ka=Math.min(1,dt*14), rc=av.flinch>0?0.03:0;
         aimArm(av.arms[0],G.R[0],G.R[1],G.R[2]+rc,ka);
         if(G.L) aimArm(av.arms[1],G.L[0],G.L[1]+br*0.01,G.L[2]+rc,ka);
-        else aimArm(av.arms[1],-0.5,-0.25,-0.05-Math.sin(av.walk)*run*0.35,ka); }
+        else aimArm(av.arms[1],-0.52,-0.12,-0.08-Math.sin(av.walk)*run*0.3,ka); }
       const fl2=av.flinch>0.09; if(fl2!==av._fl){ av._fl=fl2; for(const m of av.tint){ m.emissive.setHex(fl2?0xffffff:m.userData.baseEm); m.emissiveIntensity=fl2?0.8:m.userData.baseEi; } }
       // footsteps of nearby players
       if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
