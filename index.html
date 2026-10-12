@@ -35,6 +35,8 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #lobMsg{min-height:20px;margin-top:10px;color:#ffcf5a;text-align:center;font-size:14px}
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+/* phones: keep HUD + buttons inside the safe area (notch, rounded corners, a status bar that may slide in) */
+body.touch #hud,body.touch #touch{top:calc(env(safe-area-inset-top,0px) + 12px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);bottom:env(safe-area-inset-bottom,0px)}
 #adsDot{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 4px #ff3b5c,0 0 0 1px rgba(0,0,0,.6)}
 #cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
