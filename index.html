@@ -102,8 +102,30 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #board td,#board th{padding:4px 6px;text-align:center}
 #board td:first-child,#board th:first-child{text-align:right}
 #board tr.me{background:rgba(255,255,255,.08)}
-#endScr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.55);direction:rtl}
-#endScr h1{font-size:64px;margin:0;text-shadow:0 0 30px currentColor}
+#endScr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(8,12,34,.82),rgba(0,0,0,.92));direction:rtl;pointer-events:auto;z-index:30;animation:eFade .4s}
+#endScr .ew{width:min(820px,94vw);max-height:96vh;overflow-y:auto;overflow-x:hidden;text-align:center;scrollbar-width:thin}
+#endScr .eres{position:relative;padding:10px 0 4px}
+#endScr .eband{position:absolute;left:-10%;right:-10%;top:18px;height:78px;background:linear-gradient(90deg,transparent,var(--ec,#fff) 30%,var(--ec,#fff) 70%,transparent);opacity:.18;transform:skewY(-2deg);animation:eBand .6s cubic-bezier(.2,1.2,.4,1)}
+#endScr h1{position:relative;font-size:68px;margin:0;font-weight:800;letter-spacing:2px;color:var(--ec,#fff);text-shadow:0 0 30px var(--ec,#fff),0 4px 0 rgba(0,0,0,.5);animation:eSlam .55s cubic-bezier(.2,1.5,.4,1)}
+#endS{font-size:30px;font-weight:700;direction:ltr;margin-top:2px}
+#endS b{display:inline-block;min-width:44px}
+#endMvp{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px auto 12px;padding:8px 18px;width:fit-content;border-radius:12px;background:linear-gradient(90deg,rgba(255,200,60,.25),rgba(255,200,60,.08));border:1px solid rgba(255,210,80,.6);animation:eUp .5s .25s both}
+#endMvp .av{width:46px;height:46px;border-radius:10px;overflow:hidden;box-shadow:0 0 14px #ffc83c}
+#endMvp .t{font-size:12px;color:#ffd54a;letter-spacing:3px;font-weight:800} #endMvp .n{font-size:20px;font-weight:800}
+#endScr .eteams{display:grid;grid-template-columns:1fr 1fr;gap:12px;animation:eUp .5s .4s both}
+#endScr .et{background:rgba(10,14,34,.8);border:1px solid rgba(140,160,255,.2);border-top:3px solid var(--tc);border-radius:10px;padding:6px 8px}
+#endScr .et h3{margin:2px 0 6px;color:var(--tc);font-size:17px}
+#endScr .er{display:grid;grid-template-columns:22px 1fr 34px 34px;gap:4px;align-items:center;padding:3px 4px;border-radius:6px;font-size:15px;font-weight:700}
+#endScr .er.hd{opacity:.55;font-size:12px} #endScr .er.me{background:rgba(255,213,74,.16);color:#ffd54a}
+#endScr .er .nm{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#endScr .ebtns{display:flex;gap:10px;justify-content:center;margin-top:14px;animation:eUp .5s .55s both}
+#endScr .ebtns .btn{font-size:17px;padding:10px 22px}
+#endVote.on{background:#2ecc71;box-shadow:0 0 18px rgba(46,204,113,.6)}
+#endTm{margin-top:8px;opacity:.75;font-size:14px}
+@keyframes eFade{from{opacity:0}} @keyframes eSlam{0%{opacity:0;transform:scale(2.2)}100%{opacity:1;transform:none}}
+@keyframes eBand{0%{transform:skewY(-2deg) scaleX(0)}} @keyframes eUp{0%{opacity:0;transform:translateY(20px)}}
+@media (max-width:600px){#endScr h1{font-size:42px} #endScr .eteams{grid-template-columns:1fr}}
+@media (max-height:720px){#endScr h1{font-size:44px} #endScr .eband{height:56px;top:12px} #endS{font-size:22px} #endMvp{margin:6px auto 8px;padding:4px 14px} #endMvp .av{width:36px;height:36px} #endScr .er{font-size:13px;padding:1px 4px} #endScr .ebtns{margin-top:8px}}
 /* ---------- modern layer ---------- */
 :root{--panel:rgba(10,14,34,.78);--glass:none}
 .sc,#timer,.ab,.fi,#board,#room,.ws,#pause .pm,#mini{backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid rgba(140,160,255,.18)}
@@ -377,7 +399,12 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div id="chat"><div id="chatLog"></div><div id="chatIn" class="hidden"><span id="chatCh">الفريق</span><input id="chatTxt" maxlength="100" autocomplete="off" placeholder="اكتب رسالة… (Enter إرسال • Tab تبديل القناة)"></div></div>
   <div id="quick" class="hidden"></div>
   <div id="board" class="hidden"></div>
-  <div id="endScr" class="hidden"><h1 id="endT"></h1><p id="endS" style="font-size:20px"></p></div>
+  <div id="endScr" class="hidden"><div class="ew">
+    <div class="eres"><div class="eband"></div><h1 id="endT"></h1><div id="endS"></div></div>
+    <div id="endMvp"></div>
+    <div class="eteams"><div class="et" id="endA"></div><div class="et" id="endB"></div></div>
+    <div class="ebtns"><button class="btn" id="endVote">🔁 إعادة المباراة <span id="endVc"></span></button><button class="btn ghost" id="endMenu">🏠 القائمة الرئيسية</button></div>
+    <div id="endTm"></div></div></div>
 </div>
 
 <div id="touch" class="hidden">
@@ -484,7 +511,7 @@ const R=0.4, H=1.8, EYE=1.6, STEP=1.05, GRAV=28, JUMP=9.5, SPEED=8.5;
 const TEAM_COLOR=[0xff3b5c,0x2fa8ff], TEAM_CSS=['#ff3b5c','#2fa8ff'], TEAM_NAME=['العدو','فريقك'];
 const TEAMREG=[]; // recolor callbacks for team-tinted world objects
 const DROP_HP=40, DROP_LIFE=15; // health pack dropped by every eliminated player
-const MATCH_TIME=600, RESPAWN=5, MAX_HP=100, PREFIX='hypershot-v1-';
+const END_TIME=25; const MATCH_TIME=600, RESPAWN=5, MAX_HP=100, PREFIX='hypershot-v1-';
 // Balance notes (100 HP, carrier 200 HP):
 //  rifle   – 14 body / 21 head, 600 rpm → ~0.65s TTK up close, falls to 55% past 35m and blooms when sprayed
 //  shotgun – 10×9 pellets, 90 max body → needs a headshot or a follow-up; useless past ~25m
@@ -840,6 +867,7 @@ class Server{
         const maxD=w.dmg*w.pellets*w.head*1.01;
         this.damage(v,p,Math.min(+m.d||0,maxD),w.name,!!m.h);
         break;}
+      case 'vote': if(p&&this.end) this.end.v.add(id); break;
       case 'chat':{
         if(!p) return; const now=performance.now(); if(now-(p.chatT||0)<700) return; p.chatT=now;
         const tx=String(m.m||'').replace(/[<>]/g,'').trim().slice(0,100); if(tx) this.say(p,tx,!!m.tm);
@@ -958,7 +986,7 @@ class Server{
     }
     if(prev!==this.hill&&(this.hill===0||this.hill===1)) this.bc({t:'ev',k:'hill',tm:this.hill});
   }
-  finish(w){this.end={w,t:10}; this.bc({t:'ev',k:'end',w});
+  finish(w){this.end={w,t:END_TIME,v:new Set()}; this.bc({t:'ev',k:'end',w});
     for(const p of this.players.values()) if(p.isBot&&Math.random()<0.3) setTimeout(()=>this.say(p,Math.random()<0.7?'GG 🤝':'مباراة حلوة 👏',false),500+Math.random()*2500); }
   resetMatch(){
     this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.proj=[]; this.hill=-1; this.drops=[]; this.wdrops=[]; this.warm=WARMUP;
@@ -970,7 +998,9 @@ class Server{
   }
   tick(dt){
     if(this.warm>0){ this.warm-=dt; if(this.warm<=0){ this.warm=0; this.bc({t:'ev',k:'go'}); } }
-    if(this.end){this.end.t-=dt; if(this.end.t<=0) this.resetMatch();}
+    if(this.end){this.end.t-=dt; const hs=[...this.players.values()].filter(p=>!p.isBot);
+      if(hs.length&&hs.every(p=>this.end.v.has(p.id))&&this.end.t>3) this.end.t=3; // everyone voted → rematch in 3 s
+      if(this.end.t<=0) this.resetMatch();}
     else if(this.warm>0){}
     else{this.time-=dt; if(this.time<=0){this.time=0; const s=this.score.map(Math.floor); this.finish(s[0]===s[1]?-1:(s[0]>s[1]?0:1));}}
     for(const p of this.players.values()){
@@ -1049,7 +1079,7 @@ class Server{
       cr:CRATES.map(c=>c.dead?0:Math.max(1,Math.ceil(c.hp/c.mh*20))),hl:this.hill,
       dr:this.drops.map(d=>[d.i,r2(d.x),r2(d.y),r2(d.z),Math.ceil(d.t)]),
       wd:this.wdrops.map(d=>[d.i,d.w,r2(d.x),r2(d.y),r2(d.z)]),ph:Math.ceil(this.warm),
-      sc:this.score.map(Math.floor),tm:Math.ceil(this.time),end:this.end?{w:this.end.w,t:Math.ceil(this.end.t)}:null};
+      sc:this.score.map(Math.floor),tm:Math.ceil(this.time),end:this.end?{w:this.end.w,t:Math.ceil(this.end.t),v:this.end.v.size,n:[...this.players.values()].filter(p=>!p.isBot).length}:null};
   }
   /* ---------------- BOT AI ----------------
      perception (view cone, line of sight, hearing, getting shot) → goal (mode/role/health) →
@@ -2835,9 +2865,7 @@ function updateHudSnap(c,s){
   $('hyper').style.opacity=c.ut>0?1:0;
   $('carry').classList.toggle('hidden',!c.carrying());
   const d=$('dead'); if(!c.alive&&!s.end){d.classList.remove('hidden'); $('deadBy').textContent=c.killer?('قتلك '+c.killer):''; $('deadT').textContent='العودة بعد '+Math.max(0,Math.ceil(c.rs))+' ثوانٍ';} else d.classList.add('hidden');
-  const e=$('endScr');
-  if(s.end){e.classList.remove('hidden'); const w=s.end.w; $('endT').textContent=w<0?'تعادل!':(w===c.team?'فاز فريقك! 🏆':'فاز العدو!'); $('endT').style.color=w<0?'#fff':TEAM_CSS[w];
-    $('endS').textContent=`${s.sc[0]} - ${s.sc[1]} • مباراة جديدة بعد ${s.end.t}`;} else e.classList.add('hidden');
+  drawEnd(c,s);
   if(!$('board').classList.contains('hidden')) drawBoard(c,s);
   drawRanks(c,s);
 }
@@ -2851,6 +2879,32 @@ function AVATAR_SVG(name){
   return `<svg viewBox="5 3 30 33"><rect x="0" y="0" width="40" height="40" fill="hsl(${hue},55%,28%)"/><rect x="7" y="9" width="26" height="25" rx="7" fill="hsl(${hue2},60%,58%)"/>${visorEl}<rect x="17" y="4" width="6" height="7" rx="2" fill="#1a1f2e"/><rect x="4" y="18" width="4" height="9" rx="2" fill="#2c3242"/><rect x="32" y="18" width="4" height="9" rx="2" fill="#2c3242"/><text x="20" y="32.5" font-size="8" font-weight="900" text-anchor="middle" fill="#fff" font-family="sans-serif">${escapeHtml(init)}</text></svg>`;
 }
 let _ranksKey='';
+// ---------- end of match: result, MVP, both teams' stats, rematch vote, main menu
+let endOpen=false, endVoted=false, _endKey='';
+function drawEnd(c,s){
+  const e=$('endScr');
+  if(!s.end){ if(endOpen){ endOpen=false; endVoted=false; _endKey=''; e.classList.add('hidden'); $('endVote').classList.remove('on'); } return; }
+  if(!endOpen){ endOpen=true; e.classList.remove('hidden'); mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
+    if(!TOUCH&&document.pointerLockElement) document.exitPointerLock(); $('pause').classList.add('hidden'); }
+  const w=s.end.w, win=w===c.team, my=c.team, en=1-my;
+  e.style.setProperty('--ec',w<0?'#ffffff':win?'#ffd54a':'#ff4d5e');
+  const key=w+'|'+s.p.map(p=>p.i+':'+p.k+':'+p.d+':'+p.c).join(',');
+  if(key!==_endKey){ _endKey=key;
+    $('endT').textContent=w<0?'تعادل':win?'فوز! 🏆':'خسارة';
+    $('endS').innerHTML=`<b style="color:${TEAM_CSS[my]}">${s.sc[my]}</b> : <b style="color:${TEAM_CSS[en]}">${s.sc[en]}</b>`;
+    const ps=[...s.p].sort((a,b)=>b.k-a.k||b.c-a.c||a.d-b.d), mvp=ps[0];
+    if(mvp){ const nm=String(mvp.n).replace(' 🤖','');
+      $('endMvp').innerHTML=`<div class="av">${AVATAR_SVG(nm)}</div><div><div class="t">MVP ★</div><div class="n" style="color:${TEAM_CSS[mvp.t]}">${escapeHtml(nm)}</div></div><div style="font-size:18px;font-weight:800;direction:ltr">${mvp.k} / ${mvp.d}</div>`; }
+    const tbl=(t,el)=>{ const rows=ps.filter(p=>p.t===t);
+      el.style.setProperty('--tc',TEAM_CSS[t]);
+      el.innerHTML=`<h3>${t===my?'فريقك':'العدو'} — ${s.sc[t]}</h3><div class="er hd"><span>#</span><span class="nm">اللاعب</span><span>قتل</span><span>موت</span></div>`+
+        rows.map((p,i)=>`<div class="er${p.i===c.id?' me':''}"><span>${i+1}</span><span class="nm">${escapeHtml(String(p.n).replace(' 🤖',''))}${p.b?' 🤖':''}</span><span>${p.k}</span><span>${p.d}</span></div>`).join(''); };
+    tbl(my,$('endA')); tbl(en,$('endB')); }
+  $('endVc').textContent=s.end.n>1?`(${s.end.v}/${s.end.n})`:'';
+  $('endTm').textContent=`المباراة الجاية بعد ${s.end.t} ثانية`;
+}
+$('endVote').onclick=()=>{ if(!client||endVoted) return; endVoted=true; $('endVote').classList.add('on'); client.send({t:'vote'}); sfx('pick'); };
+$('endMenu').onclick=()=>$('pmLeave').onclick();
 function drawRanks(c,s){
   const ps=[...s.p].sort((a,b)=>b.k-a.k||b.c-a.c||a.d-b.d).slice(0,10);
   const key=ps.map(p=>p.i+':'+p.k+':'+p.t+':'+p.al+':'+p.n).join('|'); if(key===_ranksKey) return; _ranksKey=key;
@@ -2935,7 +2989,7 @@ document.addEventListener('pointerlockchange',()=>{
   if(TOUCH) return;
   playing=document.pointerLockElement===canvas;
   if(playing) $('pause').classList.add('hidden');
-  else if(client&&!loadoutOpen){ closeChat(); closeQuick(); openMenu(); }
+  else if(client&&!loadoutOpen&&!endOpen){ closeChat(); closeQuick(); openMenu(); }
   if(!playing){mouseDown=false;rightDown=false;}
 });
 // ---------- loadout screen (auto during warmup, B any time, button on the death screen)
