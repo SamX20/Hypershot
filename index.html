@@ -1783,41 +1783,61 @@ const GEO={
   shield:new THREE.SphereGeometry(1.25,16,12)};
 const mDark=new THREE.MeshStandardMaterial({color:0x1a1f2e,roughness:0.6,metalness:0.3});
 const mJoint=new THREE.MeshStandardMaterial({color:0x2c3242,roughness:0.5,metalness:0.6});
+// look generated from the player's name: skin tone, jacket, armour, trousers (later replaced by the avatar editor)
+const LOOK_SKIN=[0xf1c7a5,0xe0ac85,0xc68b5e,0xa86f45,0x7a4b2e,0x5a3622];
+const LOOK_JACKET=[0x3b4a2a,0x1f2a44,0x2b2b2e,0x6b5a3c,0x4a2f2a,0x24363a,0x5a5f66,0x3c2f4f];
+const LOOK_ARMOR=[0x16171b,0x262a30,0x3a3f2c,0x1d2026];
+const LOOK_PANTS=[0x2a2d33,0x3b3326,0x1d2330,0x34392b];
+function playerLook(name){ const h=nameHash(String(name).replace(' 🤖',''));
+  return {skin:LOOK_SKIN[h%6],jacket:LOOK_JACKET[(h>>>3)%8],armor:LOOK_ARMOR[(h>>>6)%4],pants:LOOK_PANTS[(h>>>8)%4]}; } // >>> keeps it unsigned
+const ENEMY_RED=new THREE.Color(0xff2a2a);
+// teammates show through walls as a soft blue silhouette (only where they're hidden: depth test is inverted)
+// teammates hidden behind walls show as a soft blue silhouette drawn on top (line of sight is checked a few times a second)
+const GHOST_MAT=new THREE.MeshBasicMaterial({color:0x4fb4ff,transparent:true,opacity:0.38,depthWrite:false,depthTest:false});
 function makeAvatar(team,name,friendly){
-  const g=new THREE.Group(), col=new THREE.Color(TEAM_COLOR[team]);
-  const mBody=new THREE.MeshStandardMaterial({color:col.clone().multiplyScalar(0.55),emissive:col,emissiveIntensity:0.18,roughness:0.45,metalness:0.35});
-  const mGlow=new THREE.MeshBasicMaterial({color:col.clone().lerp(new THREE.Color(1,1,1),0.45)});
-  const M=(geo,mat,x=0,y=0,z=0,parent)=>{const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); parent.add(m); return m;};
+  const g=new THREE.Group(), L=playerLook(name), tint=[], ghosts=[];
+  // enemies get a light red tint on everything they wear; teammates keep natural colours
+  const mat=(hex,rough=0.7,metal=0.1)=>{ const m=new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal});
+    if(!friendly){ m.color.lerp(ENEMY_RED,0.16); m.emissive.setHex(0x4a0606); m.emissiveIntensity=0.3; } m.userData.baseEm=m.emissive.getHex(); m.userData.baseEi=m.emissiveIntensity; tint.push(m); return m; };
+  const mSkin=mat(L.skin,0.8,0), mJacket=mat(L.jacket,0.85,0.05), mArmor=mat(L.armor,0.45,0.5), mPants=mat(L.pants,0.85,0.05), mBoot=mat(0x14151a,0.6,0.2);
+  const mGog=new THREE.MeshStandardMaterial({color:0x1a2633,roughness:0.15,metalness:0.6,emissive:0x0b1a26,emissiveIntensity:0.6});
+  const mPatch=new THREE.MeshBasicMaterial({color:TEAM_COLOR[team]}); // small team patch on the shoulder
+  const M=(geo,m,x=0,y=0,z=0,parent)=>{const o=new THREE.Mesh(geo,m); o.position.set(x,y,z); parent.add(o); return o;};
   const inner=new THREE.Group();
-  // legs: hip pivot → thigh → knee pivot → shin + boot
   const legs=[-1,1].map(s=>{const hip=new THREE.Group(); hip.position.set(s*0.17,0.92,0); inner.add(hip);
-    M(GEO.thigh,mDark,0,0,0,hip); const knee=new THREE.Group(); knee.position.y=-0.44; hip.add(knee);
-    M(GEO.shin,mBody,0,0,0,knee); M(GEO.boot,mDark,0,0,0,knee); M(GEO.knee,mGlow,0,-0.02,0,knee); return {hip,knee};});
-  M(GEO.pelvis,mJoint,0,0.95,0,inner);
-  // torso pivots at the spine so the upper body leans with aim pitch
+    M(GEO.thigh,mPants,0,0,0,hip); const knee=new THREE.Group(); knee.position.y=-0.44; hip.add(knee);
+    M(GEO.shin,mPants,0,0,0,knee); M(GEO.boot,mBoot,0,0,0,knee); M(GEO.knee,mArmor,0,-0.02,0,knee); return {hip,knee};});
+  M(GEO.pelvis,mArmor,0,0.95,0,inner);
   const torso=new THREE.Group(); torso.position.y=1.05; inner.add(torso);
-  M(GEO.belly,mJoint,0,0,0,torso); M(GEO.chest,mBody,0,0,0,torso); M(GEO.plate,mJoint,0,0,0,torso); M(GEO.strip,mGlow,0,0,0,torso);
-  M(GEO.pack,mDark,0,0,0,torso); M(GEO.packGlow,mGlow,0,0,0,torso);
-  for(const s of [-1,1]){ const p=M(GEO.pad,mBody,s*0.47,0.55,0,torso); p.rotation.z=s*-0.25; }
+  M(GEO.belly,mJacket,0,0,0,torso); M(GEO.chest,mJacket,0,0,0,torso); M(GEO.plate,mArmor,0,0,0,torso);
+  M(GEO.pack,mArmor,0,0,0,torso);
+  for(const s of [-1,1]){ const pd=M(GEO.pad,mArmor,s*0.47,0.55,0,torso); pd.rotation.z=s*-0.25; }
+  M(new THREE.BoxGeometry(0.02,0.1,0.14),mPatch,0.62,0.5,0,torso);   // team patch on the right shoulder
   const head=new THREE.Group(); head.position.y=0.63; torso.add(head);
-  M(GEO.helmet,mBody,0,0,0,head); M(GEO.visor,mGlow,0,0.02,-0.24,head); M(GEO.crest,mDark,0,0.25,0.02,head);
-  for(const s of [-1,1]) M(GEO.ear,mJoint,s*0.25,0,0.02,head);
-  // arms reach forward to hold the gun
-  const armR=new THREE.Group(); armR.position.set(0.42,0.45,0); armR.rotation.set(1.35,0,-0.1); torso.add(armR); M(GEO.arm,mBody,0,0,0,armR); M(GEO.hand,mDark,0,-0.5,0,armR);
-  const armL=new THREE.Group(); armL.position.set(-0.42,0.45,0); armL.rotation.set(1.3,0,-0.75); torso.add(armL); M(GEO.arm,mBody,0,0,0,armL); M(GEO.hand,mDark,0,-0.5,0,armL);
+  M(new THREE.BoxGeometry(0.4,0.4,0.42),mSkin,0,-0.02,0,head);       // face / head
+  M(new THREE.BoxGeometry(0.46,0.2,0.48),mArmor,0,0.15,0.01,head);    // helmet shell
+  M(new THREE.BoxGeometry(0.42,0.06,0.5),mArmor,0,0.05,0.01,head);    // helmet brim
+  M(GEO.visor,mGog,0,0.0,-0.22,head);                                  // goggles
+  for(const s of [-1,1]) M(GEO.ear,mArmor,s*0.23,0.02,0.02,head);
+  const armR=new THREE.Group(); armR.position.set(0.42,0.45,0); armR.rotation.set(1.35,0,-0.1); torso.add(armR); M(GEO.arm,mJacket,0,0,0,armR); M(GEO.hand,mSkin,0,-0.5,0,armR);
+  const armL=new THREE.Group(); armL.position.set(-0.42,0.45,0); armL.rotation.set(1.3,0,-0.75); torso.add(armL); M(GEO.arm,mJacket,0,0,0,armL); M(GEO.hand,mSkin,0,-0.5,0,armL);
   const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.2,0.3,-0.55); torso.add(gun); avatarGuns.push(gun);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false; inner.add(shield);
+  if(friendly){ const ms=[]; inner.traverse(o=>{ if(o.isMesh&&o!==shield) ms.push(o); }); // collect first, then attach (don't traverse what we add)
+    for(const o of ms){ const gh=new THREE.Mesh(o.geometry,GHOST_MAT); gh.renderOrder=20; gh.userData.ghost=true; gh.visible=false; o.add(gh); ghosts.push(gh); } }
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   g.add(inner,tag);
-  return {g,inner,legs,torso,head,gun,mBody,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
+  return {g,inner,legs,torso,head,gun,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
 }
+// first-person hands use your own look: skin-coloured hands, jacket sleeves
+function setOwnLook(name){ const L=playerLook(name); HAND_MAT.glove.color.setHex(L.skin); HAND_MAT.glove.roughness=0.8; HAND_MAT.sleeve.color.setHex(L.jacket); HAND_MAT.sleeve.roughness=0.85; HAND_MAT.sleeve.metalness=0.05; }
 // death: the soldier's pieces fly apart (uses the crate debris system)
 function deathBurst(av){
   av.g.updateMatrixWorld(true);
-  const parts=[]; av.inner.traverse(o=>{ if(o.isMesh&&o!==av.shield&&o.geometry!==GEO.hand) parts.push(o); });
+  const parts=[]; av.inner.traverse(o=>{ if(o.isMesh&&o!==av.shield&&!o.userData.ghost&&o.geometry!==GEO.hand) parts.push(o); });
   for(const o of parts){
     const mat=o.material.clone(); mat.transparent=true;
-    if(o.material===av.mBody){mat.emissive.setHex(TEAM_COLOR[av.team]); mat.emissiveIntensity=0.25;} // drop the white hit flash
+    if(o.material.userData&&o.material.userData.baseEm!==undefined){mat.emissive.setHex(o.material.userData.baseEm); mat.emissiveIntensity=o.material.userData.baseEi;} // drop the white hit flash
     const m=new THREE.Mesh(o.geometry,mat); o.matrixWorld.decompose(m.position,m.quaternion,m.scale);
     const ox=m.position.x-av.pos.x, oz=m.position.z-av.pos.z;
     addDebris(m,[ox*5+rand(-2,2),rand(2,6),oz*5+rand(-2,2)],[rand(-7,7),rand(-7,7)],rand(1.6,2.4),av.pos.y+0.05); debris[debris.length-1].own=true;
@@ -2580,14 +2600,17 @@ class Client{
       av.flinch=Math.max(0,av.flinch-dt);
       const fl=av.flinch>0?Math.sin(av.flinch/0.18*Math.PI)*0.35:0;
       av.torso.rotation.x=clamp(av.pitch,-1,1)*0.45+fl; av.head.rotation.x=clamp(av.pitch,-1,1)*0.35;
-      av.mBody.emissive.setHex(av.flinch>0.09?0xffffff:TEAM_COLOR[av.team]);
+      const fl2=av.flinch>0.09; if(fl2!==av._fl){ av._fl=fl2; for(const m of av.tint){ m.emissive.setHex(fl2?0xffffff:m.userData.baseEm); m.emissiveIntensity=fl2?0.8:m.userData.baseEi; } }
       // footsteps of nearby players
       if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
       let dy=av.yaw-av.ryaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); av.ryaw+=dy*k;
       av.g.position.copy(av.pos); av.g.rotation.y=av.ryaw; av.g.visible=av.alive;
       const gk=av.w+':'+av.sk; if(av.shownKey!==gk&&AVATAR_MODELS[WKEYS[av.w]]){ av.gun.clear(); av.gun.add(worldGun(WKEYS[av.w],av.sk,'lite')); av.shownKey=gk; }
-      av.mBody.emissiveIntensity=av.flinch>0.09?0.9:av.ult?0.6+Math.sin(t*12)*0.3:0.18;
+
       if(av.shield.visible) av.shield.rotation.y+=dt*1.5;
+      if(av.ghosts.length&&(av.ghostT-=dt)<=0){ av.ghostT=0.15; // teammate behind a wall → show the silhouette
+        const hid=av.alive&&!clearLine([camera.position.x,camera.position.y,camera.position.z],[av.pos.x,av.pos.y+1.2,av.pos.z]);
+        if(hid!==av.ghostOn){ av.ghostOn=hid; for(const gh of av.ghosts) gh.visible=hid; } }
     }
     for(const m of grenMeshes.values()){const tg=m.userData.t; m.position.x+=(tg[0]-m.position.x)*k; m.position.y+=(tg[1]-m.position.y)*k; m.position.z+=(tg[2]-m.position.z)*k;}
     // flags
@@ -2660,8 +2683,8 @@ function updateHudSnap(c,s){
 // every player gets a recognisable avatar generated from their name: background hue, helmet colour, visor colour, initial
 function nameHash(n){ let h=2166136261; for(const ch of String(n)) h=Math.imul(h^ch.codePointAt(0),16777619); return h>>>0; }
 function AVATAR_SVG(name){
-  const h=nameHash(name), hue=h%360, hue2=(hue+140+(h>>9)%80)%360, visor=['#7df9ff','#ffe066','#ff7ad9','#9dff7a','#ffffff','#ffa64d'][(h>>4)%6];
-  const shape=(h>>12)%3, init=String(name).replace(/[^\p{L}\p{N}]/gu,'').charAt(0).toUpperCase()||'?';
+  const h=nameHash(name), hue=h%360, hue2=(hue+140+(h>>>9)%80)%360, visor=['#7df9ff','#ffe066','#ff7ad9','#9dff7a','#ffffff','#ffa64d'][(h>>>4)%6];
+  const shape=(h>>>12)%3, init=String(name).replace(/[^\p{L}\p{N}]/gu,'').charAt(0).toUpperCase()||'?';
   const visorEl=shape===0?`<rect x="10" y="17" width="20" height="7" rx="2" fill="${visor}"/>`:shape===1?`<path d="M9 17h22l-3 8H12z" fill="${visor}"/>`:`<rect x="11" y="16" width="8" height="8" rx="3" fill="${visor}"/><rect x="21" y="16" width="8" height="8" rx="3" fill="${visor}"/>`;
   return `<svg viewBox="5 3 30 33"><rect x="0" y="0" width="40" height="40" fill="hsl(${hue},55%,28%)"/><rect x="7" y="9" width="26" height="25" rx="7" fill="hsl(${hue2},60%,58%)"/>${visorEl}<rect x="17" y="4" width="6" height="7" rx="2" fill="#1a1f2e"/><rect x="4" y="18" width="4" height="9" rx="2" fill="#2c3242"/><rect x="32" y="18" width="4" height="9" rx="2" fill="#2c3242"/><text x="20" y="32.5" font-size="8" font-weight="900" text-anchor="middle" fill="#fff" font-family="sans-serif">${escapeHtml(init)}</text></svg>`;
 }
@@ -2884,6 +2907,7 @@ try{ $('name').value=localStorage.getItem('hs_name')||''; }catch(e){}
 $('qSel').value=SET.q; $('volSel').value=SET.vol; $('sens').value=SET.sens; SENS=0.0018*SET.sens;
 $('qSel').onchange=e=>{ SET.q=e.target.value; saveSet(); applyQuality(SET.q==='auto'?detectQuality():SET.q); };
 function enterGame(){
+  setOwnLook(getName());
   try{ localStorage.setItem('hs_name',$('name').value.trim()); }catch(e){}
   SET.sens=parseFloat($('sens').value); SET.vol=parseFloat($('volSel').value); SET.q=$('qSel').value; saveSet();
   SENS=0.0018*SET.sens; if(MASTER) MASTER.gain.value=0.55*SET.vol;
