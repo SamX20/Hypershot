@@ -386,6 +386,9 @@ body.tedit #touch .tb.hidden{display:flex!important;opacity:.6}
 #pause h2{margin:0 0 6px;font-size:22px} #pause .sub2{opacity:.7;font-size:12px;margin-bottom:6px}
 #pause .set{text-align:right;margin-top:12px} #pause .set label{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 4px;opacity:.85}
 body.endopen #touch,body.endopen #armHint{display:none!important}
+/* during a match the room code shrinks to a small badge under the minimap (full text + link stay in the lobby) */
+body:not(.inlobby) #room{left:10px;top:138px;transform:none;font-size:12px;padding:3px 9px;border-radius:7px}
+body:not(.inlobby) #room .rx{display:none} body:not(.inlobby) #room b:before{content:'🔑 '}
 @media (max-height:520px){
   #endScr .ew{max-height:98vh} #endScr .eres{padding:0} #endScr h1{font-size:30px} #endScr .eband{height:38px;top:4px} #endS{font-size:16px;margin:0}
   #endMvp{margin:3px auto 5px;padding:2px 10px;gap:8px} #endMvp .av{width:28px;height:28px} #endMvp .n{font-size:14px} #endMvp .t{font-size:9px}
