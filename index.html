@@ -105,13 +105,14 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #lobbyHud{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);text-align:center;direction:rtl;pointer-events:none;padding:8px 18px;border-radius:12px;background:rgba(10,14,34,.7);border:1px solid rgba(120,200,255,.35)}
 body.inlobby #mini,body.inlobby #ranks,body.inlobby #top{display:none}
 body.touch #lobbyHud{top:8px;bottom:auto;padding:4px 12px;max-width:46vw} body.touch #lobbyMsg{font-size:12px;margin:0 0 3px} body.touch #lobbyMsg b{font-size:16px}
-body.touch #lobbyHud .lt{font-size:10px} body.touch #lobbyList span{font-size:10px;padding:1px 5px} body.touch #armHint{bottom:auto;top:90px;font-size:14px;pointer-events:auto;padding:8px 16px;background:rgba(80,40,160,.9)}
+body.touch #lobbyHud .lt{font-size:10px} body.touch #lobbyList span{font-size:10px;padding:1px 5px} body.touch #armHint{bottom:34%;top:auto;font-size:14px;pointer-events:auto;padding:10px 18px;background:rgba(80,40,160,.92);z-index:25}
+body.touch.inlobby #tTab,body.touch.inlobby #room{display:none}
 #lobbyHud .lt{font-size:13px;letter-spacing:3px;color:#7fd8ff;font-weight:800}
 #lobbyMsg{font-size:18px;font-weight:700;margin:2px 0 6px}
 #lobbyMsg b{color:#3dff8a;font-size:26px}
 #lobbyList{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 #lobbyList span{font-size:13px;padding:2px 8px;border-radius:7px;background:rgba(255,255,255,.08)} #lobbyList span.ok{background:rgba(61,255,138,.22);color:#3dff8a}
-#armHint{position:absolute;bottom:215px;left:50%;transform:translateX(-50%);direction:rtl;font-size:16px;font-weight:700;padding:6px 14px;border-radius:9px;background:rgba(10,14,34,.8);border:1px solid #b07bff}
+#armHint{position:fixed;z-index:30;bottom:215px;left:50%;transform:translateX(-50%);direction:rtl;font-size:16px;font-weight:700;padding:6px 14px;border-radius:9px;background:rgba(10,14,34,.8);border:1px solid #b07bff}
 #endScr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(8,12,34,.82),rgba(0,0,0,.92));direction:rtl;pointer-events:auto;z-index:30;animation:eFade .4s}
 #endScr .ew{width:min(820px,94vw);max-height:96vh;overflow-y:auto;overflow-x:hidden;text-align:center;scrollbar-width:thin}
 #endScr .eres{position:relative;padding:10px 0 4px}
@@ -320,7 +321,7 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #armory .ag:hover{transform:translateY(-2px)} #armory .ag.on{border-color:#00e5ff;box-shadow:0 0 14px rgba(0,229,255,.35)} #armory .ag.eq:after{content:' ✓';color:#3dff8a}
 #armory .ag small{display:block;font-weight:400;opacity:.65;font-size:11px}
 #armory .abtns{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
-#armory .abtns .btn{font-size:17px;padding:10px 26px}
+#armory .abtns .btn{font-size:17px;padding:10px 26px;white-space:nowrap}
 #armory .ahint{position:absolute;bottom:26px;left:20px;font-size:12px;opacity:.5}
 @media (max-width:820px){#armory .ainfo{top:70px;width:180px} #armName{font-size:22px} #armory .aright{width:170px} #armSkins{grid-template-columns:1fr}}
 #loadout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.5);z-index:31}
@@ -3301,7 +3302,10 @@ function drawArmory(){
     d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
     d.onclick=()=>{ ARM.sk=i; drawArmory(); }; box.appendChild(d); });
 }
+document.body.appendChild($('armHint')); // above the full-screen touch layer (#touch, z 6)
 $('armHint').onclick=()=>{ if(client&&client.lobbyOn) openArmory(); };
+// touch: the game's look/joystick handlers swallow taps, so the hint listens to touchstart itself
+$('armHint').addEventListener('touchstart',e=>{ e.preventDefault(); e.stopPropagation(); if(client&&client.lobbyOn) openArmory(); },{passive:false});
 $('armSave').onclick=()=>{ const cur=client.nextLoad||client.load, k=WKEYS[ARM.w];
   if(ARM.slot!=='k'&&cur[ARM.slot]!==ARM.w) chooseLoad({...cur,[ARM.slot]:ARM.w});
   chooseSkin(k,ARM.sk); sfx('pick'); drawArmory(); showMsg('✓ انحفظ',900); };
