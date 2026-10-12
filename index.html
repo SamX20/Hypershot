@@ -1154,6 +1154,7 @@ class Server{
         break;}
       case 'fire':{ // the client only says "I fired from here in these directions" — hits and damage are worked out here
         if(!p||!p.alive||!Array.isArray(m.d)) return; const wi=m.w|0, w=W[WKEYS[wi%NW]];
+        if(w&&!w.melee&&!this.held(p).includes(wi)&&p.loadNext&&(p.loadNext.p===wi||p.loadNext.s===wi)){ p.load=p.loadNext; p.loadNext=null; } /* client applied its new loadout already (warmup/death race) */
         const why=r=>{ console.log('REJ',p.name,r); this.send(p.id,{t:'rej',r}); };
         if(!w||w.melee||!this.held(p).includes(wi)) return why('not held '+wi+' load '+JSON.stringify(p.load));
         if(!this.rateOk(p,wi,w.rate)) return why('rate');                                     // faster than the gun can fire (jitter-tolerant)
