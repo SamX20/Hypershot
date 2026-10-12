@@ -35,6 +35,7 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #lobMsg{min-height:20px;margin-top:10px;color:#ffcf5a;text-align:center;font-size:14px}
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+#adsDot{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 4px #ff3b5c,0 0 0 1px rgba(0,0,0,.6)}
 #cross{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
 #cross:before{left:10px;top:0;width:2px;height:22px;clip-path:polygon(0 0,100% 0,100% 35%,0 35%,0 65%,100% 65%,100% 100%,0 100%)}
@@ -469,6 +470,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div id="feed"></div>
   <div id="hyper"></div>
   <div id="hurt"></div>
+  <div id="adsDot" class="hidden"></div>
   <div id="speed"></div>
   <div id="dmgs"></div>
   <div id="streak"></div>
@@ -1503,6 +1505,11 @@ const RELOAD_EV={mag:[[0.1,'magout'],[0.6,'magin'],[0.76,'boltback',1],[0.84,'bo
   bolt:[[0.06,'boltback'],[0.2,'magout'],[0.6,'magin'],[0.86,'boltfwd']],
   sg:[[0.14,'shell'],[0.26,'shell'],[0.38,'shell'],[0.5,'shell'],[0.62,'shell'],[0.74,'shell'],[0.86,'pump']]};
 const _chgT=new THREE.Vector3();
+// aim down sights: viewmodel position when aiming (x,y,z in camera space), camera zoom factor, spread reduction
+// y = minus the gun's highest point (measured with the gun at z -0.4), so the sights sit on the crosshair line
+const ADS_POS={rifle:[0,-0.111,-0.4],m16:[0,-0.073,-0.4],scar:[0,-0.082,-0.4],shotgun:[0,-0.072,-0.4],smg:[0,-0.1,-0.4],mp7:[0,-0.121,-0.4],pistol:[0,-0.069,-0.4],m1911t:[0,-0.075,-0.4]};
+const AIM_ZOOM={rifle:0.78,m16:0.76,scar:0.78,shotgun:0.86,smg:0.86,mp7:0.86,pistol:0.88,m1911t:0.88};
+const AIM_ACC={rifle:0.65,m16:0.7,scar:0.65,shotgun:0.3,smg:0.5,mp7:0.45,pistol:0.55,m1911t:0.55};
 function gunshot(v,o){ const near=v>0.6;
   noise(0.018,o.crack*v,near?5200:1800,near?'highpass':'lowpass');            // crack
   noise(o.bodyT,o.bodyV*v,near?o.body:o.body*0.5,'bandpass');                   // body
@@ -2823,7 +2830,7 @@ class Client{
       let wx=fx_*fw+rx*st, wz=fz*fw+rz*st; const L=Math.hypot(wx,wz); if(L>1){wx/=L;wz/=L;}
       this.wish=[wx,wz];
       this.twT=Math.max(0,(this.twT||0)-dt);
-      physMove(me,dt,wx,wz,!!(KEYS.Space&&TOUCH||KB('jump')),SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:1)*(W[WKEYS[this.w]].speed||1));
+      physMove(me,dt,wx,wz,!!(KEYS.Space&&TOUCH||KB('jump')),SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:this.aiming?0.72:1)*(W[WKEYS[this.w]].speed||1));
       if(me.padHit){me.padHit=false; sfx('pad');}
       this.updateWeapon(dt);
     } else if(this.alive){ physMove(me,dt,0,0,false,SPEED); me.padHit=false; this.updateWeapon(dt); }
@@ -2849,9 +2856,11 @@ class Client{
     camera.position.set(me.x+(Math.random()-0.5)*sh,camY+(Math.random()-0.5)*sh,me.z+(Math.random()-0.5)*sh);
     camera.rotation.set(this.pitch,this.yaw,this.roll);
     const zoom=this.alive&&this.zoomed;
-    const fov=zoom?22:(this.ut>0?SET.fov+12:SET.fov)+clamp((spd-SPEED)*0.9,0,14);
+    this.aimK=(this.aimK||0)+(((this.aiming&&this.alive)?1:0)-(this.aimK||0))*Math.min(1,dt*13); const aK=this.aimK;
+    const aimZ=AIM_ZOOM[WKEYS[this.w]]||0.82;
+    const fov=zoom?22:((this.ut>0?SET.fov+12:SET.fov)+clamp((spd-SPEED)*0.9,0,14)*(1-aK))*(1-(1-aimZ)*aK);
     $('speed').style.opacity=this.alive&&!zoom?clamp((spd-SPEED-2)/10,0,0.8):0; if(Math.abs(camera.fov-fov)>0.1){camera.fov+= (fov-camera.fov)*Math.min(1,dt*14); camera.updateProjectionMatrix();}
-    $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom);
+    $('scope').classList.toggle('hidden',!zoom); $('cross').classList.toggle('hidden',zoom||aK>0.6); $('adsDot').classList.toggle('hidden',!(aK>0.6)||zoom);
     vmGuns.forEach((g,i)=>{g.visible=this.alive&&i===this.w&&!zoom;});
     const g=vmGuns[this.w], wk=W[WKEYS[this.w]];
     const rp=this.reloadT>0?clamp(1-this.reloadT/wk.reload,0,1):0, rl=Math.sin(rp*Math.PI); // reload progress 0..1 and its dip curve
@@ -2863,8 +2872,9 @@ class Client{
     const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.72&&rp<0.9?Math.sin((rp-0.72)/0.18*Math.PI):0; // charging handle / slide rack
     this.swing=Math.max(0,this.swing-dt*3.2); const sw=Math.sin((1-this.swing)*Math.PI)*(this.swing>0?1:0);
     const stab=this.w===KNIFE;
-    g.position.set((stab?0.2:0.24)+Math.cos(this.bob)*0.012-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)+Math.abs(Math.sin(this.bob))*0.012-rl*0.08+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)+this.kick*0.08-sw*(stab?0.32:0.12)+chg*0.02);
-    g.rotation.set(this.kick*0.25+rl*0.22-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15,rl*0.3+sw*(stab?-0.2:0.6)+chg*0.3);
+    const AP=ADS_POS[rk]||ADS_POS.rifle, bobA=1-aK*0.85;
+    g.position.set((stab?0.2:0.24)*(1-aK)+AP[0]*aK+Math.cos(this.bob)*0.012*bobA-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)*(1-aK)+AP[1]*aK+Math.abs(Math.sin(this.bob))*0.012*bobA-rl*0.08+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)*(1-aK)+AP[2]*aK+this.kick*0.08*(1-aK*0.5)-sw*(stab?0.32:0.12)+chg*0.02);
+    g.rotation.set(this.kick*0.25*(1-aK*0.6)+rl*0.22-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15,rl*0.3+sw*(stab?-0.2:0.6)+chg*0.3);
     // magazine out → new magazine in, left hand fetches it; mag-less guns pump/feed with the left hand instead
     const U=g.userData;
     this.cycle=Math.max(0,(this.cycle||0)-dt*(WKEYS[this.w]==='sniper'?1.4:2.4)); const cy=this.cycle>0&&this.cycle<0.85?Math.sin((0.85-this.cycle)/0.85*Math.PI):0;
@@ -2886,10 +2896,11 @@ class Client{
   updateWeapon(dt){
     this.fireCd-=dt;
     const k=WKEYS[this.w], w=W[k];
-    if(w.melee){ if(mouseDown&&playing&&this.fireCd<=0){ this.melee(); this.fireCd=w.rate; } this.zoomed=false; return; }
-    if(this.lobbyOn){ this.zoomed=false; return; }
+    if(w.melee){ if(mouseDown&&playing&&this.fireCd<=0){ this.melee(); this.fireCd=w.rate; } this.zoomed=false; this.aiming=false; return; }
+    if(this.lobbyOn){ this.zoomed=this.aiming=false; return; }
     if(this.reloadT>0){this.reloadT-=dt; if(this.reloadT<=0){this.reloadT=0; this.ammo[this.w]=w.mag;}}
     this.zoomed=!!(w.zoom&&rightDown&&this.reloadT<=0&&playing);
+    this.aiming=!!(!w.zoom&&rightDown&&this.reloadT<=0&&playing);
     if(mouseDown&&playing&&this.fireCd<=0&&this.reloadT<=0){
       if(this.ammo[this.w]<=0&&this.ut<=0){this.reload(); return;}
       this.shoot(); this.fireCd=w.rate*(this.ut>0?0.65:1);
@@ -2898,7 +2909,7 @@ class Client{
   }
   reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; this.rEmpty=this.ammo[this.w]<=0; this.rPrev=0;}
   // slots: 0 primary, 1 secondary, 2 knife
-  setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; }
+  setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; this.aiming=false; }
   switchW(sl){ this.setSlot(sl); }
   pickup(){ if(this.nearW&&this.alive) this.send({t:'pk',i:this.nearW}); }
   melee(){ // knife: hits the closest enemy in a short cone in front; from behind it's a one-shot
@@ -2921,6 +2932,7 @@ class Client{
     let spread=w.spread*(1+this.bloom); const moving=Math.hypot(me.vx,me.vz)>1;
     if(!me.onGround) spread*=2.2; else if(moving) spread*=w.zoom?3:1.6;
     if(w.zoom&&!this.zoomed) spread=w.hip;
+    spread*=1-(AIM_ACC[k]??0.55)*(this.aimK||0);
     const hits=new Map(), ends=[], v=new THREE.Vector3(), crateDmg=new Map();
     for(let i=0;i<w.pellets;i++){
       v.set((Math.random()-0.5)*2*spread,(Math.random()-0.5)*2*spread,-1).normalize().applyQuaternion(camera.quaternion);
@@ -2949,7 +2961,7 @@ class Client{
     if(k==='shotgun'||k==='sniper') this.cycle=1; // pump / bolt after the shot
     ends.slice(0,4).forEach(e=>addTracer(mzA,e,col,k==='sniper'?0.25:0.08));
     this.send({t:'sh',o:mzA,e:ends.slice(0,3).map(e=>e.map(r2)),w:this.w});
-    this.pitch=clamp(this.pitch+w.recoil*(this.zoomed?0.5:1),-1.55,1.55); this.yaw+=(Math.random()-0.5)*w.recoil*0.4;
+    this.pitch=clamp(this.pitch+w.recoil*(this.zoomed?0.5:1)*(1-0.35*(this.aimK||0)),-1.55,1.55); this.yaw+=(Math.random()-0.5)*w.recoil*0.4;
     this.kick=1; const fl=vmGuns[this.w].userData.flash; fl.visible=true; this.flashT=0.04;
     sfx(w.snd);
   }
@@ -3410,7 +3422,7 @@ function openQuick(){ const q=$('quick'); q.innerHTML='<div class="qh">رسال�
 function closeQuick(){ $('quick').classList.add('hidden'); }
 function sendQuick(i){ if(client&&QUICK[i]) client.send({t:'chat',m:QUICK[i],tm:true}); closeQuick(); }
 document.addEventListener('mousemove',e=>{
-  if(!playing||!client) return; const s=SENS*(client.zoomed?0.35:1);
+  if(!playing||!client) return; const s=SENS*(client.zoomed?0.35:client.aiming?0.75:1);
   client.yaw-=e.movementX*s; client.pitch=clamp(client.pitch-e.movementY*s,-1.55,1.55);
 });
 document.addEventListener('mousedown',e=>{ if(!playing) return; if(e.button===0) mouseDown=true; if(e.button===2) rightDown=true; });
@@ -3494,7 +3506,7 @@ function enterGame(){
   const base=$('joyBase'), knob=$('joyKnob');
   $('joy').addEventListener('touchstart',e=>{ e.preventDefault(); const t=e.changedTouches[0]; if(joyId!==null) return;
     joyId=t.identifier; jx=t.clientX; jy=t.clientY; base.style.display='block'; base.style.left=jx+'px'; base.style.top=(jy-($('joy').getBoundingClientRect().top))+'px'; },{passive:false});
-  const tsens=()=>SENS*2.6*(client&&client.zoomed?0.35:1);
+  const tsens=()=>SENS*2.6*(client&&client.zoomed?0.35:client&&client.aiming?0.75:1);
   document.addEventListener('touchmove',e=>{ if(!client) return; e.preventDefault();
     for(const t of e.changedTouches){
       if(t.identifier===joyId){ let dx=t.clientX-jx, dy=t.clientY-jy; const L=Math.hypot(dx,dy), m=55; if(L>m){dx*=m/L;dy*=m/L;}
@@ -3668,7 +3680,7 @@ function frame(){
   updateDmgNums(dt);
 }
 $('cl').textContent={ctf:`أول من يجمع ${SCORE_LIMIT} أعلام`,tdm:`أول من يوصل ${SCORE_LIMIT} قتلة`,koth:`أول من يوصل ${SCORE_LIMIT} نقطة`}[MODE];
-window.HS={get client(){return client;},get armObj(){return armObj;},get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
+window.HS={get client(){return client;},get armObj(){return armObj;},vmCam,get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
 frame();
 </script>
 </body>
