@@ -209,6 +209,8 @@ body.touch{touch-action:none}
 .tb{position:absolute;border-radius:50%;background:rgba(15,20,45,.6);border:2px solid rgba(255,255,255,.35);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;touch-action:none;--cd:0}
 .tb:after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.7) calc(var(--cd)*1%),transparent 0)}
 .tb.act{background:rgba(0,229,255,.35)}
+.tb .ti{width:52%;height:52%;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+#tTab .ti,#tPick .ti{width:20px;height:20px;flex:none} #tTab small,#tPick small{position:static;font-size:13px;opacity:1;margin-inline-start:5px}
 .tb small{position:absolute;bottom:-16px;font-size:10px;opacity:.8;white-space:nowrap}
 #tFire{right:22px;bottom:120px;width:92px;height:92px;font-size:34px;border-color:#ff3b5c}
 #tJump{right:130px;bottom:40px;width:66px;height:66px}
@@ -444,20 +446,20 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
 
 <div id="touch" class="hidden">
   <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div></div>
-  <div class="tb" id="tFire">🔫</div>
-  <div class="tb" id="tJump">⤒<small>قفز</small></div>
-  <div class="tb" id="tScope">🎯</div>
-  <div class="tb" id="tSlide" data-cd="slide">⤵<small>سلايد</small></div>
-  <div class="tb" id="tDash" data-cd="dash">🌪️</div>
-  <div class="tb" id="tGren" data-cd="gren">⏫</div>
-  <div class="tb" id="tShield" data-cd="shield">🧪</div>
-  <div class="tb hidden" id="tUlt">⚡</div>
-  <div class="tb" id="tReload">↻</div>
-  <div class="tb" id="tWeap">⇄</div>
-  <div class="tb" id="tTab">النتائج</div>
-  <div class="tb" id="tMenu">☰</div>
-  <div class="tb hidden" id="tPick">✋ خذ</div>
-  <div class="tb" id="tChat">💬</div>
+  <div class="tb" id="tFire"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="10"/><circle cx="16" cy="16" r="3" fill="#ff4d5e" stroke="none"/><path d="M16 2v6M16 24v6M2 16h6M24 16h6"/></svg></div>
+  <div class="tb" id="tJump"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 15l8-8 8 8"/><path d="M16 7v17"/><path d="M8 27h16" stroke-width="2"/></svg><small>قفز</small></div>
+  <div class="tb" id="tScope"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="11"/><path d="M16 5v7M16 20v7M5 16h7M20 16h7" stroke-width="1.8"/><circle cx="16" cy="16" r="1.6" fill="#ff4d5e" stroke="none"/></svg></div>
+  <div class="tb" id="tSlide" data-cd="slide"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="22" cy="8" r="3.2" fill="#fff" stroke="none"/><path d="M8 24h18"/><path d="M20 12l-6 3 3 5-6 4"/><path d="M14 15l-6-1"/><path d="M3 18h4M2 22h3" stroke-width="2"/></svg><small>سلايد</small></div>
+  <div class="tb" id="tDash" data-cd="dash"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 11h15a4 4 0 1 0-4-4"/><path d="M4 17h21a4 4 0 1 1-4 4"/><path d="M4 23h9"/></svg></div>
+  <div class="tb" id="tGren" data-cd="gren"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16l7-7 7 7"/><path d="M9 24l7-7 7 7"/><path d="M16 3v2M7 6l1.5 1.5M25 6l-1.5 1.5" stroke-width="2"/></svg></div>
+  <div class="tb" id="tShield" data-cd="shield"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"><path d="M13 4h6M14 4v7l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V4"/><path d="M10 20h12l2 4H8z" fill="#7dffb0" stroke="none"/><path d="M16 14v4M14 16h4" stroke-width="2"/></svg></div>
+  <div class="tb hidden" id="tUlt"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3L7 18h8l-2 11 12-16h-8z" fill="#ffd54a" stroke="#ffd54a"/></svg></div>
+  <div class="tb" id="tReload"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M25 12A10 10 0 1 0 26 19"/><path d="M26 5v7h-7"/></svg></div>
+  <div class="tb" id="tWeap"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h20l-4-4"/><path d="M27 21H7l4 4"/></svg></div>
+  <div class="tb" id="tTab"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h20M6 16h20M6 24h20" /><circle cx="4" cy="8" r="0.6"/><circle cx="4" cy="16" r="0.6"/><circle cx="4" cy="24" r="0.6"/></svg><small>النتائج</small></div>
+  <div class="tb" id="tMenu"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h20M6 16h20M6 23h20"/></svg></div>
+  <div class="tb hidden" id="tPick"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V8a2 2 0 0 1 4 0v7M14 14V6a2 2 0 0 1 4 0v8M18 14V8a2 2 0 0 1 4 0v9c0 6-3 10-8 10s-7-3-9-7l-2-4a2 2 0 0 1 3-2l2 3"/></svg><small>خذ</small></div>
+  <div class="tb" id="tChat"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h22v14H14l-6 5v-5H5z"/><path d="M11 14h.01M16 14h.01M21 14h.01" stroke-width="3"/></svg></div>
 </div>
 
 <div id="loadout" class="hidden"><div class="lo">
