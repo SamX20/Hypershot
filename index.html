@@ -280,7 +280,8 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
   body.touch #tReload{right:84px;bottom:226px;width:46px;height:46px}
   body.touch #tWeap{right:140px;bottom:228px;width:46px;height:46px}
   body.touch #tMenu{left:10px;top:10px} body.touch #tChat{left:62px;top:10px;right:auto;bottom:auto;width:44px;height:44px}
-  body.touch #mini{left:112px}
+  body.touch #tLoad{left:114px;top:10px;width:44px;height:44px}
+  body.touch #mini{left:166px}
 }
 /* lobby on narrow screens */
 @media (max-width:560px){
@@ -325,17 +326,26 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #armory .ahint{position:absolute;bottom:26px;left:20px;font-size:12px;opacity:.5}
 @media (max-width:820px){#armory .ainfo{top:70px;width:180px} #armName{font-size:22px} #armory .aright{width:170px} #armSkins{grid-template-columns:1fr}}
 @media (max-height:520px){
+  #loadout .lo{padding:10px;gap:10px;height:96vh;grid-template-columns:minmax(0,1fr) 34%}
+  #loadout h2{font-size:16px} #loSub{font-size:11px;margin:2px 0 4px;min-height:0} .lcat{margin:6px 2px 4px;font-size:11px}
+  #loadout .lrow{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px} .lcard{padding:5px 7px;border-radius:9px} .lcard b{font-size:13px} .lcard p{display:none} .lcard .lst{margin-top:1px;font-size:9px} .lcard .lst span{width:34px} .lcard .lst:nth-of-type(n+3){display:none} #loadout .lrow{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))} #loadout .lside .lskin{min-height:120px}
+  #loTabs b{padding:2px 8px;font-size:11px} #loSkins{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:4px} #loSkins .sw{padding:3px;font-size:9px} #loSkins .sw i{width:22px;height:22px}
+  .lnote{display:none} #loadout .lside .btn{padding:8px;font-size:14px}
   #armory .ahead{top:4px} #armory .at{font-size:20px;letter-spacing:6px} #armory .as{display:none}
   #armory .aright{top:6px;bottom:6px;width:190px;gap:4px} #armory .aslots{gap:3px}
   #armory .aslot{padding:3px 8px} #armory .aslot small{font-size:9px} #armory .aslot b{font-size:13px} #armory .aslot i{font-size:10px;margin:0}
-  #armory .askins{padding:5px} #armSkins .sw{padding:3px;font-size:9px} #armSkins .sw i{width:24px;height:24px}
+  #armory .askins{padding:5px} #armSkins .sw{padding:2px;font-size:8.5px;gap:1px;border-width:1px} #armSkins .sw i{width:20px;height:20px} #armSkins .sw em{font-size:8px}
   #armory .ainfo{top:34px;left:10px;width:170px} #armName{font-size:18px} #armSkinName{font-size:12px;margin:2px 0 4px} #armStats .lst{margin:2px 0}
   #armory .aguns{bottom:48px;left:calc(50% - 100px);max-width:calc(100vw - 230px);gap:5px} #armory .ag{min-width:74px;padding:4px 8px;font-size:12px} #armory .ag small{display:none}
   #armory .abtns{bottom:6px;left:calc(50% - 100px)} #armory .abtns .btn{font-size:13px;padding:6px 14px}
-  #armory .ahint{display:none} #armSkins{grid-template-columns:1fr 1fr}
+  #armory .ahint{display:none} #armSkins{grid-template-columns:1fr 1fr 1fr;gap:3px} #armory .aright{width:210px}
 }
 #loadout{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.5);z-index:31}
-#loadout .lo{width:min(640px,94vw);max-height:92vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);direction:rtl}
+#loadout .lo{width:min(1040px,96vw);height:min(640px,94vh);display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,38%);gap:16px;direction:ltr;overflow:hidden;padding:20px;border-radius:16px;background:rgba(12,16,40,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25)}
+#loadout .lcol{direction:rtl;overflow-y:auto;overflow-x:hidden;padding-inline-end:4px;min-height:0;scrollbar-width:thin}
+#loadout .lside{direction:rtl;display:flex;flex-direction:column;gap:10px;min-height:0}
+#loadout .lside .lskin{flex:1;min-height:0} #loadout .lside #loPrev{height:100%} #loadout .lside .btn{width:100%}
+#loadout .lrow{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
 #loadout h2{margin:0;text-align:center} #loSub{text-align:center;opacity:.8;font-size:13px;margin:4px 0 8px;min-height:16px}
 .lcat{font-size:13px;opacity:.75;margin:12px 2px 6px}
 .lrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
@@ -353,6 +363,7 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #tPick{left:50%;top:62%;transform:translateX(-50%);width:auto;height:auto;padding:6px 14px;border-radius:12px;font-size:14px;border-color:#ffcc33}
 /* ---- pause menu, chat, quick chat, health drops ---- */
 #pause{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:30}
+#pmGyroBox label{display:flex;justify-content:space-between;align-items:center} #pmGyro{width:22px;height:22px;accent-color:#00e5ff}
 #keys{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.6);z-index:41;direction:rtl}
 #keys .pm{width:min(440px,92vw);max-height:90vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.95);border:1px solid rgba(140,160,255,.25);text-align:center}
 #keyList{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
@@ -368,6 +379,16 @@ body.tedit #touch .tb.hidden{display:flex!important;opacity:.6}
 #pause .pm{width:min(380px,90vw);padding:22px;border-radius:16px;background:rgba(12,16,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);text-align:center}
 #pause h2{margin:0 0 6px;font-size:22px} #pause .sub2{opacity:.7;font-size:12px;margin-bottom:6px}
 #pause .set{text-align:right;margin-top:12px} #pause .set label{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 4px;opacity:.85}
+body.endopen #touch,body.endopen #armHint{display:none!important}
+@media (max-height:520px){
+  #endScr .ew{max-height:98vh} #endScr .eres{padding:0} #endScr h1{font-size:30px} #endScr .eband{height:38px;top:4px} #endS{font-size:16px;margin:0}
+  #endMvp{margin:3px auto 5px;padding:2px 10px;gap:8px} #endMvp .av{width:28px;height:28px} #endMvp .n{font-size:14px} #endMvp .t{font-size:9px}
+  #endScr .et{padding:3px 6px} #endScr .et h3{font-size:13px;margin:0 0 2px} #endScr .er{font-size:11px;padding:0 4px} #endScr .ebtns{margin-top:5px} #endScr .ebtns .btn{font-size:13px;padding:6px 14px} #endTm{margin-top:3px;font-size:11px}
+  #pause .pm{width:min(680px,94vw);max-height:94vh;overflow-y:auto;padding:10px 16px} #pause h2{font-size:16px;margin:0} #pause .sub2{display:none}
+  #pause .set{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;margin-top:4px} #pause .set label{margin:6px 0 2px}
+  #pause .set>label{grid-column:auto} #pause .set>*{min-width:0} #pmGyroBox{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-items:end}
+  #pause .btn{padding:7px 10px;font-size:14px;margin-top:6px}
+}
 #pause .set input[type=range]{width:100%} #pause .set select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid #33407e;background:#0d1330;color:var(--text);font-size:14px}
 #pause .warn{font-size:11px;opacity:.65;margin-top:6px}
 #chat{position:absolute;left:18px;bottom:118px;width:min(380px,60vw);direction:rtl;pointer-events:none;font-size:14px}
@@ -382,7 +403,7 @@ body.tedit #touch .tb.hidden{display:flex!important;opacity:.6}
 #quick .qh{opacity:.6;font-size:11px;cursor:default} #quick .qh:hover{background:none}
 #tMenu{left:10px;top:10px;width:44px;height:44px;font-size:20px} #tChat{right:180px;bottom:270px;width:52px;height:52px;font-size:20px}
 body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
-body.touch #mini{left:112px}
+body.touch #mini{left:166px} #tLoad{left:114px;top:10px;width:44px;height:44px}
 
 /* ---------- HUD v2 (Hyper Shot style) ---------- */
 #ranks{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
@@ -496,20 +517,23 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="tb" id="tTab"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h20M6 16h20M6 24h20" /><circle cx="4" cy="8" r="0.6"/><circle cx="4" cy="16" r="0.6"/><circle cx="4" cy="24" r="0.6"/></svg><small>النتائج</small></div>
   <div class="tb" id="tMenu"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9h20M6 16h20M6 23h20"/></svg></div>
   <div class="tb hidden" id="tPick"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17V8a2 2 0 0 1 4 0v7M14 14V6a2 2 0 0 1 4 0v8M18 14V8a2 2 0 0 1 4 0v9c0 6-3 10-8 10s-7-3-9-7l-2-4a2 2 0 0 1 3-2l2 3"/></svg><small>خذ</small></div>
+  <div class="tb" id="tLoad"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h19l3-3h4v5h-5l-2 2v5h-4l-1-4H11l-2 6H5l2-6H3z"/></svg></div>
   <div class="tb" id="tChat"><svg class="ti" viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h22v14H14l-6 5v-5H5z"/><path d="M11 14h.01M16 14h.01M21 14h.01" stroke-width="3"/></svg></div>
 </div>
 
 <div id="loadout" class="hidden"><div class="lo">
+  <div class="lcol">
   <h2>🔫 اختر أسلحتك</h2><div id="loSub"></div>
   <div class="lcat">السلاح الرئيسي (زر 1)</div><div class="lrow" id="loP"></div>
   <div class="lcat">السلاح الثانوي (زر 2)</div><div class="lrow" id="loS"></div>
   <div class="lcat">السكن</div>
   <div id="loTabs"><b data-t="p">الرئيسي</b><b data-t="s">الثانوي</b><b data-t="k">السكين</b></div>
-  <div class="lskin"><canvas id="loPrev"></canvas><div id="loPrevName"></div></div>
   <div id="loSkins"></div>
+  </div><div class="lside">
+  <div class="lskin"><canvas id="loPrev"></canvas><div id="loPrevName"></div></div>
   <div class="lnote">🔪 السكين معك دايماً (زر 3) — بتركض فيه أسرع، و3 طعنات بتقتل<br>إذا مات حدا بيوقع سلاحه — قرّب منه واضغط <b>F</b> لتبدّله بسلاحك</div>
   <button class="btn" id="loGo">✓ جاهز</button>
-</div></div>
+</div></div></div>
 <div id="armory" class="hidden">
   <canvas id="armCv"></canvas>
   <div class="ahead"><div class="at">ARMORY</div><div class="as">معرض الأسلحة</div></div>
@@ -539,6 +563,8 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
     <label><span>الصوت</span><span id="pmVolV"></span></label><input id="pmVol" type="range" min="0" max="1" step="0.05">
     <label><span>حساسية الماوس</span><span id="pmSensV"></span></label><input id="pmSens" type="range" min="0.3" max="3" step="0.1">
     <label><span>مجال الرؤية (FOV)</span><span id="pmFovV"></span></label><input id="pmFov" type="range" min="70" max="100" step="1">
+    <div id="pmGyroBox"><label><span>🎯 التصويب بالجيروسكوب</span><input id="pmGyro" type="checkbox"></label>
+    <label><span>حساسية الجيروسكوب</span><span id="pmGyroV"></span></label><input id="pmGyroS" type="range" min="0.2" max="3" step="0.1"></div>
   </div>
   <button class="btn ghost" id="pmKeys">⌨ أزرار الكيبورد</button>
   <button class="btn ghost" id="pmTouch">✥ تعديل أزرار الجوال</button>
@@ -3112,8 +3138,8 @@ function drawLobby(c,s){ const lb=s.lb; $('lobbyHud').classList.toggle('hidden',
 let endOpen=false, endVoted=false, _endKey='';
 function drawEnd(c,s){
   const e=$('endScr');
-  if(!s.end){ if(endOpen){ endOpen=false; endVoted=false; _endKey=''; e.classList.add('hidden'); $('endVote').classList.remove('on'); } return; }
-  if(!endOpen){ endOpen=true; e.classList.remove('hidden'); mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
+  if(!s.end){ if(endOpen){ endOpen=false; endVoted=false; _endKey=''; e.classList.add('hidden'); document.body.classList.remove('endopen'); $('endVote').classList.remove('on'); } return; }
+  if(!endOpen){ endOpen=true; e.classList.remove('hidden'); document.body.classList.add('endopen'); mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
     if(!TOUCH&&document.pointerLockElement) document.exitPointerLock(); $('pause').classList.add('hidden'); }
   const w=s.end.w, win=w===c.team, my=c.team, en=1-my;
   e.style.setProperty('--ec',w<0?'#ffffff':win?'#ffd54a':'#ff4d5e');
@@ -3202,7 +3228,8 @@ canvas.addEventListener('click',()=>{ if(client&&$('pause').classList.contains('
 function openMenu(){
   if(!client) return; playing=false; mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
   $('pmQ').value=SET.q; $('pmVol').value=SET.vol; $('pmSens').value=SET.sens; $('pmFov').value=SET.fov; menuLabels();
-  $('pmTouch').style.display=TOUCH?'':'none'; $('pmKeys').style.display=TOUCH?'none':'';
+  $('pmTouch').style.display=TOUCH?'':'none'; $('pmKeys').style.display=TOUCH?'none':''; $('pmGyroBox').style.display=TOUCH?'':'none';
+  $('pmGyro').checked=gyroOn; $('pmGyroS').value=SET.gyroS||1; $('pmGyroV').textContent=(+(SET.gyroS||1)).toFixed(1);
   $('pmWarn').textContent=peer&&server?'أنت المضيف — إذا طلعت رح تتسكّر الغرفة على الكل':'';
   $('pause').classList.remove('hidden');
 }
@@ -3481,9 +3508,26 @@ function enterGame(){
   btn('tPick',()=>client.pickup());
   btn('tMenu',()=>{ $('pause').classList.contains('hidden')?openMenu():resume(); });
   btn('tChat',()=>{ if($('quick').classList.contains('hidden')) openQuick(); else { closeQuick(); playing=false; openChat(); } });
+  btn('tLoad',()=>{ loadoutOpen?closeLoadout(false):(client.lobbyOn?openArmory():openLoadout()); });
   btn('tTab',()=>{ const b=$('board'); b.classList.toggle('hidden'); if(!b.classList.contains('hidden')&&client.snap) drawBoard(client,client.snap); });
 }
-const TOUCH_IDS=['tFire','tJump','tScope','tSlide','tDash','tGren','tShield','tUlt','tReload','tWeap','tTab','tMenu','tChat','tPick'];
+let gyroOn=false;
+function gyroAxes(r){ const a=((screen.orientation&&screen.orientation.angle)??window.orientation??0)%360;
+  // rotationRate: alpha = around z (out of screen), beta = around x, gamma = around y (device axes)
+  if(a===90) return [r.beta,-r.gamma]; if(a===270||a===-90) return [-r.beta,r.gamma]; return [r.gamma,r.beta]; }
+function onGyro(e){ const r=e.rotationRate; if(!gyroOn||!r||!client||!playing||!TOUCH) return; const dt=(e.interval>1?e.interval/1000:e.interval)||0.016;
+  const [y,pch]=gyroAxes(r), k=(SET.gyroS||1)*(client.zoomed?0.5:1)*Math.PI/180*dt;
+  client.yaw+=(y||0)*k; client.pitch=clamp(client.pitch+(pch||0)*k,-1.55,1.55); }
+async function setGyro(on){
+  if(on&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){ // iOS asks once, on a tap
+    try{ if(await DeviceMotionEvent.requestPermission()!=='granted'){ on=false; showMsg('ما في إذن للجيروسكوب',1500); } }catch(e){ on=false; } }
+  if(on&&typeof DeviceMotionEvent==='undefined'){ on=false; showMsg('جهازك ما بيدعم الجيروسكوب',1500); }
+  gyroOn=on; SET.gyro=on; saveSet(); $('pmGyro').checked=on;
+  removeEventListener('devicemotion',onGyro); if(on) addEventListener('devicemotion',onGyro); }
+$('pmGyro').onchange=e=>setGyro(e.target.checked);
+$('pmGyroS').oninput=e=>{ SET.gyroS=+e.target.value; saveSet(); $('pmGyroV').textContent=(+SET.gyroS).toFixed(1); };
+if(SET.gyro&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission!=='function') setGyro(true); // Android: no prompt needed
+const TOUCH_IDS=['tLoad','tFire','tJump','tScope','tSlide','tDash','tGren','tShield','tUlt','tReload','tWeap','tTab','tMenu','tChat','tPick'];
 const orientKey=()=>innerWidth>=innerHeight?'land':'port';
 let _tlKey='';
 function applyTouchLayout(){ const L=((SET.touchL||{})[orientKey()])||{}, key=orientKey()+JSON.stringify(L); if(key===_tlKey) return; _tlKey=key;
