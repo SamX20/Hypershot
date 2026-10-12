@@ -4103,7 +4103,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
   function build(){ const nm=getName(), key=nm+':'+((SET.load&&SET.load.p)||0)+':'+JSON.stringify(SET.skins||{});
     if(av&&avKey===key) return; if(av) sc.remove(av.g); avKey=key;
     av=makeAvatar(0,nm,true); av.g.traverse(o=>{ if(o.userData&&o.userData.ghost) o.visible=false; if(o.isSprite) o.visible=false; });
-    av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-1.75; sc.add(av.g);   // three-quarter view so the gun on the back shows
+    av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-0.55; sc.add(av.g);   // three-quarter view so the gun on the back shows
     $('mmName').textContent=nm; $('mmAv').innerHTML=AVATAR_SVG(nm); }
   function frame(){ if(!on) return; requestAnimationFrame(frame);
     const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
@@ -4117,7 +4117,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
     av.head.rotation.y=Math.sin(t*0.37)*0.35; av.head.rotation.x=-0.12+Math.sin(t*0.6)*0.05;
     av.legs[0].hip.rotation.x=0.08; av.legs[1].hip.rotation.x=-0.12; av.legs[1].knee.rotation.x=-0.15; av.inner.rotation.z=Math.sin(t*0.5)*0.015;
     // weapon slung across the back (bigger, so it reads from the front), arms relaxed at the sides swinging gently with the breathing
-    av.gun.scale.setScalar(2.1); av.gun.position.set(0.05,0.3,0.34); av.gun.rotation.order='ZYX'; av.gun.rotation.set(0,Math.PI/2,-1.0);   // stock low-left, barrel up over the right shoulder
+    av.gun.scale.setScalar(2.1); av.gun.position.set(0,0.3,0.36); av.gun.rotation.order='ZYX'; av.gun.rotation.set(0,Math.PI/2,-0.78);   // stock low-left, barrel up over the right shoulder
     const sw=Math.sin(t*1.7)*0.02, sw2=Math.sin(t*0.9+1)*0.03;
     aimArm(av.arms[0],0.52,-0.22+sw,0.04+sw2,1); aimArm(av.arms[1],-0.52,-0.22-sw,0.04-sw2,1);
     // camera: soldier on the right third, slow drift
