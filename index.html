@@ -999,7 +999,7 @@ function rayPlayer(o,d,p,slid){
 }
 class Server{
   constructor({teamSize=5,lobby=true}){
-    this.teamSize=teamSize; this.lobby=lobby; this.lobbyT=0; this.clients=new Map(); this.players=new Map(); this.nid=1;
+    this.teamSize=teamSize; this.lobby=lobby; this.lobbyT=0; this.now=0; this.pingT=0; this.clients=new Map(); this.players=new Map(); this.nid=1;
     this.flags=[0,1].map(t=>({t,s:'home',x:FLAG_HOME[t][0],y:FLAG_HOME[t][1],z:FLAG_HOME[t][2],c:0,rt:0}));
     this.pickups=PICKUPS_DEF.map(p=>({...p,on:true,rt:0}));
     this.proj=[]; this.pid=1; this.score=[0,0]; this.time=MATCH_TIME; this.end=null; this.snapT=0; this.hill=-1;
@@ -1045,6 +1045,7 @@ class Server{
     }
   }
   spawn(p){
+    p.ammo=WKEYS.map(k=>W[k].mag); p.rlEnd=0; p.lastFire={}; p.hist=[]; p.teleT=this.now+0.8; p.lastSt=this.now;
     if(this.lobby){ // lobby: only humans appear, standing around the ring; bots wait for the match
       if(p.isBot){ p.alive=false; p.rs=1e9; return; }
       const sp=LOBBY_SPOTS[(p.id*3)%LOBBY_SPOTS.length]; p.x=sp[0]; p.z=sp[1]; p.y=LOBBY.y; p.vx=p.vy=p.vz=0;
@@ -1075,26 +1076,54 @@ class Server{
         this.balanceBots(); this.spawn(p);
         this.bc({t:'ev',k:'join',n:name,tm:team});
         break;}
-      case 'st':
+      case 'st':{
         if(!p||!p.alive) return;
-        p.x=+m.x||0; p.y=+m.y||0; p.z=+m.z||0; p.vx=+m.vx||0; p.vz=+m.vz||0; p.yaw=+m.yw||0; p.pitch=+m.pt||0; if(this.held(p).includes(m.w|0)) p.w=m.w|0; p.sl=m.sl?1:0;
-        break;
-      case 'hit':{
-        if(!p||!p.alive) return; const v=this.players.get(m.v); const w=W[WKEYS[(m.w|0)%NW]];
-        if(!v||!this.held(p).includes(m.w|0)) return;
-        if(w.melee&&Math.hypot(v.x-p.x,v.y-p.y,v.z-p.z)>3.6) return; // knife reach check
-        if(w.melee){ this.damage(v,p,w.dmg,'🔪',false); break; } // fixed knife damage, server-side
-        const maxD=w.dmg*w.pellets*w.head*1.01;
-        this.damage(v,p,Math.min(+m.d||0,maxD),w.name,!!m.h);
+        const nx=+m.x||0, ny=+m.y||0, nz=+m.z||0, el=Math.max(0.03,this.now-(p.lastSt??this.now)); p.lastSt=this.now;
+        // fastest legit movement (jump pads, Tailwind, slide, falling) stays well under these; 1.5 m slack absorbs lag spikes
+        if(this.now>(p.teleT||0)&&(Math.hypot(nx-p.x,nz-p.z)>26*el+1.5||ny-p.y>20*el+1.5)){
+          p.vio=(p.vio||0)+1; this.send(p.id,{t:'fix',x:r2(p.x),y:r2(p.y),z:r2(p.z)}); break; }
+        p.x=nx; p.y=ny; p.z=nz; p.vx=+m.vx||0; p.vz=+m.vz||0; p.yaw=+m.yw||0; p.pitch=+m.pt||0; if(this.held(p).includes(m.w|0)) p.w=m.w|0; p.sl=m.sl?1:0;
+        break;}
+      case 'po': if(p) p.rtt=clamp(this.now-(+m.s||0),0,1); break;
+      case 'rl':{ // reload: the mag refills on the server after the reload time
+        if(!p||!p.alive) return; const wi=m.w|0, w=W[WKEYS[wi%NW]]; if(!w||w.melee||!this.held(p).includes(wi)) return;
+        if(!(p.rlEnd&&p.rlW===wi)){ p.rlW=wi; p.rlEnd=this.now+w.reload*0.85; }
+        break;}
+      case 'fire':{ // the client only says "I fired from here in these directions" — hits and damage are worked out here
+        if(!p||!p.alive||!Array.isArray(m.d)) return; const wi=m.w|0, w=W[WKEYS[wi%NW]];
+        if(!w||w.melee||!this.held(p).includes(wi)) return;
+        if(this.now-(p.lastFire[wi]??-9)<w.rate*0.8) return;                      // faster than the gun can fire
+        if(!this.ammoReady(p,wi)||p.ammo[wi]<=0) return;                          // reloading / empty
+        if(p.rlEnd&&p.rlW!==wi) p.rlEnd=0;                                       // switching weapons cancels a reload
+        p.lastFire[wi]=this.now; p.ammo[wi]--;
+        const o=[+m.o?.[0]||0,+m.o?.[1]||0,+m.o?.[2]||0];
+        if(Math.hypot(o[0]-p.x,o[1]-(p.y+EYE),o[2]-p.z)>1.6) return;             // shot must start at the shooter's eyes
+        const t0=this.rewind(p), hits=new Map(), crates=new Map();
+        for(const dd of m.d.slice(0,w.pellets)){
+          let d=[+dd[0]||0,+dd[1]||0,+dd[2]||0]; const L=Math.hypot(...d); if(L<0.5) continue; d=d.map(v=>v/L);
+          let tBest=rayWorld(o,d,w.range), box=RAY_BOX, hit=null, head=false;
+          for(const q of this.players.values()){ if(q===p||!q.alive||q.team===p.team) continue;
+            const qp=this.posAt(q,t0), [t,h]=rayPlayer(o,d,qp,qp.sl); if(t<tBest){ tBest=t; hit=q; head=h; box=null; } }
+          if(hit){ const e=hits.get(hit)||{d:0,h:false}; e.d+=w.dmg*falloffMul(w,tBest)*(head?w.head:1); e.h=e.h||head; hits.set(hit,e); }
+          else if(box&&box.crate) crates.set(box.ci,(crates.get(box.ci)||0)+w.dmg*falloffMul(w,tBest));
+        }
+        for(const [q,e] of hits) this.damage(q,p,e.d,w.name,e.h);
+        for(const [ci,dm] of crates) this.damageCrate(ci,dm);
+        break;}
+      case 'stab':{ // knife: server picks the closest enemy in the swing cone
+        if(!p||!p.alive) return; const w=W.knife; if(this.now-(p.lastFire[KNIFE]??-9)<w.rate*0.8) return; p.lastFire[KNIFE]=this.now;
+        const eye=[p.x,p.y+EYE,p.z], f=[+m.f?.[0]||0,+m.f?.[1]||0,+m.f?.[2]||0], fl=Math.hypot(...f)||1, t0=this.rewind(p);
+        let best=null, bd=w.range+0.45;
+        for(const q of this.players.values()){ if(q===p||!q.alive||q.team===p.team) continue; const qp=this.posAt(q,t0);
+          const tx=qp.x-eye[0], ty=qp.y+1.1-eye[1], tz=qp.z-eye[2], d=Math.hypot(tx,ty,tz);
+          if(d<bd&&(tx*f[0]+ty*f[1]+tz*f[2])/(d*fl)>0.65&&clearLine(eye,[qp.x,qp.y+1.1,qp.z])){ bd=d; best=q; } }
+        if(best) this.damage(best,p,w.dmg,'🔪',false);
+        else { const t=rayWorld(eye,f.map(v=>v/fl),w.range); if(RAY_BOX&&RAY_BOX.crate&&t<w.range) this.damageCrate(RAY_BOX.ci,w.dmg); }
         break;}
       case 'vote': if(p&&this.end) this.end.v.add(id); break;
       case 'chat':{
         if(!p) return; const now=performance.now(); if(now-(p.chatT||0)<700) return; p.chatT=now;
         const tx=String(m.m||'').replace(/[<>]/g,'').trim().slice(0,100); if(tx) this.say(p,tx,!!m.tm);
-        break;}
-      case 'cr':{ // crate damage reported by a client
-        if(!p||!p.alive) return; const w=W[WKEYS[(m.w|0)%NW]];
-        this.damageCrate(m.i|0,Math.min(+m.d||0,w.dmg*w.pellets*1.01));
         break;}
       case 'sh':
         if(!p||!p.alive) return;
@@ -1131,7 +1160,7 @@ class Server{
   swapWeapon(p,i){
     const d=this.wdrops[i]; this.wdrops.splice(i,1);
     this.wdrops.push({i:this.wid++,w:p.load.p,x:p.x,y:this.groundAt(p.x,p.y+0.1,p.z),z:p.z,t:20});
-    p.load={p:d.w,s:p.load.s}; p.loadNext=null; p.w=d.w; if(p.isBot) p.bot.mag[d.w]=W[WKEYS[d.w]].mag;
+    p.load={p:d.w,s:p.load.s}; p.loadNext=null; p.w=d.w; if(p.isBot) p.bot.mag[d.w]=W[WKEYS[d.w]].mag; if(p.ammo) p.ammo[d.w]=W[WKEYS[d.w]].mag;
     if(!p.isBot) this.send(p.id,{t:'gotw',w:d.w});
   }
   // gunfire is audible: enemy bots in range turn toward it
@@ -1219,7 +1248,18 @@ class Server{
   startFromLobby(){ this.lobby=false; this.lobbyT=0; this.warm=LOBBY_WARM;
     for(const p of this.players.values()){ p.rs=0; this.spawn(p); }
     this.bc({t:'ev',k:'enter'}); }
+  // ---- anti-cheat helpers: position history for lag compensation, ping, server-side ammo
+  record(){ for(const p of this.players.values()){ if(!p.alive) continue; const h=p.hist||(p.hist=[]); h.push([this.now,p.x,p.y,p.z,p.sl?1:0]); while(h.length&&h[0][0]<this.now-1) h.shift(); } }
+  posAt(p,t){ const h=p.hist; if(!h||!h.length) return {x:p.x,y:p.y,z:p.z,sl:p.sl};
+    if(t>=h[h.length-1][0]) return {x:p.x,y:p.y,z:p.z,sl:p.sl};
+    for(let i=h.length-1;i>0;i--){ const a=h[i-1], b=h[i]; if(a[0]<=t){ const k=(t-a[0])/Math.max(1e-4,b[0]-a[0]);
+        return {x:a[1]+(b[1]-a[1])*k,y:a[2]+(b[2]-a[2])*k,z:a[3]+(b[3]-a[3])*k,sl:b[4]}; } }
+    const a=h[0]; return {x:a[1],y:a[2],z:a[3],sl:a[4]}; }
+  rewind(p){ return this.now-clamp((p.rtt||0)/2+0.1,0,0.3); } // what the shooter saw: half their ping + render delay
+  ammoReady(p,w){ if(p.rlEnd&&this.now>=p.rlEnd){ if(p.rlW===w) p.ammo[w]=W[WKEYS[w]].mag; p.rlEnd=0; } return !(p.rlEnd&&p.rlW===w); }
   tick(dt){
+    this.now+=dt; this.record();
+    if((this.pingT-=dt)<=0){ this.pingT=2; for(const p of this.players.values()) if(!p.isBot) this.send(p.id,{t:'pg',s:this.now}); }
     if(this.lobby){ // everyone (humans) inside the ring for 3 s → go
       for(const p of this.players.values()) if(!p.alive&&!p.isBot) this.spawn(p);
       const hs=[...this.players.values()].filter(p=>!p.isBot&&p.alive);
@@ -2858,6 +2898,8 @@ class Client{
       case 'tr':{ const sav=m.s&&this.avatars.get(m.s); const col=(sav&&skinColor(sav.sk))||(sav?.team===this.team?0x9fd8ff:0xffb08a);
         (m.e||[]).forEach(e=>addTracer(m.o,e,col)); sfx(W[WKEYS[m.w|0]].snd,this.vol(m.o)*0.8,m.o); break;}
       case 'boom': addBoom(m.x,m.y,m.z); {const v=this.vol([m.x,m.y,m.z]); sfx('boom',v,[m.x,m.y,m.z]); this.shake=Math.max(this.shake,v*1.2);} break;
+      case 'pg': this.send({t:'po',s:m.s}); break;
+      case 'fix': this.me.x=m.x; this.me.y=m.y; this.me.z=m.z; this.me.vx=this.me.vz=this.me.vy=0; break;
       case 'hc': hitMarker(m.k); if(m.k) sfx('kill'); break;
       case 'hurt': sfx('hurt'); flash('hurt'); break;
       case 'pick': sfx('pick'); showMsg(m.k==='hp'?'<span style="color:#3dff8a">+40 صحة</span>':'<span style="color:#ffcc33">+40 طاقة خارقة</span>',1000); break;
@@ -3033,7 +3075,7 @@ class Client{
       if(this.ut<=0){this.ammo[this.w]--; if(this.ammo[this.w]<=0) this.reload();}
     }
   }
-  reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; this.rEmpty=this.ammo[this.w]<=0; this.rPrev=0;}
+  reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; this.rEmpty=this.ammo[this.w]<=0; this.rPrev=0; this.send({t:'rl',w:this.w});}
   // slots: 0 primary, 1 secondary, 2 knife
   setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; this.aiming=false; }
   switchW(sl){ this.setSlot(sl); }
@@ -3045,11 +3087,11 @@ class Client{
     for(const [id,av] of this.avatars){ if(!av.alive||av.team===this.team) continue;
       const tx=av.pos.x-eye[0], ty=av.pos.y+1.1-eye[1], tz=av.pos.z-eye[2], d=Math.hypot(tx,ty,tz);
       if(d<bd&&(tx*fx+ty*fy+tz*fz)/d>0.72&&clearLine(eye,[av.pos.x,av.pos.y+1.1,av.pos.z])){bd=d;best=[id,av];} }
-    this.send({t:'sh',o:eye.map(r2),e:[],w:KNIFE});
+    this.send({t:'sh',o:eye.map(r2),e:[],w:KNIFE}); this.send({t:'stab',f:[fx,fy,fz].map(v=>Math.round(v*1e4)/1e4)});
     if(best){ const [id,av]=best, dmg=w.dmg;
-      this.send({t:'hit',v:id,d:dmg,h:false,w:KNIFE}); av.flinch=0.18; hitMarker(false); sfx('stab');
+      av.flinch=0.18; hitMarker(false); sfx('stab');
       dmgNum([av.pos.x,av.pos.y+1.3,av.pos.z],dmg,false); this.kick=0.6; return; }
-    const t=rayWorld(eye,[fx,fy,fz],w.range); if(RAY_BOX&&RAY_BOX.crate&&t<w.range){ const end=[eye[0]+fx*t,eye[1]+fy*t,eye[2]+fz*t]; this.send({t:'cr',i:RAY_BOX.ci,d:w.dmg,w:KNIFE}); crateHit(RAY_BOX,end); }
+    const t=rayWorld(eye,[fx,fy,fz],w.range); if(RAY_BOX&&RAY_BOX.crate&&t<w.range){ const end=[eye[0]+fx*t,eye[1]+fy*t,eye[2]+fz*t]; crateHit(RAY_BOX,end); }
   }
   shoot(){
     const k=WKEYS[this.w], w=W[k], me=this.me;
@@ -3059,10 +3101,10 @@ class Client{
     if(!me.onGround) spread*=2.2; else if(moving) spread*=w.zoom?3:1.6;
     if(w.zoom&&!this.zoomed) spread=w.hip;
     spread*=1-(AIM_ACC[k]??0.55)*(this.aimK||0);
-    const hits=new Map(), ends=[], v=new THREE.Vector3(), crateDmg=new Map();
+    const hits=new Map(), ends=[], v=new THREE.Vector3(), crateDmg=new Map(), DIRS=[];
     for(let i=0;i<w.pellets;i++){
       v.set((Math.random()-0.5)*2*spread,(Math.random()-0.5)*2*spread,-1).normalize().applyQuaternion(camera.quaternion);
-      const d=[v.x,v.y,v.z]; let tBest=rayWorld(o,d,w.range), box=RAY_BOX, hitId=0, head=false;
+      const d=[v.x,v.y,v.z]; DIRS[i]=d.map(x=>Math.round(x*1e4)/1e4); let tBest=rayWorld(o,d,w.range), box=RAY_BOX, hitId=0, head=false;
       for(const [id,av] of this.avatars){
         if(!av.alive||av.team===this.team) continue;
         const [t,h]=rayPlayer(o,d,av.pos,av.sl); if(t<tBest){tBest=t;hitId=id;head=h;box=null;}
@@ -3073,10 +3115,11 @@ class Client{
       else if(box&&box.crate){const c=crateDmg.get(box)||{d:0,p:end}; c.d+=w.dmg*falloffMul(w,tBest); crateDmg.set(box,c);}
       else if(tBest<w.range) addSpark(end);
     }
-    for(const [c,h] of crateDmg){this.send({t:'cr',i:c.ci,d:Math.round(h.d),w:this.w}); crateHit(c,h.p);}
+    for(const [c,h] of crateDmg) crateHit(c,h.p);   // visual only — the server applies crate damage from the 'fire' message
     if(w.bloom) this.bloom=Math.min(2.5,this.bloom+w.bloom);
     let anyHead=false;
-    for(const [id,h] of hits){this.send({t:'hit',v:id,d:Math.round(h.d),h:h.h,w:this.w}); anyHead=anyHead||h.h;
+    this.send({t:'fire',o:o.map(v=>Math.round(v*1000)/1000),d:DIRS.slice(0,w.pellets),w:this.w}); // server re-traces these rays
+    for(const [id,h] of hits){ anyHead=anyHead||h.h;
       const av=this.avatars.get(id); if(av) av.flinch=0.18;
       dmgNum(h.p,Math.round(h.d*(this.ut>0?1.3:1)),h.h);}
     if(k==='sniper') this.shake=0.5;
