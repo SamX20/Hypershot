@@ -2236,12 +2236,12 @@ function makeAvatar(team,name,friendly){
   M(new THREE.BoxGeometry(0.2,0.12,0.03),mSkin,0,0.52,-0.235,torso);  // neck / collar opening
   const head=new THREE.Group(); head.position.y=0.63; torso.add(head);
   M(new THREE.BoxGeometry(0.42,0.44,0.42),mSkin,0,0,0,head);           // head
-  M(new THREE.BoxGeometry(0.44,0.12,0.44),mHair,0,0.2,0.01,head);      // hair top
+  M(new THREE.BoxGeometry(0.45,0.12,0.47),mHair,0,0.2,0.005,head);     // hair top (front face 1.5cm ahead of the face: no z-fighting)
   M(new THREE.BoxGeometry(0.44,0.3,0.1),mHair,0,0.08,0.18,head);       // hair back
   for(const sx of [-1,1]){ M(new THREE.BoxGeometry(0.08,0.06,0.02),mWhite,sx*0.09,0.04,-0.212,head); M(new THREE.BoxGeometry(0.04,0.05,0.02),mEye,sx*0.09+0.015*sx*-1,0.04,-0.218,head);
     M(new THREE.BoxGeometry(0.1,0.025,0.02),mHair,sx*0.09,0.1,-0.214,head); }   // eyes + brows
   M(new THREE.BoxGeometry(0.12,0.03,0.02),mMouth,0,-0.1,-0.213,head);   // mouth
-  if(L.cap){ M(new THREE.BoxGeometry(0.46,0.12,0.46),mCap,0,0.25,0,head); M(new THREE.BoxGeometry(0.4,0.03,0.16),mCap,0,0.2,-0.28,head); }
+  if(L.cap){ M(new THREE.BoxGeometry(0.48,0.12,0.5),mCap,0,0.25,0,head); M(new THREE.BoxGeometry(0.4,0.03,0.16),mCap,0,0.2,-0.28,head); }
   // two-bone arms (shoulder → elbow → hand) so they bend around the body instead of cutting through it
   const arms=[1,-1].map(sd=>{ const u=new THREE.Group(), f=new THREE.Group(); u.position.set(sd*0.47,0.42,-0.02); torso.add(u,f);
     M(GEO.uarm,mJacket,0,0,0,u); M(GEO.farm,mJacket,0,0,0,f); const hand=M(GEO.hand,mSkin,0,-ARM_B-0.02,0,f);
