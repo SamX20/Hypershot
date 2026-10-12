@@ -266,6 +266,20 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
   body.touch #feed{top:8px;right:8px;width:230px;max-height:92px;overflow:hidden}
   body.touch #msg{top:36%;width:60vw}
   body.touch .fi{font-size:11px;padding:3px 7px}
+  /* Roblox-style: thumbstick bottom-left, big jump bottom-right, fire right next to it, abilities in an arc around them,
+     menu + chat top-left; everything the right thumb needs sits inside a ~260px quarter circle */
+  body.touch #tJump{right:22px;bottom:20px;width:76px;height:76px}
+  body.touch #tFire{right:112px;bottom:56px;width:88px;height:88px}
+  body.touch #tDash{right:22px;bottom:108px;width:56px;height:56px}
+  body.touch #tUlt{right:22px;bottom:176px;width:56px;height:56px}
+  body.touch #tSlide{right:212px;bottom:18px;width:56px;height:56px}
+  body.touch #tGren{right:216px;bottom:88px;width:52px;height:52px}
+  body.touch #tShield{right:200px;bottom:156px;width:52px;height:52px}
+  body.touch #tScope{right:130px;bottom:160px;width:52px;height:52px}
+  body.touch #tReload{right:84px;bottom:226px;width:46px;height:46px}
+  body.touch #tWeap{right:140px;bottom:228px;width:46px;height:46px}
+  body.touch #tMenu{left:10px;top:10px} body.touch #tChat{left:62px;top:10px;right:auto;bottom:auto;width:44px;height:44px}
+  body.touch #mini{left:112px}
 }
 /* lobby on narrow screens */
 @media (max-width:560px){
@@ -345,7 +359,7 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #quick .qh{opacity:.6;font-size:11px;cursor:default} #quick .qh:hover{background:none}
 #tMenu{left:10px;top:10px;width:44px;height:44px;font-size:20px} #tChat{right:180px;bottom:270px;width:52px;height:52px;font-size:20px}
 body.touch #chat{bottom:auto;top:200px;left:10px;width:46vw;font-size:12px}
-body.touch #mini{left:62px}
+body.touch #mini{left:112px}
 
 /* ---------- HUD v2 (Hyper Shot style) ---------- */
 #ranks{position:absolute;top:66px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:ltr}
