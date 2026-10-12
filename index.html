@@ -1534,14 +1534,14 @@ function adsPose(g,k){ const wrap=g.userData.wrap; if(!wrap) return null;
   const ringR=P=>{ const h=0.004; let x0=1e9,x1=-1e9; for(let i=0;i<pts.length;i+=3){ if(Math.abs(pts[i+2]-P.z)<0.012&&pts[i+1]>P.y-h){ x0=Math.min(x0,pts[i]); x1=Math.max(x1,pts[i]); } }
     if(!(x1>x0)) return 0; const c=x1-x0, r=(c*c/4+h*h)/(2*h); return r>0.03?0:r+0.001; }; // flat tops (r huge) = posts → aim at the tip
   const Fc=F.clone(); Fc.y-=ringR(F); const Rc=R.clone(); Rc.y-=ringR(R); Rc.x=Fc.x=cx;
-  // gun parallel to its bore; front sight centre on the line of fire, plus a hand-tuned per-gun height trim (metres)
   let pos;
-  if(k==='shotgun'||k==='pistol'||k==='m1911t'){ // bead / open sights: line from the top of the rear sight to the front tip
-    q.setFromUnitVectors(F.clone().sub(R).setX(0).normalize(),new THREE.Vector3(0,0,-1));
-    pos=new THREE.Vector3(0,-0.003+(ADS_TRIM[k]||0),eye).sub(R.clone().setX(cx).applyQuaternion(q)); }
-  else pos=new THREE.Vector3(-cx,-Fc.y+(ADS_TRIM[k]||0),eye-R.z);  // ring sights: parallel to the bore, through the ring centre
+  if(k==='m16'){ // carry-handle aperture: parallel to the bore, lowered so the aperture centre is on the line of fire
+    pos=new THREE.Vector3(-cx,-Fc.y+(ADS_TRIM.m16||0),eye-R.z); }
+  else { // line through the rear and front sight centres, rear centre on the line of fire
+    q.setFromUnitVectors(Fc.clone().sub(Rc).normalize(),new THREE.Vector3(0,0,-1));
+    pos=new THREE.Vector3(0,0,(k==='pistol'||k==='m1911t')?-0.22:-0.1).sub(Rc.clone().applyQuaternion(q)); }
   return (g.userData.ads={key,pos,q,F,R}); }
-const ADS_TRIM={mp7:-0.012,m16:-0.0072};
+const ADS_TRIM={m16:-0.0072};
 const AIM_ZOOM={rifle:0.78,m16:0.76,scar:0.78,shotgun:0.86,smg:0.86,mp7:0.86,pistol:0.88,m1911t:0.88};
 const AIM_ACC={rifle:0.65,m16:0.7,scar:0.65,shotgun:0.3,smg:0.5,mp7:0.45,pistol:0.55,m1911t:0.55};
 function gunshot(v,o){ const near=v>0.6;
