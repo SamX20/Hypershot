@@ -243,7 +243,36 @@ body.touch,body.touch *{-webkit-touch-callout:none;-webkit-user-select:none;user
 body.touch input,body.touch select{-webkit-user-select:auto;user-select:auto}
 .lob button,.lob select,.lob input{touch-action:manipulation}
 .mmv.hidden{display:none}
-#mmMain{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+/* ===== AAA-style main menu ===== */
+#lobby{display:block!important;background:#04050c!important}
+#lobby.hidden{display:none!important}
+#mmCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#lobby .lob{position:absolute;left:0;top:0;bottom:0;width:min(400px,100vw);border:none;border-radius:0;box-shadow:none;padding:40px 36px;overflow-y:auto;
+  background:linear-gradient(90deg,rgba(4,6,16,.94) 0%,rgba(4,6,16,.78) 70%,rgba(4,6,16,0) 100%);backdrop-filter:none;-webkit-backdrop-filter:none;animation:mmIn .5s ease-out}
+#lobby .lob:before{display:none}
+#lobby .logo{text-align:left;font-size:46px;letter-spacing:3px;margin:0;font-style:italic;transform:skewX(-6deg);background:none;color:#fff;-webkit-text-fill-color:#fff;filter:drop-shadow(0 0 18px rgba(0,229,255,.35))}
+#lobby .logo b{color:#00e5ff;-webkit-text-fill-color:#00e5ff;margin-left:8px}
+#lobby .sub{text-align:left;direction:rtl;opacity:.55;font-size:12px;margin:2px 0 26px;letter-spacing:.5px}
+#mmMain{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+#mmMain .mmb{position:relative;display:flex;align-items:baseline;justify-content:flex-start;gap:12px;direction:ltr;padding:12px 18px;border:none;border-radius:0;background:none;box-shadow:none;
+  color:rgba(255,255,255,.62);text-align:left;transform:none;transition:color .15s,padding .18s,background .18s;clip-path:polygon(0 0,100% 0,96% 100%,0 100%)}
+#mmMain .mmb b{font:800 30px "Cairo","Rajdhani",sans-serif} #mmMain .mmb i{font:700 12px "Rajdhani",sans-serif;font-style:normal;letter-spacing:3px;opacity:.55;direction:ltr}
+#mmMain .mmb:before{content:"";position:absolute;left:0;top:15%;bottom:15%;width:4px;background:#00e5ff;transform:scaleY(0);transition:transform .18s;box-shadow:0 0 12px #00e5ff}
+#mmMain .mmb:hover,#mmMain .mmb.on,#mmMain .mmb:focus-visible{color:#fff;padding-left:30px;background:linear-gradient(90deg,rgba(0,229,255,.18),rgba(0,229,255,0) 85%);outline:none}
+#mmMain .mmb:hover:before,#mmMain .mmb.on:before{transform:scaleY(1)}
+#mmMain .mmb.exit:before{background:#ff4d6d;box-shadow:0 0 12px #ff4d6d} #mmMain .mmb.exit:hover{background:linear-gradient(90deg,rgba(255,77,109,.18),rgba(255,77,109,0) 85%)}
+/* sub panels open beside the menu (the menu itself stays) */
+#lobby .mmv:not(#mmMain){position:fixed;left:min(420px,100vw);top:50%;transform:translateY(-50%);width:min(520px,calc(100vw - 440px));max-height:86vh;overflow-y:auto;padding:22px 24px;
+  background:rgba(8,11,28,.86);border:1px solid rgba(0,229,255,.25);border-left:3px solid #00e5ff;clip-path:polygon(0 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%);animation:mmPanel .25s ease-out;z-index:2}
+#lobby .mmv:not(#mmMain).hidden{display:none}
+#lobby .mmv h3.mmh{margin:0 0 10px;font:800 22px "Cairo",sans-serif;letter-spacing:1px} #lobby .mmv h3.mmh i{font:700 11px "Rajdhani";letter-spacing:3px;opacity:.5;font-style:normal;margin-right:8px}
+.mmCard{position:absolute;right:24px;top:22px;display:flex;align-items:center;gap:10px;direction:rtl;padding:6px 14px 6px 6px;background:rgba(8,11,28,.75);border:1px solid rgba(255,255,255,.12);clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px)}
+.mmAv{width:40px;height:40px;overflow:hidden;border-radius:4px} .mmN{font:800 16px "Rajdhani","Cairo"} .mmR{font-size:11px;color:#3dff8a}
+.mmVer{position:absolute;right:24px;bottom:16px;font:700 11px "Rajdhani";letter-spacing:3px;opacity:.35}
+@keyframes mmIn{from{transform:translateX(-40px);opacity:0}} @keyframes mmPanel{from{opacity:0;transform:translate(-14px,-50%)}}
+@media (max-width:760px){ #lobby .lob{width:100vw;background:linear-gradient(180deg,rgba(4,6,16,.55),rgba(4,6,16,.92) 60%)} #lobby .mmv:not(#mmMain){left:3vw;width:94vw} .mmCard{display:none} }
+@media (max-height:520px){ #lobby .lob{padding:14px 22px} #lobby .logo{font-size:30px} #lobby .sub{margin-bottom:8px} #mmMain .mmb{padding:6px 14px} #mmMain .mmb b{font-size:20px} }
+#mmMainOLD{display:flex;flex-direction:column;gap:12px;margin-top:18px}
 .mmb{display:flex;align-items:center;gap:14px;width:100%;padding:16px 22px;border-radius:14px;border:1px solid rgba(140,160,255,.3);background:linear-gradient(90deg,rgba(40,55,140,.75),rgba(18,24,60,.75));color:#fff;font:700 22px "Rajdhani","Cairo",sans-serif;cursor:pointer;text-align:right;transition:transform .12s,border-color .12s,box-shadow .12s}
 .mmb span{width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,255,255,.1);font-size:18px}
 .mmb:hover,.mmb:focus-visible{transform:translateX(-4px);border-color:#00e5ff;box-shadow:0 0 18px rgba(0,229,255,.25);outline:none}
@@ -600,17 +629,21 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
 </div></div>
 
 <div id="lobby">
+  <canvas id="mmCv"></canvas>
+  <div class="mmCard"><div class="mmAv" id="mmAv"></div><div><div class="mmN" id="mmName">Player</div><div class="mmR">جاهز للقتال</div></div></div>
+  <div class="mmVer">HYPER SHOT · BETA</div>
   <div class="lob">
-    <div class="logo">HYPER SHOT</div>
+    <div class="logo">HYPER<b>SHOT</b></div>
     <div class="sub">شوتر أونلاين — امسك العلم مع قدرات خارقة</div>
     <div id="mmMain" class="mmv">
-      <button class="mmb" data-go="mmPlay"><span>▶</span>العب</button>
-      <button class="mmb" data-go="mmSet"><span>⚙</span>الإعدادات</button>
-      <button class="mmb" data-go="mmHelp"><span>?</span>طريقة اللعب</button>
-      <button class="mmb exit" id="mmExit"><span>✕</span>خروج</button>
+      <button class="mmb" data-go="mmPlay"><b>العب</b><i>PLAY</i></button>
+      <button class="mmb" data-go="mmSet"><b>الإعدادات</b><i>SETTINGS</i></button>
+      <button class="mmb" data-go="mmHelp"><b>طريقة اللعب</b><i>HOW TO PLAY</i></button>
+      <button class="mmb exit" id="mmExit"><b>خروج</b><i>EXIT</i></button>
       <div id="mmExitMsg"></div>
     </div>
     <div id="mmPlay" class="mmv hidden">
+    <h3 class="mmh">العب<i>PLAY</i></h3>
     <label>اسمك</label>
     <input id="name" maxlength="14" placeholder="Player">
     <div class="row">
@@ -629,18 +662,20 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
       <button class="btn ghost" id="bJoin" style="margin-top:0">انضم</button>
     </div>
     <div id="lobMsg"></div>
-    <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
+    <button class="btn ghost mmback" data-go="none">✕ إغلاق</button>
     </div>
     <div id="mmSet" class="mmv hidden">
+      <h3 class="mmh">الإعدادات<i>SETTINGS</i></h3>
       <div class="row"><div><label>حساسية الماوس</label><input id="sens" type="range" min="0.5" max="3" step="0.1" value="1.2"></div>
         <div><label>الوقت</label><select id="timeSel"><option value="day">☀️ نهار</option><option value="night">🌙 ليل</option></select></div></div>
     <div class="row">
       <div><label>الجودة</label><select id="qSel"><option value="auto">تلقائي (حسب الجهاز)</option><option value="low">منخفضة</option><option value="medium">متوسطة</option><option value="high">عالية</option></select></div>
       <div><label>الصوت</label><input id="volSel" type="range" min="0" max="1" step="0.05" value="0.8"></div>
     </div>
-      <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
+      <button class="btn ghost mmback" data-go="none">✕ إغلاق</button>
     </div>
     <div id="mmHelp" class="mmv hidden">
+    <h3 class="mmh">طريقة اللعب<i>HOW TO PLAY</i></h3>
     <div class="controls">
       <kbd>W A S D</kbd> حركة &nbsp; <kbd>Space</kbd> قفز &nbsp; <kbd>Mouse</kbd> تصويب/إطلاق &nbsp; <kbd>R</kbd> تلقيم<br>
       <kbd>1</kbd> رئيسي &nbsp; <kbd>2</kbd> ثانوي &nbsp; <kbd>3</kbd> سكين &nbsp; <kbd>B</kbd> اختيار الأسلحة &nbsp; <kbd>F</kbd> التقاط سلاح (زر يمين للمنظار)<br>
@@ -649,7 +684,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
       <kbd>Tab</kbd> النتائج — امسك العلم: حامل العلم صحته مضاعفة بس بدون قدرات أو سلايد، وإذا مات يرجع العلم لقاعدته.<br>
       الصناديق الخشبية والحديدية تتكسر بالرصاص — استعملها كغطاء أو اكسرها لتفتح طريق.
     </div>
-    <button class="btn ghost mmback" data-go="mmMain">→ رجوع</button>
+    <button class="btn ghost mmback" data-go="none">✕ إغلاق</button>
     </div>
   </div>
 </div>
@@ -3584,7 +3619,8 @@ addEventListener('blur',()=>{for(const k in KEYS) KEYS[k]=false; mouseDown=false
    GAME START / NETWORK
 ===================================================================== */
 const lobMsg=t=>$('lobMsg').textContent=t;
-const getName=()=>($('name').value.trim()||'Player'+(Math.random()*900+100|0)).slice(0,14);
+const DEF_NAME='Player'+(Math.random()*900+100|0); // one random name per visit (stable for the menu character)
+const getName=()=>($('name').value.trim()||DEF_NAME).slice(0,14);
 try{ $('name').value=localStorage.getItem('hs_name')||''; }catch(e){}
 $('qSel').value=SET.q; $('volSel').value=SET.vol; $('sens').value=SET.sens; SENS=0.0018*SET.sens;
 $('qSel').onchange=e=>{ SET.q=e.target.value; saveSet(); applyQuality(SET.q==='auto'?detectQuality():SET.q); };
@@ -3593,7 +3629,7 @@ function enterGame(){
   try{ localStorage.setItem('hs_name',$('name').value.trim()); }catch(e){}
   SET.sens=parseFloat($('sens').value); SET.vol=parseFloat($('volSel').value); SET.q=$('qSel').value; saveSet();
   SENS=0.0018*SET.sens; if(MASTER) MASTER.gain.value=0.55*SET.vol;
-  ac(); $('lobby').classList.add('hidden'); $('hud').classList.remove('hidden');
+  ac(); $('lobby').classList.add('hidden'); $('hud').classList.remove('hidden'); if(MM) MM.stop();
   if(!TOUCH&&detectTouch()) setTouch(true);
   if(TOUCH){
     playing=true; $('touch').classList.remove('hidden'); $('pause').classList.add('hidden');
@@ -3754,7 +3790,8 @@ function joinRoom(code){
 $('mapSel').value=MAP_ID; $('modeSel').value=MODE; $('diffSel').value=DIFF;
 $('timeSel').value=DAY?'day':'night';
 // ---------- main menu views
-function mmShow(id){ document.querySelectorAll('.mmv').forEach(v=>v.classList.toggle('hidden',v.id!==id)); }
+function mmShow(id){ document.querySelectorAll('.mmv').forEach(v=>{ if(v.id!=='mmMain') v.classList.toggle('hidden',v.id!==id); });
+  document.querySelectorAll('#mmMain .mmb').forEach(b=>b.classList.toggle('on',b.dataset.go===id)); }
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>mmShow(b.dataset.go));
 $('mmExit').onclick=()=>{ try{ window.close(); }catch(e){}
   setTimeout(()=>{ if(!window.closed) $('mmExitMsg').textContent='المتصفح ما بيسمح للموقع يسكّر التاب — سكّره من المتصفح 🙏'; },300); };
@@ -3797,6 +3834,51 @@ function frame(){
   updateDmgNums(dt);
 }
 $('cl').textContent={ctf:`أول من يجمع ${SCORE_LIMIT} أعلام`,tdm:`أول من يوصل ${SCORE_LIMIT} قتلة`,koth:`أول من يوصل ${SCORE_LIMIT} نقطة`}[MODE];
+// ===== main menu scene =====
+const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
+  const R=new THREE.WebGLRenderer({canvas:cv,antialias:true}); R.setPixelRatio(Math.min(devicePixelRatio,1.5)); R.toneMapping=THREE.ACESFilmicToneMapping; R.outputColorSpace=THREE.SRGBColorSpace;
+  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x05070f); sc.fog=new THREE.Fog(0x05070f,8,22);
+  sc.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.04).texture;
+  const key=new THREE.SpotLight(0xffffff,60,20,0.5,0.6); key.position.set(-3,6,4); sc.add(key,key.target);
+  const rim=new THREE.PointLight(0x00e5ff,18,10); rim.position.set(2,2.2,-2.5); const rim2=new THREE.PointLight(0xff3b5c,10,10); rim2.position.set(-2.5,1.5,-2); sc.add(rim,rim2,new THREE.HemisphereLight(0x8899ff,0x110a20,0.5));
+  // floor: dark metal disc, glowing ring, faint grid
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(9,64),new THREE.MeshStandardMaterial({color:0x0c0f1c,metalness:0.7,roughness:0.45})); floor.rotation.x=-Math.PI/2; sc.add(floor);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(1.05,1.12,96),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0.8})); ring.rotation.x=-Math.PI/2; ring.position.y=0.01; sc.add(ring);
+  const ring2=new THREE.Mesh(new THREE.RingGeometry(1.5,1.52,96),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0.25})); ring2.rotation.x=-Math.PI/2; ring2.position.y=0.01; sc.add(ring2);
+  const grid=new THREE.GridHelper(18,36,0x1b2b55,0x111a33); grid.position.y=0.005; grid.material.transparent=true; grid.material.opacity=0.35; sc.add(grid);
+  // floating dust
+  const N=220, pp=new Float32Array(N*3); for(let i=0;i<N;i++){ pp[i*3]=rand(-6,6); pp[i*3+1]=rand(0,5); pp[i*3+2]=rand(-6,3); }
+  const dg=new THREE.BufferGeometry(); dg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  const dust=new THREE.Points(dg,new THREE.PointsMaterial({color:0x7fdcff,size:0.025,transparent:true,opacity:0.6,depthWrite:false})); sc.add(dust);
+  const cam=new THREE.PerspectiveCamera(34,1,0.05,50);
+  let av=null, avKey='', t=0, on=true, last=performance.now(), inspect=0, nextInspect=4;
+  function build(){ const nm=getName(), key=nm+':'+((SET.load&&SET.load.p)||0)+':'+JSON.stringify(SET.skins||{});
+    if(av&&avKey===key) return; if(av) sc.remove(av.g); avKey=key;
+    av=makeAvatar(0,nm,true); av.g.traverse(o=>{ if(o.userData&&o.userData.ghost) o.visible=false; if(o.isSprite) o.visible=false; });
+    av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-0.6; sc.add(av.g);
+    $('mmName').textContent=nm; $('mmAv').innerHTML=AVATAR_SVG(nm); }
+  function frame(){ if(!on) return; requestAnimationFrame(frame);
+    const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
+    const w=cv.clientWidth, h=cv.clientHeight; if(cv.width!==Math.round(w*R.getPixelRatio())){ R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
+    build();
+    // swap in the real gun (with your skin) once its model has loaded
+    const gk=av.w+':'+av.sk; if(av.shownKey!==gk&&AVATAR_MODELS[WKEYS[av.w]]){ av.gun.clear(); av.gun.add(worldGun(WKEYS[av.w],av.sk,'full')); av.shownKey=gk; av.grip=null; }
+    // idle: breathing, weight shift, looking around; every few seconds a quick weapon inspect
+    const br=Math.sin(t*1.7);
+    av.torso.position.y=1.05+br*0.012; av.torso.rotation.x=0.18+br*0.015; av.torso.rotation.y=Math.sin(t*0.5)*0.07;
+    av.head.rotation.y=Math.sin(t*0.37)*0.35; av.head.rotation.x=-0.12+Math.sin(t*0.6)*0.05;
+    av.legs[0].hip.rotation.x=0.08; av.legs[1].hip.rotation.x=-0.12; av.legs[1].knee.rotation.x=-0.15; av.inner.rotation.z=Math.sin(t*0.5)*0.015;
+    nextInspect-=dt; if(nextInspect<=0&&inspect<=0){ inspect=2.4; nextInspect=rand(6,10); }
+    let ins=0; if(inspect>0){ inspect-=dt; ins=Math.sin(clamp(1-inspect/2.4,0,1)*Math.PI); }
+    av.gun.position.set(0.05-ins*0.05,0.15+ins*0.15,-0.42); av.gun.rotation.set(-0.45+ins*0.45,1.05-ins*0.5,0.35+ins*0.6);   // diagonal low ready across the chest → tilted up to look at it
+    av.grip=gunGrips(av); if(av.grip){ aimArm(av.arms[0],...av.grip.R,1); if(av.grip.L) aimArm(av.arms[1],...av.grip.L,1); else aimArm(av.arms[1],-0.5,-0.2,-0.1,1); }
+    // camera: soldier on the right third, slow drift
+    const nar=w<760; cam.position.set((nar?0:-1.6)+Math.sin(t*0.15)*0.3,1.7+Math.sin(t*0.2)*0.05,6.2); cam.lookAt(nar?0:-1.6,1.15,0);
+    ring.material.opacity=0.6+Math.sin(t*2)*0.2; ring2.rotation.z+=dt*0.1; dust.rotation.y+=dt*0.02; AURA_T.value=t;
+    R.render(sc,cam); }
+  frame();
+  return { stop(){ on=false; }, start(){ if(!on){ on=true; last=performance.now(); frame(); } } };
+})();
 window.HS={get client(){return client;},get armObj(){return armObj;},vmCam,get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
 frame();
 </script>
