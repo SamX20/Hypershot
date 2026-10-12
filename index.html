@@ -655,7 +655,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
         <select id="tsize"><option value="1">1 ضد 1</option><option value="2">2 ضد 2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option></select></div>
     </div>
     <div class="row">
-      <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option></select></div>
+      <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option><option value="city">المدينة</option></select></div>
       <div><label>النمط</label><select id="modeSel"><option value="ctf">امسك العلم</option><option value="tdm">فريق ضد فريق</option><option value="koth">ملك التلة</option></select></div>
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
     </div>
@@ -755,7 +755,7 @@ const r2=v=>Math.round(v*100)/100;
 ===================================================================== */
 // match config comes from the URL (?map=yard&mode=tdm&diff=hard) so every peer builds the same world
 const QS=new URLSearchParams(location.search);
-const MAP_ID=['neon','yard','towers'].includes(QS.get('map'))?QS.get('map'):'neon';
+const MAP_ID=['neon','yard','towers','city'].includes(QS.get('map'))?QS.get('map'):'neon';
 const MODE=['ctf','tdm','koth'].includes(QS.get('mode'))?QS.get('mode'):'ctf';
 const DIFF=['easy','normal','hard','insane'].includes(QS.get('diff'))?QS.get('diff'):'normal';
 const MODES={ctf:{name:'امسك العلم',limit:10},tdm:{name:'فريق ضد فريق',limit:50},koth:{name:'ملك التلة',limit:100}};
@@ -763,16 +763,17 @@ const SCORE_LIMIT=MODES[MODE].limit;
 const BOXES=[], PADS=[], PICKUPS_DEF=[], NODES=[], CRATES=[];
 const FLAG_HOME=[[-56,0.4,0],[56,0.4,0]];
 let HILL={x:0,y:0,z:0,r:5};
-const NEUTRAL={neon:0x2a3350,yard:0x3b4252,towers:0x2f2a4a}[MAP_ID];
+const NEUTRAL={neon:0x2a3350,yard:0x3b4252,towers:0x2f2a4a,city:0x8d8f94}[MAP_ID];
 const THEME={
   neon:  {bg:0x070a18,fog:[45,150],floor:'grid',  floorA:'#0b1024',floorB:'#1f2d63',hemi:[0x8899ff,0x221133,0.9]},
   yard:  {bg:0x10131c,fog:[50,160],floor:'concrete',floorA:'#2a2d33',floorB:'#3a3e46',hemi:[0xc8d0ff,0x332a22,1.1]},
   towers:{bg:0x0d0718,fog:[45,150],floor:'tiles', floorA:'#140d24',floorB:'#3a2466',hemi:[0xb090ff,0x221133,0.95]},
+  city:  {bg:0x101622,fog:[60,170],floor:'concrete',floorA:'#3c3f46',floorB:'#4a4d55',hemi:[0xc8d4ff,0x2a2620,1.1]},
 }[MAP_ID];
 // time of day is a per-player visual preference (doesn't affect gameplay, so it isn't part of the room config)
 let DAY=true; try{ DAY=localStorage.getItem('hs_time')!=='night'; }catch(e){}
 if(DAY) Object.assign(THEME,{bg:0xbfe0fa,fog:[80,240],hemi:[0xe6f2ff,0x8a7b66,1.5]},
-  {neon:{floorA:'#7f8aa3',floorB:'#56638a'},yard:{floorA:'#9b9a93',floorB:'#7c7b75'},towers:{floorA:'#a99fbd',floorB:'#7d6aa3'}}[MAP_ID]);
+  {neon:{floorA:'#7f8aa3',floorB:'#56638a'},yard:{floorA:'#9b9a93',floorB:'#7c7b75'},towers:{floorA:'#a99fbd',floorB:'#7d6aa3'},city:{floorA:'#a9aaa6',floorB:'#94958f'}}[MAP_ID]);
 function B(x,y,z,w,h,d,c=NEUTRAL,tm=-1){const b={x0:x-w/2,x1:x+w/2,y0:y,y1:y+h,z0:z-d/2,z1:z+d/2,c,tm}; BOXES.push(b); return b;}
 function M(x,y,z,w,h,d,team=false,c=NEUTRAL){
   B(x,y,z,w,h,d,team?TEAM_COLOR[1]:c,team?1:-1);
@@ -801,6 +802,18 @@ function arenaAndBases(){
   K(40,0,-6,'hp');
   [[38,-25],[38,25],[38,-4],[38,4],[46,-2.5],[46,2.5],[52,-10],[52,10],[52,0],[60,-24],[60,24],[48,-26],[48,26],[60,-15],[60,15]].forEach(([x,z])=>N(x,z));
 }
+// Kenney model footprints at scale 1 (w = x, h, d = z), measured from the GLBs; used for collision so server + client agree
+const CITY_DIM={'commercial/building-a':[0.884,1.293,0.94],'commercial/building-e':[1.64,0.893,1.008],'commercial/building-g':[0.97,1.693,0.922],
+  'commercial/building-skyscraper-a':[1.36,2.88,1.36],'commercial/building-c':[0.884,0.893,1.09],'industrial/building-a':[2.084,1.47,1.242],
+  'industrial/shipping-container-a':[0.373,0.348,0.823],'industrial/shipping-container-b':[0.373,0.348,0.823],'industrial/detail-tank':[0.848,0.415,0.515],
+  'suburban/building-type-a':[1.3,0.834,1.028],'suburban/building-type-c':[1.286,1.034,1.028],'suburban/building-type-g':[1.45,0.768,1.178],
+  'cars/sedan':[1.5,1.15,2.55],'cars/taxi':[1.5,1.35,2.75],'cars/police':[1.5,1.1,2.9],'cars/van':[1.5,1.15,2.75],'cars/truck':[1.5,1.15,2.95],'cars/suv':[1.5,1.1,2.55],
+  'retro/detail-barrier-type-a':[0.433,0.4,0.134],'retro/detail-dumpster-closed':[0.6,0.545,0.454]};
+const CITY_DECOR=[]; // {m,x,y,z,ry,s} — client only
+// solid model: collision box sized from the footprint (rotated 90° swaps w/d), mirrored to the red side like M()
+function CTM(m,x,z,ry=0,sc=8,y=0,mirror=true){ const d=CITY_DIM[m], rot=Math.abs(Math.sin(ry))>0.5, w=(rot?d[2]:d[0])*sc, dd=(rot?d[0]:d[2])*sc, h=d[1]*sc;
+  for(const sx of (mirror&&x)?[1,-1]:[1]){ const b=B(x*sx,y,z,w,h,dd); b.city=true; CITY_DECOR.push({m,x:x*sx,y:y+(m.startsWith('cars/')?0.4*sc/1.35:0),z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } }
+function CTD(m,x,z,ry=0,sc=8,y=0,mirror=true){ for(const sx of (mirror&&x)?[1,-1]:[1]) CITY_DECOR.push({m,x:x*sx,y,z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } // decoration only
 const MAPS={
   neon:{name:'الساحة النيون',build(){
     arenaAndBases();
@@ -841,6 +854,37 @@ const MAPS={
     HILL={x:0,y:0,z:0,r:7};
     [[0,-15],[0,15],[0,-28],[0,28],[6,0],[12,0],[20,-10],[20,10],[22,-4],[22,4],[32,0],[24,-25],[24,25],
      [8,-22],[8,22],[36,-14],[36,14],[34,-6],[34,6],[6,-30],[6,30],[20,-30],[20,30]].forEach(([x,z])=>N(x,z));
+  }},
+  city:{name:'المدينة',build(){
+    arenaAndBases();
+    const R=Math.PI/2;
+    // north blocks (z>0): commercial skyscraper + shop row | suburban houses
+    CTM('commercial/building-e',12,9.5); CTM('commercial/building-skyscraper-a',12,26);
+    CTM('suburban/building-type-a',34,10,Math.PI,7); CTM('suburban/building-type-c',34,29,Math.PI,7);
+    // south blocks (z<0): offices | industrial yard with containers and tanks
+    CTM('commercial/building-a',9,-9.5,Math.PI); CTM('commercial/building-g',12,-28,Math.PI);
+    CTM('industrial/building-a',34,-24,R,6); CTM('industrial/shipping-container-a',34,-8,R); CTM('industrial/shipping-container-b',34,-8,R,8,2.78,true);
+    CTM('industrial/detail-tank',16,-18,0,5);
+    // parked cars = cover along the streets
+    CTM('cars/sedan',24,-14,0,1.35); CTM('cars/taxi',24,15,Math.PI,1.35); CTM('cars/police',10,-2.2,R,1.35); CTM('cars/van',18,2.2,-R,1.35);
+    CTM('cars/suv',30,-2.4,R,1.35); CTM('cars/truck',0,-13,0,1.35,0,false); CTM('cars/sedan',0,17,Math.PI,1.35,0,false);
+    // concrete barriers near the base entrances + dumpsters in the alleys
+    CTM('retro/detail-barrier-type-a',40,-7,R,4); CTM('retro/detail-barrier-type-a',40,7,R,4);
+    CTM('retro/detail-dumpster-closed',18,-14,0,3.2); CTM('retro/detail-dumpster-closed',5,16,R,3.2);
+    // street furniture (no collision): lamps, benches, trees, fences, cones
+    for(const x of [8,16,32]) for(const z of [-5.3,5.3]) CTD('retro/detail-light-single',x,z,z>0?Math.PI:0,4.5);
+    for(const z of [-30,-18,18,30]) CTD('retro/detail-light-single',4.8,z,R,4.5);
+    CTD('retro/detail-bench',14,15.5,Math.PI,3.2); CTD('retro/detail-bench',27.5,-26,R,3.2);
+    for(const [x,z] of [[29.5,19],[38.5,19],[29.5,35],[38.5,35],[30,4.6],[38,4.6]]) CTD('suburban/tree-large',x,z,0,7);
+    CTD('suburban/fence-1x3',34,15.8,0,7); CTD('suburban/fence-1x3',34,22.8,0,7);
+    for(const [x,z] of [[22,-6],[23,-6.8],[26,6],[25,6.8]]) CTD('roads/construction-cone',x,z,0,9);
+    // skyline outside the walls (decoration only)
+    for(let i=0;i<18;i++){ const x=-66+i*7.8; CTD(['commercial/low-detail-building-a','commercial/low-detail-building-b','commercial/low-detail-building-c','commercial/low-detail-building-d'][i%4],x,-46-(i%3)*3,0,9+(i%3)*2,0,false);
+      CTD(['commercial/low-detail-building-c','commercial/low-detail-building-a','commercial/low-detail-building-d','commercial/low-detail-building-b'][i%4],x,46+(i%2)*3,Math.PI,9+(i%3)*2,0,false); }
+    K(0,0,-24,'hp'); K(0,0,24,'hp');
+    HILL={x:0,y:0,z:0,r:6};
+    [[0,-6],[0,6],[0,-24],[0,24],[0,-33],[0,33],[12,0],[12,17],[12,-19],[20,-10],[24,-30],[24,-22],[24,-6],[24,6],[24,22],[24,31],
+     [34,0],[34,18],[34,-14],[38,-3],[16,33],[16,-34],[6,-20],[6,20]].forEach(([x,z])=>N(x,z));
   }},
   towers:{name:'الأبراج',build(){
     arenaAndBases();
@@ -1943,6 +1987,7 @@ const SPACE_STYLE={neon:'variation-a',yard:'colormap',towers:'variation-b'}[MAP_
 const SPACE_ACCENT={'variation-a':0x4a7dff,'colormap':0xff8a2a,'variation-b':0x2fd38a}[SPACE_STYLE];
 const SPACE_BODY={'variation-a':0xe4e0f6,'colormap':0xd6cfec,'variation-b':0xcdc3e6}[SPACE_STYLE];
 (function dressSpace(){
+  if(MAP_ID==='city'){ dressCity(); return; }
   const isPerimeter=b=>(b.x1-b.x0)>=100||(b.z1-b.z0)>=70;
   // boxes that become kit walls: long, thin, tall neutral walls
   const isWall=b=>!b.crate&&b.tm<0&&!isPerimeter(b)&&(b.y1-b.y0)>=1.8&&Math.min(b.x1-b.x0,b.z1-b.z0)<=1.2&&Math.max(b.x1-b.x0,b.z1-b.z0)>=3.9;
@@ -1987,6 +2032,25 @@ const SPACE_BODY={'variation-a':0xe4e0f6,'colormap':0xd6cfec,'variation-b':0xcdc
     mergeStaticBoxes();
   }).catch(e=>{ console.warn('space kit failed to load, keeping the procedural look',e); mergeStaticBoxes(); });
 })();
+// ---------- City map: Kenney City/Car/Retro-Urban kits, every model instanced (one draw call per model part) ----------
+function dressCity(){
+  const loader=new GLTFLoader(), byModel=new Map(), UP=new THREE.Vector3(0,1,0);
+  const M4=(x,y,z,ry,s)=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromAxisAngle(UP,ry),new THREE.Vector3(s,s,s));
+  const add=(m,mtx)=>(byModel.get(m)||byModel.set(m,[]).get(m)).push(mtx);
+  for(const d of CITY_DECOR) add(d.m,M4(d.x,d.y,d.z,d.ry,d.s));
+  // roads on an 8 m grid: avenue along x at z=0, streets along z at x = 0 and ±24, crossroads where they meet
+  for(let x=-40;x<=40;x+=8) add(x===0||Math.abs(x)===24?'roads/road-crossroad':'roads/road-straight',M4(x,0.012,0,Math.PI/2,8));
+  for(const x of [0,24,-24]) for(let z=-32;z<=32;z+=8) if(z) add('roads/road-straight',M4(x,0.012,z,0,8));
+  const big=m=>/building|container|tank/.test(m);
+  Promise.all([...byModel.keys()].map(m=>loader.loadAsync('assets/city/'+m+'.glb').then(g=>[m,g.scene]).catch(()=>[m,null]))).then(list=>{
+    for(const [m,root] of list){ if(!root) continue; const mats=byModel.get(m); root.updateMatrixWorld(true);
+      root.traverse(o=>{ if(!o.isMesh) return; if(o.material.map) o.material.map.colorSpace=THREE.SRGBColorSpace;
+        const im=new THREE.InstancedMesh(o.geometry,o.material,mats.length); mats.forEach((mt,i)=>im.setMatrixAt(i,new THREE.Matrix4().multiplyMatrices(mt,o.matrixWorld)));
+        im.castShadow=SHADOWS&&big(m); im.receiveShadow=SHADOWS; scene.add(im); }); }
+    for(const b of BOXES) if(b.city&&b.mesh){ b.mesh.visible=false; b.edge.visible=false; }   // the models replace their collision boxes
+    mergeStaticBoxes();
+  });
+}
 // performance: static neutral blocks that look the same (colour, glow, texture) become one mesh, their edge lines one line set.
 // Team-coloured blocks keep their own material (they recolour with your team) and crates stay separate (they break).
 function mergeStaticBoxes(){
