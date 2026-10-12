@@ -361,9 +361,9 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   </div>
   <div id="abil">
     <div class="ab" id="ab-slide"><span class="k">C</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="22" cy="8" r="3.2" fill="#fff" stroke="none"/><path d="M8 24h18"/><path d="M20 12l-6 3 3 5-6 4"/><path d="M14 15l-6-1"/><path d="M3 18h4M2 22h3" stroke-width="2"/></svg></span><span class="l">سلايد</span><div class="cd"></div><div class="t"></div></div>
-    <div class="ab" id="ab-dash"><span class="k">SHIFT</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 11h15a4 4 0 1 0-4-4"/><path d="M4 17h21a4 4 0 1 1-4 4"/><path d="M4 23h9"/></svg></span><span class="l">Tailwind</span><div class="cd"></div><div class="t"></div></div>
     <div class="ab" id="ab-gren"><span class="k">Q</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 16l7-7 7 7"/><path d="M9 24l7-7 7 7"/><path d="M16 3v2M7 6l1.5 1.5M25 6l-1.5 1.5" stroke-width="2"/></svg></span><span class="l">Upward Shift</span><div class="cd"></div><div class="t"></div></div>
     <div class="ab" id="ab-shield"><span class="k">E</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"><path d="M13 4h6M14 4v7l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V4"/><path d="M10 20h12l2 4H8z" fill="#7dffb0" stroke="none"/><path d="M16 14v4M14 16h4" stroke-width="2"/></svg></span><span class="l">جرعة شفاء</span><div class="cd"></div><div class="t"></div></div>
+    <div class="ab" id="ab-dash"><span class="k">X</span><span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 11h15a4 4 0 1 0-4-4"/><path d="M4 17h21a4 4 0 1 1-4 4"/><path d="M4 23h9"/></svg></span><span class="l">Tailwind</span><div class="cd"></div><div class="t"></div></div>
     <div class="ab ult hidden" id="ab-ult"><span class="k">F</span><span class="ic">⚡</span><span class="l" id="ultp">0%</span><div class="cd"></div><div class="t"></div></div>
   </div>
   <div id="br">
@@ -454,7 +454,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
     <div class="controls">
       <kbd>W A S D</kbd> حركة &nbsp; <kbd>Space</kbd> قفز &nbsp; <kbd>Mouse</kbd> تصويب/إطلاق &nbsp; <kbd>R</kbd> تلقيم<br>
       <kbd>1</kbd> رئيسي &nbsp; <kbd>2</kbd> ثانوي &nbsp; <kbd>3</kbd> سكين &nbsp; <kbd>B</kbd> اختيار الأسلحة &nbsp; <kbd>F</kbd> التقاط سلاح (زر يمين للمنظار)<br>
-      <kbd>C</kbd> سلايد &nbsp; <kbd>Q</kbd> Upward Shift (دفعة لأعلى) &nbsp; <kbd>Shift</kbd> Tailwind (سرعة) &nbsp; <kbd>E</kbd> جرعة شفاء<br>
+      <kbd>C</kbd> سلايد &nbsp; <kbd>Q</kbd> Upward Shift (دفعة لأعلى) &nbsp; <kbd>E</kbd> جرعة شفاء &nbsp; <kbd>X</kbd> Tailwind (سرعة)<br>
       <kbd>Enter</kbd> شات &nbsp; <kbd>T</kbd> رسائل سريعة &nbsp; <kbd>Esc</kbd> القائمة والإعدادات<br>
       <kbd>Tab</kbd> النتائج — امسك العلم: حامل العلم صحته مضاعفة بس بدون قدرات أو سلايد، وإذا مات يرجع العلم لقاعدته.<br>
       الصناديق الخشبية والحديدية تتكسر بالرصاص — استعملها كغطاء أو اكسرها لتفتح طريق.
@@ -510,6 +510,8 @@ const falloffMul=(w,d)=>w.falloff?clamp(1-(d-w.falloff[0])/w.falloff[1],w.fmin,1
 const WKEYS=['rifle','shotgun','sniper','pistol','smg','knife','m16','scar','mp7','m1911t'], NW=WKEYS.length, PRIMS=[0,6,7,1,2], SECS=[3,9,4,8], KNIFE=5, RIFLES=[0,6,7];
 const WARMUP=10; // seconds behind the spawn barrier to pick a loadout before each match
 // Hypershot active abilities: dash = Tailwind (speed), gren = Upward Shift (vertical boost), shield = Healing Potion
+// three ability slots on Q / E / X; the shop will let players swap what sits in each slot (replacements, not extra slots)
+const ABIL_KEYS=['Q','E','X'], ABIL_DEFAULT=['gren','shield','dash'];
 const CD={dash:10,gren:6,shield:12,slide:1.2};
 const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const r2=v=>Math.round(v*100)/100;
@@ -2677,6 +2679,7 @@ class Client{
     if(!wx&&!wz){ if(sp>1){wx=me.vx/sp;wz=me.vz/sp;} else {wx=-Math.sin(this.yaw);wz=-Math.cos(this.yaw);} }
     const v=Math.max(sp,SPEED)+7; me.vx=wx*v; me.vz=wz*v; me.slideT=0.85; this.cd.slide=CD.slide; sfx('slide');
   }
+  useAbil(i){ const a=(SET.abil||ABIL_DEFAULT)[i]; if(a&&typeof this[a]==='function') this[a](); }
   gren(){ // Upward Shift: vertical boost (combine with a slide to grab the flag and escape)
     if(this.cd.gren>0||this.blocked()) return; this.cd.gren=CD.gren;
     this.me.vy=16; this.me.onGround=false; this.me.slideT=0; sfx('pad');
@@ -3042,10 +3045,10 @@ document.addEventListener('keydown',e=>{
   if(!playing) return;
   KEYS[e.code]=true;
   switch(e.code){
-    case 'ShiftLeft': case 'ShiftRight': client.dash(); break;
     case 'KeyC': client.slide(); break;
-    case 'KeyQ': client.gren(); break;
-    case 'KeyE': client.shield(); break;
+    case 'KeyQ': client.useAbil(0); break;
+    case 'KeyE': client.useAbil(1); break;
+    case 'KeyX': client.useAbil(2); break;
     case 'KeyF': client.pickup(); break;
     case 'KeyR': client.reload(); break;
     case 'Digit1': client.switchW(0); break;
