@@ -3517,9 +3517,17 @@ let gyroOn=false;
 function gyroAxes(r){ const a=((screen.orientation&&screen.orientation.angle)??window.orientation??0)%360;
   // rotationRate: alpha = around z (out of screen), beta = around x, gamma = around y (device axes)
   if(a===90) return [r.beta,-r.gamma]; if(a===270||a===-90) return [-r.beta,r.gamma]; return [r.gamma,r.beta]; }
-function onGyro(e){ const r=e.rotationRate; if(!gyroOn||!r||!client||!playing||!TOUCH) return; const dt=(e.interval>1?e.interval/1000:e.interval)||0.016;
-  const [y,pch]=gyroAxes(r), k=(SET.gyroS||1)*(client.zoomed?0.5:1)*Math.PI/180*dt;
-  client.yaw+=(y||0)*k; client.pitch=clamp(client.pitch+(pch||0)*k,-1.55,1.55); }
+// yaw = rotation about the real world 'up' (from gravity), so it works however the phone is tilted; pitch = about the screen's horizontal axis
+const _gUp=[0,0,1]; const IOS_G=typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function';
+function onGyro(e){ const r=e.rotationRate, g=e.accelerationIncludingGravity; if(!gyroOn||!r||!client||!playing||!TOUCH) return;
+  const dt=(e.interval>1?e.interval/1000:e.interval)||0.016;
+  if(g&&g.x!=null){ const sg=IOS_G?-1:1, k=0.15; _gUp[0]+=(sg*g.x-_gUp[0])*k; _gUp[1]+=(sg*g.y-_gUp[1])*k; _gUp[2]+=(sg*g.z-_gUp[2])*k; }
+  const L=Math.hypot(_gUp[0],_gUp[1],_gUp[2])||1, ux=_gUp[0]/L, uy=_gUp[1]/L, uz=_gUp[2]/L;
+  const wx=r.beta||0, wy=r.gamma||0, wz=r.alpha||0;              // deg/s around device x, y, z
+  const yawRate=wx*ux+wy*uy+wz*uz;                                // turn about world up
+  const [,pch]=gyroAxes(r);
+  const k2=(SET.gyroS||1)*(client.zoomed?0.5:1)*Math.PI/180*dt;
+  client.yaw+=yawRate*k2; client.pitch=clamp(client.pitch+(pch||0)*k2,-1.55,1.55); }
 async function setGyro(on){
   if(on&&typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){ // iOS asks once, on a tap
     try{ if(await DeviceMotionEvent.requestPermission()!=='granted'){ on=false; showMsg('ما في إذن للجيروسكوب',1500); } }catch(e){ on=false; } }
