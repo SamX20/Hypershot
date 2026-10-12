@@ -1154,13 +1154,14 @@ class Server{
         break;}
       case 'fire':{ // the client only says "I fired from here in these directions" — hits and damage are worked out here
         if(!p||!p.alive||!Array.isArray(m.d)) return; const wi=m.w|0, w=W[WKEYS[wi%NW]];
-        if(!w||w.melee||!this.held(p).includes(wi)) return;
-        if(!this.rateOk(p,wi,w.rate)) return;                                     // faster than the gun can fire (jitter-tolerant)
-        if(!this.ammoReady(p,wi)||p.ammo[wi]<=0) return;                          // reloading / empty
+        const why=()=>{};
+        if(!w||w.melee||!this.held(p).includes(wi)) return why('not held '+wi+' load '+JSON.stringify(p.load));
+        if(!this.rateOk(p,wi,w.rate)) return why('rate');                                     // faster than the gun can fire (jitter-tolerant)
+        if(!this.ammoReady(p,wi)||p.ammo[wi]<=0) return why('ammo '+p.ammo[wi]+' rl '+(p.rlEnd?(p.rlEnd-this.now).toFixed(2):0));
         if(p.rlEnd&&p.rlW!==wi) p.rlEnd=0;                                       // switching weapons cancels a reload
         p.lastFire[wi]=this.now; p.ammo[wi]--;
         const o=[+m.o?.[0]||0,+m.o?.[1]||0,+m.o?.[2]||0];
-        if(Math.hypot(o[0]-p.x,o[1]-(p.y+EYE),o[2]-p.z)>1.6) return;             // shot must start at the shooter's eyes
+        if(Math.hypot(o[0]-p.x,o[1]-(p.y+EYE),o[2]-p.z)>1.6) return why('origin '+Math.hypot(o[0]-p.x,o[1]-(p.y+EYE),o[2]-p.z).toFixed(2));
         const t0=this.rewind(p), hits=new Map(), crates=new Map();
         const claims=Array.isArray(m.c)?m.c:[];
         m.d.slice(0,w.pellets).forEach((dd,pi)=>{
@@ -1340,7 +1341,7 @@ class Server{
   rateOk(p,wi,rate){ const b=p.rateB||(p.rateB={}), e=b[wi]||(b[wi]={tok:1,t:this.now});
     e.tok=Math.min(2,e.tok+(this.now-e.t)/rate); e.t=this.now; if(e.tok<0.5) return false; e.tok-=1; p.lastFire[wi]=this.now; return true; }
   rewind(p){ return this.now-clamp((p.rtt||0)/2+0.1,0,0.3); } // what the shooter saw: half their ping + render delay
-  ammoReady(p,w){ if(p.rlEnd&&this.now>=p.rlEnd){ if(p.rlW===w) p.ammo[w]=W[WKEYS[w]].mag; p.rlEnd=0; } return !(p.rlEnd&&p.rlW===w); }
+  ammoReady(p,w){ if(p.rlEnd&&this.now>=p.rlEnd-0.3){ /* grace: the client's reload finishes ~rtt/2 before ours */ if(p.rlW===w) p.ammo[w]=W[WKEYS[w]].mag; p.rlEnd=0; } return !(p.rlEnd&&p.rlW===w); }
   tick(dt){
     this.now+=dt; this.record();
     if((this.pingT-=dt)<=0){ this.pingT=2; for(const p of this.players.values()) if(!p.isBot) this.send(p.id,{t:'pg',s:this.now,r:p.rtt??null}); }
