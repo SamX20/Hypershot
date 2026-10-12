@@ -1509,7 +1509,7 @@ const RELOAD_EV={mag:[[0.05,'magout'],[0.48,'magin'],[0.62,'boltback',1],[0.7,'b
   pis:[[0.05,'magout'],[0.48,'magin'],[0.64,'boltback',1],[0.68,'boltfwd',1]],
   bolt:[[0.03,'boltback'],[0.08,'magout'],[0.48,'magin'],[0.86,'boltfwd']],
   sg:[[0.14,'shell'],[0.26,'shell'],[0.38,'shell'],[0.5,'shell'],[0.62,'shell'],[0.74,'shell'],[0.86,'pump']]};
-const _chgT=new THREE.Vector3();
+const _chgT=new THREE.Vector3(), _lhT=new THREE.Vector3(), _lhO=new THREE.Vector3(), _lhM=new THREE.Vector3(), _lhD=new THREE.Vector3();
 // aim down sights: viewmodel position when aiming (x,y,z in camera space), camera zoom factor, spread reduction
 // y = minus the gun's highest point (measured with the gun at z -0.4), so the sights sit on the crosshair line
 const ADS_POS={rifle:[0,-0.111,-0.4],m16:[0,-0.073,-0.4],scar:[0,-0.082,-0.4],shotgun:[0,-0.072,-0.4],smg:[0,-0.1,-0.4],mp7:[0,-0.121,-0.4],pistol:[0,-0.069,-0.4],m1911t:[0,-0.075,-0.4]};
@@ -2924,20 +2924,31 @@ class Client{
     if(U.bolt){ U.bolt.rotation.x=-cy*1.1; U.bolt.position.x=-0.07*Math.max(0,cy*1.3-0.3);
       if(rp>0){ const o=rp<0.12?rp/0.12:rp<0.84?1:Math.max(0,1-(rp-0.84)/0.06); U.bolt.rotation.x=-o*1.1; U.bolt.position.x=-0.07*o; } } // bolt stays open during the reload
     if(U.pump&&rp>0.84) U.pump.position.x=-0.12*Math.sin(clamp((rp-0.84)/0.14,0,1)*Math.PI);
-    if(U.mag){ // old mag drops out of the gun (accelerating), hand brings a fresh one up into the well; distances in metres of gun space
+    // reload choreography (fractions of the reload): grab mag → pull + toss it aside → reach down for a fresh one → bring it up and seat it → back on the gun
+    const ss=x=>{ x=clamp(x,0,1); return x*x*(3-2*x); };            // smoothstep easing
+    if(U.mag){
       if(!U.magDir){ g.updateMatrixWorld(true); const M=new THREE.Matrix4().copy(g.matrixWorld).invert().multiply(U.mag.parent.matrixWorld).invert();
-        const p0=new THREE.Vector3().applyMatrix4(M), p1=new THREE.Vector3(0,-1,0).applyMatrix4(M); U.magDir=p1.sub(p0); }
-      let d=0, vis=true;
-      if(rp>0.05&&rp<0.2){ const t=(rp-0.05)/0.15; d=t*t*0.45; }
-      else if(rp>=0.2&&rp<0.3) vis=false;
-      else if(rp>=0.3&&rp<0.48){ const t=(rp-0.3)/0.18; d=(1-t)*(1-t)*0.22; }
-      U.mag.position.copy(U.magBase).addScaledVector(U.magDir,d); U.mag.visible=vis||rp<=0; }
-    if(U.L&&U.Lrest){ const t2=U.L.position; t2.copy(U.Lrest);
-      if(U.oneHand){ U.L.visible=rp>0.04&&rp<0.96; t2.add(new THREE.Vector3(-0.06,-0.3,0.18).multiplyScalar(1-Math.sin(clamp((rp-0.04)/0.92,0,1)*Math.PI))); }
-      if(rp>0.16&&rp<0.56){ const k2=Math.sin((rp-0.16)/0.4*Math.PI);
-        if(U.mag){ g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(new THREE.Vector3()); g.worldToLocal(mp); t2.lerp(mp.add(new THREE.Vector3(-0.02,-0.04,0)),k2); }
-        else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } }
-      if(chg>0&&!U.oneHand) t2.lerp(_chgT.set(U.Lrest.x+0.03,U.Lrest.y+0.09,U.Lrest.z+0.3),chg); }
+        const p0=new THREE.Vector3().applyMatrix4(M); U.magDir=new THREE.Vector3(0,-1,0).applyMatrix4(M).sub(p0); U.magSide=new THREE.Vector3(-1,0,0).applyMatrix4(M).sub(p0); }
+      let d=0, side=0, vis=true;
+      if(rp>0.08&&rp<0.24){ const t=(rp-0.08)/0.16; d=ss(t)*0.12+t*t*0.25; side=t*t*0.22; }  // pulled out, then tossed down and out
+      else if(rp>=0.24&&rp<0.32) vis=false;                                                 // hand is fetching a new one
+      else if(rp>=0.32&&rp<0.5){ const t=ss((rp-0.32)/0.18); d=(1-t)*0.55; }               // new mag rises from the pouch into the well
+      U.mag.position.copy(U.magBase).addScaledVector(U.magDir,d).addScaledVector(U.magSide,side); U.mag.visible=vis||rp<=0; }
+    if(U.L&&U.Lrest){
+      const tgt=_lhT.copy(U.Lrest);
+      if(U.oneHand){ U.L.visible=rp>0.02&&rp<0.98; tgt.add(_lhO.set(-0.06,-0.3,0.18).multiplyScalar(1-ss(rp<0.5?rp/0.12:(1-rp)/0.12))); }
+      if(rp>0&&U.mag){
+        g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(_lhM); g.worldToLocal(mp); mp.x-=0.02; mp.y-=0.03;   // palm under the mag
+        const down=_lhO.copy(U.Lrest).add(_lhD.set(-0.08,-0.42,0.12));                      // off-screen "pouch"
+        if(rp<0.08) tgt.lerp(mp,ss(rp/0.08));                                                 // reach for the mag
+        else if(rp<0.2){ tgt.copy(mp); (U._rel||(U._rel=new THREE.Vector3())).copy(mp); }      // holding it while it comes out (remember where it's let go)
+        else if(rp<0.32) tgt.copy(U._rel||mp).lerp(down,ss((rp-0.2)/0.12));                   // let go, drop the hand to the pouch
+        else if(rp<0.5) tgt.copy(down).lerp(mp,ss((rp-0.32)/0.05));                           // grab the new mag and bring it up
+        else tgt.copy(mp).lerp(U.Lrest,ss((rp-0.5)/0.1)); }                                   // slap it in, back to the handguard
+      else if(rp>0){ const k2=Math.sin(clamp((rp-0.1)/0.7,0,1)*Math.PI); tgt.z+=Math.sin(rp*Math.PI*6)*0.06*k2; tgt.y-=0.03*k2; }
+      if(chg>0&&!U.oneHand) tgt.lerp(_chgT.set(U.Lrest.x+0.03,U.Lrest.y+0.09,U.Lrest.z+0.3),chg);
+      // final smoothing so nothing ever snaps (fast enough to keep up, slow enough to hide frame-to-frame jumps)
+      if(!U._lhInit){ U.L.position.copy(tgt); U._lhInit=true; } else U.L.position.lerp(tgt,Math.min(1,dt*22)); }
     if(g.userData.flash.visible&&(this.flashT-=dt)<=0) g.userData.flash.visible=false;
     this.updateAvatars(dt);
   }
