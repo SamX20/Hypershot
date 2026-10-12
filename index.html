@@ -1524,7 +1524,7 @@ function adsPose(g,k){ const wrap=g.userData.wrap; if(!wrap) return null;
     return new THREE.Vector3(sx/n,my,sz/n); };
   const F=top(0,0.3), R=top(0.45,0.85), d=F.clone().sub(R).normalize();
   const q=new THREE.Quaternion().setFromUnitVectors(d,new THREE.Vector3(0,0,-1));
-  const eye=(k==='pistol'||k==='m1911t')?-0.4:-0.3;                       // how far in front of the eye the rear sight sits
+  const eye=(k==='pistol'||k==='m1911t')?-0.28:-0.15;                     // how far in front of the eye the rear sight sits
   const pos=new THREE.Vector3(0,-0.004,eye).sub(R.clone().applyQuaternion(q));  // rear sight on the axis (top edge just under the line)
   return (g.userData.ads={key,pos,q}); }
 const AIM_ZOOM={rifle:0.78,m16:0.76,scar:0.78,shotgun:0.86,smg:0.86,mp7:0.86,pistol:0.88,m1911t:0.88};
