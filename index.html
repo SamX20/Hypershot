@@ -1783,48 +1783,53 @@ const GEO={
   shield:new THREE.SphereGeometry(1.25,16,12)};
 const mDark=new THREE.MeshStandardMaterial({color:0x1a1f2e,roughness:0.6,metalness:0.3});
 const mJoint=new THREE.MeshStandardMaterial({color:0x2c3242,roughness:0.5,metalness:0.6});
-// look generated from the player's name: skin tone, jacket, armour, trousers (later replaced by the avatar editor)
-const LOOK_SKIN=[0xf1c7a5,0xe0ac85,0xc68b5e,0xa86f45,0x7a4b2e,0x5a3622];
-const LOOK_JACKET=[0x3b4a2a,0x1f2a44,0x2b2b2e,0x6b5a3c,0x4a2f2a,0x24363a,0x5a5f66,0x3c2f4f];
-const LOOK_ARMOR=[0x16171b,0x262a30,0x3a3f2c,0x1d2026];
-const LOOK_PANTS=[0x2a2d33,0x3b3326,0x1d2330,0x34392b];
+// look generated from the player's name (later replaced by the avatar editor): natural skin tones, hair, clothes
+const LOOK_SKIN=[0x8a5a3c,0xa0694a,0xc08a5c,0xd2a074,0xe2b994,0xedc9a8]; // dark brown → tan/wheat → light (no pitch black, no paper white)
+const LOOK_HAIR=[0x1c1410,0x3b2618,0x6a4426,0xb08a4e,0x7a2e1c,0x2a2a2e];
+const LOOK_JACKET=[0x3b4a2a,0x1f2a44,0x2b2b2e,0x6b5a3c,0x5a2f2a,0x24515a,0x5a5f66,0x4a3a6a,0x8a3a2a,0x2f6a4a];
+const LOOK_PANTS=[0x2a2d33,0x3b3326,0x1d2330,0x34392b,0x4a4f58];
 function playerLook(name){ const h=nameHash(String(name).replace(' 🤖',''));
-  return {skin:LOOK_SKIN[h%6],jacket:LOOK_JACKET[(h>>>3)%8],armor:LOOK_ARMOR[(h>>>6)%4],pants:LOOK_PANTS[(h>>>8)%4]}; } // >>> keeps it unsigned
-const ENEMY_RED=new THREE.Color(0xff2a2a);
-// teammates show through walls as a soft blue silhouette (only where they're hidden: depth test is inverted)
-// teammates hidden behind walls show as a soft blue silhouette drawn on top (line of sight is checked a few times a second)
+  return {skin:LOOK_SKIN[h%6],hair:LOOK_HAIR[(h>>>3)%6],jacket:LOOK_JACKET[(h>>>6)%10],pants:LOOK_PANTS[(h>>>10)%5],cap:((h>>>14)%10)<3,capCol:LOOK_JACKET[(h>>>17)%10]}; } // >>> keeps it unsigned
+// team outlines (inverted hull): enemies red, teammates soft blue; teammates behind walls also get a silhouette drawn on top
+const OUTLINE_MAT=[0,1].map(()=>null); const outlineMat=friendly=>new THREE.MeshBasicMaterial({color:friendly?0x5fc0ff:0xff2a2a,side:THREE.BackSide,transparent:friendly,opacity:friendly?0.7:1});
+const OUT_ENEMY=outlineMat(false), OUT_FRIEND=outlineMat(true);
 const GHOST_MAT=new THREE.MeshBasicMaterial({color:0x4fb4ff,transparent:true,opacity:0.38,depthWrite:false,depthTest:false});
+const _outGeo=new Map();
+function outlineGeo(geo,t){ // copy of the box grown by t on every side around its own centre
+  const key=geo.uuid+':'+t; if(_outGeo.has(key)) return _outGeo.get(key);
+  geo.computeBoundingBox(); const bb=geo.boundingBox, c=bb.getCenter(new THREE.Vector3()), sz=bb.getSize(new THREE.Vector3());
+  const g=geo.clone(); g.translate(-c.x,-c.y,-c.z); g.scale((sz.x+2*t)/Math.max(sz.x,1e-4),(sz.y+2*t)/Math.max(sz.y,1e-4),(sz.z+2*t)/Math.max(sz.z,1e-4)); g.translate(c.x,c.y,c.z);
+  _outGeo.set(key,g); return g; }
 function makeAvatar(team,name,friendly){
   const g=new THREE.Group(), L=playerLook(name), tint=[], ghosts=[];
-  // enemies get a light red tint on everything they wear; teammates keep natural colours
-  const mat=(hex,rough=0.7,metal=0.1)=>{ const m=new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal});
-    if(!friendly){ m.color.lerp(ENEMY_RED,0.16); m.emissive.setHex(0x4a0606); m.emissiveIntensity=0.3; } m.userData.baseEm=m.emissive.getHex(); m.userData.baseEi=m.emissiveIntensity; tint.push(m); return m; };
-  const mSkin=mat(L.skin,0.8,0), mJacket=mat(L.jacket,0.85,0.05), mArmor=mat(L.armor,0.45,0.5), mPants=mat(L.pants,0.85,0.05), mBoot=mat(0x14151a,0.6,0.2);
-  const mGog=new THREE.MeshStandardMaterial({color:0x1a2633,roughness:0.15,metalness:0.6,emissive:0x0b1a26,emissiveIntensity:0.6});
-  const mPatch=new THREE.MeshBasicMaterial({color:TEAM_COLOR[team]}); // small team patch on the shoulder
+  const mat=(hex,rough=0.75,metal=0.05)=>{ const m=new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal}); m.userData.baseEm=0; m.userData.baseEi=1; tint.push(m); return m; };
+  const mSkin=mat(L.skin,0.75,0), mHair=mat(L.hair,0.9,0), mJacket=mat(L.jacket,0.85), mPants=mat(L.pants,0.85), mShoe=mat(0x1a1b20,0.6,0.1), mCap=mat(L.capCol,0.8);
+  const mEye=new THREE.MeshBasicMaterial({color:0x1a1410}), mWhite=new THREE.MeshBasicMaterial({color:0xf4f4f0}), mMouth=new THREE.MeshBasicMaterial({color:0x6a2a26});
   const M=(geo,m,x=0,y=0,z=0,parent)=>{const o=new THREE.Mesh(geo,m); o.position.set(x,y,z); parent.add(o); return o;};
   const inner=new THREE.Group();
   const legs=[-1,1].map(s=>{const hip=new THREE.Group(); hip.position.set(s*0.17,0.92,0); inner.add(hip);
     M(GEO.thigh,mPants,0,0,0,hip); const knee=new THREE.Group(); knee.position.y=-0.44; hip.add(knee);
-    M(GEO.shin,mPants,0,0,0,knee); M(GEO.boot,mBoot,0,0,0,knee); M(GEO.knee,mArmor,0,-0.02,0,knee); return {hip,knee};});
-  M(GEO.pelvis,mArmor,0,0.95,0,inner);
+    M(GEO.shin,mPants,0,0,0,knee); M(GEO.boot,mShoe,0,0,0,knee); return {hip,knee};});
+  M(GEO.pelvis,mPants,0,0.95,0,inner);
   const torso=new THREE.Group(); torso.position.y=1.05; inner.add(torso);
-  M(GEO.belly,mJacket,0,0,0,torso); M(GEO.chest,mJacket,0,0,0,torso); M(GEO.plate,mArmor,0,0,0,torso);
-  M(GEO.pack,mArmor,0,0,0,torso);
-  for(const s of [-1,1]){ const pd=M(GEO.pad,mArmor,s*0.47,0.55,0,torso); pd.rotation.z=s*-0.25; }
-  M(new THREE.BoxGeometry(0.02,0.1,0.14),mPatch,0.62,0.5,0,torso);   // team patch on the right shoulder
+  M(GEO.belly,mJacket,0,0,0,torso); M(GEO.chest,mJacket,0,0,0,torso);
+  M(new THREE.BoxGeometry(0.2,0.12,0.03),mSkin,0,0.52,-0.235,torso);  // neck / collar opening
   const head=new THREE.Group(); head.position.y=0.63; torso.add(head);
-  M(new THREE.BoxGeometry(0.4,0.4,0.42),mSkin,0,-0.02,0,head);       // face / head
-  M(new THREE.BoxGeometry(0.46,0.2,0.48),mArmor,0,0.15,0.01,head);    // helmet shell
-  M(new THREE.BoxGeometry(0.42,0.06,0.5),mArmor,0,0.05,0.01,head);    // helmet brim
-  M(GEO.visor,mGog,0,0.0,-0.22,head);                                  // goggles
-  for(const s of [-1,1]) M(GEO.ear,mArmor,s*0.23,0.02,0.02,head);
+  M(new THREE.BoxGeometry(0.42,0.44,0.42),mSkin,0,0,0,head);           // head
+  M(new THREE.BoxGeometry(0.44,0.12,0.44),mHair,0,0.2,0.01,head);      // hair top
+  M(new THREE.BoxGeometry(0.44,0.3,0.1),mHair,0,0.08,0.18,head);       // hair back
+  for(const sx of [-1,1]){ M(new THREE.BoxGeometry(0.08,0.06,0.02),mWhite,sx*0.09,0.04,-0.212,head); M(new THREE.BoxGeometry(0.04,0.05,0.02),mEye,sx*0.09+0.015*sx*-1,0.04,-0.218,head);
+    M(new THREE.BoxGeometry(0.1,0.025,0.02),mHair,sx*0.09,0.1,-0.214,head); }   // eyes + brows
+  M(new THREE.BoxGeometry(0.12,0.03,0.02),mMouth,0,-0.1,-0.213,head);   // mouth
+  if(L.cap){ M(new THREE.BoxGeometry(0.46,0.12,0.46),mCap,0,0.25,0,head); M(new THREE.BoxGeometry(0.4,0.03,0.16),mCap,0,0.2,-0.28,head); }
   const armR=new THREE.Group(); armR.position.set(0.42,0.45,0); armR.rotation.set(1.35,0,-0.1); torso.add(armR); M(GEO.arm,mJacket,0,0,0,armR); M(GEO.hand,mSkin,0,-0.5,0,armR);
   const armL=new THREE.Group(); armL.position.set(-0.42,0.45,0); armL.rotation.set(1.3,0,-0.75); torso.add(armL); M(GEO.arm,mJacket,0,0,0,armL); M(GEO.hand,mSkin,0,-0.5,0,armL);
   const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.2,0.3,-0.55); torso.add(gun); avatarGuns.push(gun);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false; inner.add(shield);
-  if(friendly){ const ms=[]; inner.traverse(o=>{ if(o.isMesh&&o!==shield) ms.push(o); }); // collect first, then attach (don't traverse what we add)
-    for(const o of ms){ const gh=new THREE.Mesh(o.geometry,GHOST_MAT); gh.renderOrder=20; gh.userData.ghost=true; gh.visible=false; o.add(gh); ghosts.push(gh); } }
+  // outline on the body parts (not the tiny face details), plus the behind-walls silhouette for teammates
+  const body=[]; inner.traverse(o=>{ if(o.isMesh&&o!==shield&&o.material.isMeshStandardMaterial) body.push(o); });
+  for(const o of body){ const ol=new THREE.Mesh(outlineGeo(o.geometry,0.022),friendly?OUT_FRIEND:OUT_ENEMY); ol.userData.ghost=true; o.add(ol);
+    if(friendly){ const gh=new THREE.Mesh(o.geometry,GHOST_MAT); gh.renderOrder=20; gh.userData.ghost=true; gh.visible=false; o.add(gh); ghosts.push(gh); } }
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   g.add(inner,tag);
   return {g,inner,legs,torso,head,gun,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
