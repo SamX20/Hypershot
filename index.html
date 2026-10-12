@@ -1805,9 +1805,10 @@ function detectQuality(){
   }catch(e){}
   return 'high';
 }
+let BASE_PR=1, DRS=1; const drs={n:0,t:0}; // dynamic-resolution state (used by applyQuality)
 function applyQuality(level){
   QLEVEL=level; const q=QUALITY[level]; MAX_DEBRIS=q.debris;
-  renderer.setPixelRatio(Math.min(devicePixelRatio,level==='low'?Math.min(devicePixelRatio,1)*q.pr:q.pr));
+  BASE_PR=Math.min(devicePixelRatio,level==='low'?Math.min(devicePixelRatio,1)*q.pr:q.pr); renderer.setPixelRatio(BASE_PR*DRS);
   setHQ(false); if(q.bloom) setHQ(true); else if(composer) setHQ(false);
   if(SHADOWS){ const on=q.shadow>0;
     if(renderer.shadowMap.enabled!==on){ renderer.shadowMap.enabled=on; scene.traverse(o=>{ if(o.material) [].concat(o.material).forEach(m=>m.needsUpdate=true); }); }
@@ -1817,7 +1818,13 @@ function applyQuality(level){
 }
 applyQuality(SET.q==='auto'?detectQuality():SET.q);
 const perf={n:0,t:0,cool:8};
+// dynamic resolution: before touching quality, trade a little sharpness for frame rate (and give it back when smooth)
+function dynRes(dt){ if(document.visibilityState!=='visible'||!playing) return; drs.n++; drs.t+=dt; if(drs.t<2) return;
+  const fps=drs.n/drs.t; drs.n=0; drs.t=0; const old=DRS;
+  if(fps<50&&DRS>0.7) DRS=Math.max(0.7,DRS-0.1); else if(fps>58&&DRS<1) DRS=Math.min(1,DRS+0.05);
+  if(DRS!==old){ renderer.setPixelRatio(BASE_PR*DRS); renderer.setSize(innerWidth,innerHeight); if(composer) composer.setSize(innerWidth,innerHeight); } }
 function watchPerf(dt){ // auto mode only: drop one level when we average under 40 fps for 5s of play
+  dynRes(dt); if(DRS>0.75) { perf.n=0; perf.t=0; return; } // resolution has headroom left: let it work first
   if(SET.q!=='auto'||document.visibilityState!=='visible'||!playing||QLEVEL==='low') return;
   perf.cool-=dt; if(perf.cool>0) return;
   perf.n++; perf.t+=dt; if(perf.t<5) return;
@@ -4024,6 +4031,8 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
   frame();
   return { stop(){ on=false; }, start(){ if(!on){ on=true; last=performance.now(); frame(); } } };
 })();
+// fast repeat visits: cache models/sounds/three.js on the device (the page itself always comes fresh from the network)
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 window.HS={get client(){return client;},get armObj(){return armObj;},vmCam,get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
 frame();
 </script>
