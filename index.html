@@ -283,6 +283,10 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
   body.touch #tWeap{right:140px;bottom:228px;width:46px;height:46px}
   body.touch #tMenu{left:10px;top:10px} body.touch #tChat{left:62px;top:10px;right:auto;bottom:auto;width:44px;height:44px}
   body.touch #tLoad{left:114px;top:10px;width:44px;height:44px}
+  /* online room on phones: code becomes a small badge under the minimap, results button top-right, kill feed below it */
+  body.touch #room{left:10px;top:136px;transform:none;font-size:11px;padding:2px 8px;border-radius:7px} body.touch #room .rx{display:none} body.touch #room b:before{content:'🔑 '}
+  body.touch #tTab{right:10px;left:auto;top:8px;transform:none;padding:4px 10px}
+  body.touch #feed{top:46px}
   body.touch #mini{left:166px}
 }
 /* lobby on narrow screens */
@@ -3584,8 +3588,8 @@ function hostRoom(){
   const room=$('room'); room.classList.remove('hidden'); room.textContent='جارٍ إنشاء الغرفة...';
   if(typeof Peer==='undefined'){room.textContent='تعذّر تحميل مكتبة الشبكة — تأكد من الإنترنت'; return;}
   peer=new Peer(PREFIX+code,{debug:0});
-  peer.on('open',()=>{ room.innerHTML='كود الغرفة: <b></b> — أرسله لأصدقائك'; room.querySelector('b').textContent=code;
-    if(location.protocol.startsWith('http')){ const s=document.createElement('div'); s.style.cssText='font-size:11px;opacity:.8;direction:ltr'; s.textContent=location.origin+location.pathname+location.search+'#'+code; room.appendChild(s); } });
+  peer.on('open',()=>{ room.innerHTML='<span class="rx">كود الغرفة: </span><b></b><span class="rx"> — أرسله لأصدقائك</span>'; room.querySelector('b').textContent=code;
+    if(location.protocol.startsWith('http')){ const s=document.createElement('div'); s.className='rx'; s.style.cssText='font-size:11px;opacity:.8;direction:ltr'; s.textContent=location.origin+location.pathname+location.search+'#'+code; room.appendChild(s); } });
   peer.on('connection',conn=>{
     conn.on('open',()=>{
       const id=server.addClient(m=>{ try{ if(conn.open) conn.send(m); }catch(e){} });
@@ -3611,7 +3615,7 @@ function joinRoom(code){
       conn.on('data',d=>{ if(d&&typeof d==='object') client.onMessage(d); });
       conn.on('close',()=>{ showMsg('انقطع الاتصال بالمضيف',100000); setTimeout(()=>location.reload(),3000); });
       client.send({t:'join',name:getName()});
-      const room=$('room'); room.classList.remove('hidden'); room.innerHTML='متصل بالغرفة: <b></b>'; room.querySelector('b').textContent=code;
+      const room=$('room'); room.classList.remove('hidden'); room.innerHTML='<span class="rx">متصل بالغرفة: </span><b></b>'; room.querySelector('b').textContent=code;
       enterGame();
     });
   });
