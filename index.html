@@ -1146,7 +1146,7 @@ class Server{
       case 'fire':{ // the client only says "I fired from here in these directions" — hits and damage are worked out here
         if(!p||!p.alive||!Array.isArray(m.d)) return; const wi=m.w|0, w=W[WKEYS[wi%NW]];
         if(!w||w.melee||!this.held(p).includes(wi)) return;
-        if(this.now-(p.lastFire[wi]??-9)<w.rate*0.8) return;                      // faster than the gun can fire
+        if(!this.rateOk(p,wi,w.rate)) return;                                     // faster than the gun can fire (jitter-tolerant)
         if(!this.ammoReady(p,wi)||p.ammo[wi]<=0) return;                          // reloading / empty
         if(p.rlEnd&&p.rlW!==wi) p.rlEnd=0;                                       // switching weapons cancels a reload
         p.lastFire[wi]=this.now; p.ammo[wi]--;
@@ -1170,10 +1170,13 @@ class Server{
         for(const [ci,dm] of crates) this.damageCrate(ci,dm);
         break;}
       case 'stab':{ // knife: server picks the closest enemy in the swing cone
-        if(!p||!p.alive) return; const w=W.knife; if(this.now-(p.lastFire[KNIFE]??-9)<w.rate*0.8) return; p.lastFire[KNIFE]=this.now;
+        if(!p||!p.alive) return; const w=W.knife; if(!this.rateOk(p,KNIFE,w.rate)) return;
         const eye=[p.x,p.y+EYE,p.z], f=[+m.f?.[0]||0,+m.f?.[1]||0,+m.f?.[2]||0], fl=Math.hypot(...f)||1, t0=this.rewind(p);
         let best=null, bd=w.range+0.45;
-        for(const q of this.players.values()){ if(q===p||!q.alive||q.team===p.team) continue; const qp=this.posAt(q,t0);
+        const cq=this.players.get(m.v|0);
+        if(cq&&cq!==p&&cq.alive&&cq.team!==p.team) for(let k=0;k<=8&&!best;k++){ const qp=this.posAt(cq,this.now-k*0.05), tx=qp.x-eye[0], ty=qp.y+1.1-eye[1], tz=qp.z-eye[2], d=Math.hypot(tx,ty,tz);
+          if(d<w.range+1.2&&clearLine(eye,[qp.x,qp.y+1.1,qp.z])) best=cq; }
+        if(!best) for(const q of this.players.values()){ if(q===p||!q.alive||q.team===p.team) continue; const qp=this.posAt(q,t0);
           const tx=qp.x-eye[0], ty=qp.y+1.1-eye[1], tz=qp.z-eye[2], d=Math.hypot(tx,ty,tz);
           if(d<bd&&(tx*f[0]+ty*f[1]+tz*f[2])/(d*fl)>0.65&&clearLine(eye,[qp.x,qp.y+1.1,qp.z])){ bd=d; best=q; } }
         if(best) this.damage(best,p,w.dmg,'🔪',false);
@@ -1323,6 +1326,9 @@ class Server{
       const head=wantHead&&th<Infinity, t=head?th:Math.min(th,tb);
       if(t<tWall+0.3&&t<Infinity&&(!best||(head&&!best.head))) best={t,head}; if(best&&best.head) break; }
     return best; }
+  // token bucket: one token per fire interval, at most 2 banked — bunched-up packets pass, a real rapid-fire hack doesn't
+  rateOk(p,wi,rate){ const b=p.rateB||(p.rateB={}), e=b[wi]||(b[wi]={tok:1,t:this.now});
+    e.tok=Math.min(2,e.tok+(this.now-e.t)/rate); e.t=this.now; if(e.tok<0.5) return false; e.tok-=1; p.lastFire[wi]=this.now; return true; }
   rewind(p){ return this.now-clamp((p.rtt||0)/2+0.1,0,0.3); } // what the shooter saw: half their ping + render delay
   ammoReady(p,w){ if(p.rlEnd&&this.now>=p.rlEnd){ if(p.rlW===w) p.ammo[w]=W[WKEYS[w]].mag; p.rlEnd=0; } return !(p.rlEnd&&p.rlW===w); }
   tick(dt){
@@ -3109,7 +3115,7 @@ class Client{
       av.target.set(p.x,p.y,p.z); av.yaw=p.yw; av.pitch=p.pt||0; av.w=p.w|0; av.sk=p.sk|0; av.team=p.t; av.name=p.n;
       if(av.wasAlive&&!p.al){ addPoof(av.pos,TEAM_COLOR[p.t]); deathBurst(av); }
       if(!av.wasAlive&&p.al) av.pos.copy(av.target);
-      av.alive=!!p.al; av.wasAlive=av.alive; av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
+      av.alive=!!p.al; av.wasAlive=av.alive; av.sp=!!p.sp; av.shield.visible=p.sh>0||p.sp>0; av.ult=p.ut>0; av.sl=!!p.sl;
     }
     for(const [id,av] of this.avatars) if(!seen.has(id)){scene.remove(av.g); this.avatars.delete(id);}
     // grenades
@@ -3246,10 +3252,10 @@ class Client{
     for(const [id,av] of this.avatars){ if(!av.alive||av.team===this.team) continue;
       const tx=av.pos.x-eye[0], ty=av.pos.y+1.1-eye[1], tz=av.pos.z-eye[2], d=Math.hypot(tx,ty,tz);
       if(d<bd&&(tx*fx+ty*fy+tz*fz)/d>0.72&&clearLine(eye,[av.pos.x,av.pos.y+1.1,av.pos.z])){bd=d;best=[id,av];} }
-    this.send({t:'sh',o:eye.map(r2),e:[],w:KNIFE}); this.send({t:'stab',f:[fx,fy,fz].map(v=>Math.round(v*1e4)/1e4)});
+    this.send({t:'sh',o:eye.map(r2),e:[],w:KNIFE}); this.send({t:'stab',f:[fx,fy,fz].map(v=>Math.round(v*1e4)/1e4),v:best?best[0]:0});
     if(best){ const [id,av]=best, dmg=w.dmg;
       av.flinch=0.18; hitMarker(false); sfx('stab');
-      dmgNum([av.pos.x,av.pos.y+1.3,av.pos.z],dmg,false); this.kick=0.6; return; }
+      dmgNum([av.pos.x,av.pos.y+1.3,av.pos.z],av.sp?'🛡':dmg,false); this.kick=0.6; return; }
     const t=rayWorld(eye,[fx,fy,fz],w.range); if(RAY_BOX&&RAY_BOX.crate&&t<w.range){ const end=[eye[0]+fx*t,eye[1]+fy*t,eye[2]+fz*t]; crateHit(RAY_BOX,end); }
   }
   shoot(){
@@ -3281,7 +3287,7 @@ class Client{
     this.send({t:'fire',o:o.map(v=>Math.round(v*1000)/1000),d:DIRS.slice(0,w.pellets),c:CLAIM,w:this.w}); // server validates these claims / re-traces
     for(const [id,h] of hits){ anyHead=anyHead||h.h;
       const av=this.avatars.get(id); if(av) av.flinch=0.18;
-      dmgNum(h.p,Math.round(h.d*(this.ut>0?1.3:1)),h.h);}
+      if(av&&av.sp) dmgNum(h.p,'🛡',false); else dmgNum(h.p,Math.round(h.d*(this.ut>0?1.3:1)),h.h);}   // spawn-protected: no fake numbers
     if(k==='sniper') this.shake=0.5;
     if(hits.size){hitMarker(false); sfx(anyHead?'head':'hit');}
     const mz=new THREE.Vector3(0.2,-0.15,-0.9).applyMatrix4(camera.matrixWorld);
