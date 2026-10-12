@@ -2053,8 +2053,8 @@ function dressCity(){
   const add=(m,mtx)=>(byModel.get(m)||byModel.set(m,[]).get(m)).push(mtx);
   for(const d of CITY_DECOR) add(d.m,M4(d.x,d.y,d.z,d.ry,d.s));
   // roads on an 8 m grid: avenue along x at z=0, streets along z at x = 0 and ±24, crossroads where they meet
-  for(let x=-40;x<=40;x+=8) add(x===0||Math.abs(x)===24?'roads/road-crossroad':'roads/road-straight',M4(x,0.012,0,Math.PI/2,8));
-  for(const x of [0,24,-24]) for(let z=-32;z<=32;z+=8) if(z) add('roads/road-straight',M4(x,0.012,z,0,8));
+  for(let x=-40;x<=40;x+=8) add(x===0||Math.abs(x)===24?'roads/road-crossroad':'roads/road-straight',M4(x,0.012,0,0,8));   // road-straight runs along x
+  for(const x of [0,24,-24]) for(let z=-32;z<=32;z+=8) if(z) add('roads/road-straight',M4(x,0.012,z,Math.PI/2,8));
   const big=m=>/building|container|tank/.test(m);
   Promise.all([...byModel.keys()].map(m=>loader.loadAsync('assets/city/'+m+'.glb').then(g=>[m,g.scene]).catch(()=>[m,null]))).then(list=>{
     for(const [m,root] of list){ if(!root) continue; const mats=byModel.get(m); root.updateMatrixWorld(true);
