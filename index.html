@@ -342,6 +342,18 @@ body.touch .tb{-webkit-tap-highlight-color:transparent}
 #tPick{left:50%;top:62%;transform:translateX(-50%);width:auto;height:auto;padding:6px 14px;border-radius:12px;font-size:14px;border-color:#ffcc33}
 /* ---- pause menu, chat, quick chat, health drops ---- */
 #pause{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.55);z-index:30}
+#keys{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,6,18,.6);z-index:41;direction:rtl}
+#keys .pm{width:min(440px,92vw);max-height:90vh;overflow:auto;padding:20px;border-radius:16px;background:rgba(12,16,40,.95);border:1px solid rgba(140,160,255,.25);text-align:center}
+#keyList{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+#keyList .kb{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:8px;background:#121a40;border:1px solid #26306a;cursor:pointer;font-size:14px}
+#keyList .kb kbd{min-width:28px;text-align:center} #keyList .kb.wait{border-color:#ffd54a;box-shadow:0 0 10px rgba(255,213,74,.4)} #keyList .kb.dup kbd{background:#5a1a24;border-color:#ff4d5e}
+#keys .krow{display:flex;gap:8px;justify-content:center}
+#tedit{position:fixed;left:0;right:0;top:0;z-index:42;pointer-events:none}
+#tedit .tebar{pointer-events:auto;margin:6px auto;width:fit-content;max-width:96vw;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;padding:6px 12px;border-radius:12px;background:rgba(12,16,40,.95);border:1px solid #ffd54a;direction:rtl;font-size:13px}
+#tedit .btn{padding:6px 14px;font-size:14px}
+body.tedit #touch .tb{outline:2px dashed rgba(255,213,74,.7);outline-offset:3px}
+body.tedit #touch .tb.sel{outline:3px solid #ffd54a}
+body.tedit #touch .tb.hidden{display:flex!important;opacity:.6}
 #pause .pm{width:min(380px,90vw);padding:22px;border-radius:16px;background:rgba(12,16,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(140,160,255,.25);text-align:center}
 #pause h2{margin:0 0 6px;font-size:22px} #pause .sub2{opacity:.7;font-size:12px;margin-bottom:6px}
 #pause .set{text-align:right;margin-top:12px} #pause .set label{display:flex;justify-content:space-between;font-size:13px;margin:10px 0 4px;opacity:.85}
@@ -497,6 +509,16 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="abtns"><button class="btn" id="armSave">✓ تجهيز وحفظ</button><button class="btn ghost" id="armBack">✕ رجوع</button></div>
   <div class="ahint">اسحب بالماوس لتلف السلاح • العجلة للتقريب</div>
 </div>
+<div id="keys" class="hidden"><div class="pm">
+  <h2>⌨ أزرار الكيبورد</h2><div class="sub2">اكبس على أي حركة، بعدين اكبس الزر الجديد (Esc للإلغاء)</div>
+  <div id="keyList"></div>
+  <div class="krow"><button class="btn" id="keyDone">✓ تم</button><button class="btn ghost" id="keyReset">↺ الافتراضي</button></div>
+</div></div>
+<div id="tedit" class="hidden"><div class="tebar">
+  <b>اسحب الأزرار لمكانها • اختار زر وغيّر حجمه</b>
+  <input id="teSize" type="range" min="0.6" max="1.6" step="0.05" value="1">
+  <button class="btn" id="teSave">✓ حفظ</button><button class="btn ghost" id="teReset">↺ الافتراضي</button><button class="btn ghost" id="teCancel">✕</button>
+</div></div>
 <div id="pause" class="hidden"><div class="pm">
   <h2>⏸ متوقف مؤقتاً</h2><div class="sub2">اللعبة مستمرة عند الباقين</div>
   <button class="btn" id="pmResume">▶ متابعة</button>
@@ -507,6 +529,8 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
     <label><span>حساسية الماوس</span><span id="pmSensV"></span></label><input id="pmSens" type="range" min="0.3" max="3" step="0.1">
     <label><span>مجال الرؤية (FOV)</span><span id="pmFovV"></span></label><input id="pmFov" type="range" min="70" max="100" step="1">
   </div>
+  <button class="btn ghost" id="pmKeys">⌨ أزرار الكيبورد</button>
+  <button class="btn ghost" id="pmTouch">✥ تعديل أزرار الجوال</button>
   <button class="btn ghost" id="pmLeave">🚪 الخروج للقائمة الرئيسية</button>
   <div class="warn" id="pmWarn"></div>
 </div></div>
@@ -2687,11 +2711,11 @@ class Client{
     this.bloom=Math.max(0,this.bloom-dt*(this.fireCd>-0.15?2:6));
     if(this.alive&&playing){
       const fx_=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),rx=Math.cos(this.yaw),rz=-Math.sin(this.yaw);
-      const fw=clamp((KEYS.KeyW?1:0)-(KEYS.KeyS?1:0)-JOY.y,-1,1), st=clamp((KEYS.KeyD?1:0)-(KEYS.KeyA?1:0)+JOY.x,-1,1);
+      const fw=clamp((KB('fwd')?1:0)-(KB('back')?1:0)-JOY.y,-1,1), st=clamp((KB('right')?1:0)-(KB('left')?1:0)+JOY.x,-1,1);
       let wx=fx_*fw+rx*st, wz=fz*fw+rz*st; const L=Math.hypot(wx,wz); if(L>1){wx/=L;wz/=L;}
       this.wish=[wx,wz];
       this.twT=Math.max(0,(this.twT||0)-dt);
-      physMove(me,dt,wx,wz,!!KEYS.Space,SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:1)*(W[WKEYS[this.w]].speed||1));
+      physMove(me,dt,wx,wz,!!(KEYS.Space&&TOUCH||KB('jump')),SPEED*(this.twT>0?1.4:1)*(this.zoomed?0.55:1)*(W[WKEYS[this.w]].speed||1));
       if(me.padHit){me.padHit=false; sfx('pad');}
       this.updateWeapon(dt);
     } else if(this.alive){ physMove(me,dt,0,0,false,SPEED); me.padHit=false; this.updateWeapon(dt); }
@@ -2710,7 +2734,7 @@ class Client{
     this.kick=Math.max(0,this.kick-dt*6); this.shake=Math.max(0,this.shake-dt*3);
     const ek=Math.min(1,dt*14);
     this.eyeOff+=((sliding?-0.8:0)-this.eyeOff)*ek;
-    const strafe=(KEYS.KeyD?1:0)-(KEYS.KeyA?1:0)+JOY.x;
+    const strafe=(KB('right')?1:0)-(KB('left')?1:0)+JOY.x;
     this.roll+=((sliding?0.07:-clamp(strafe,-1,1)*0.015)-this.roll)*Math.min(1,dt*8);
     const sh=this.shake*this.shake*0.12;
     const camY=this.alive?me.y+EYE+this.eyeOff+Math.sin(this.bob*2)*0.04:me.y+0.6;
@@ -3105,6 +3129,7 @@ canvas.addEventListener('click',()=>{ if(client&&$('pause').classList.contains('
 function openMenu(){
   if(!client) return; playing=false; mouseDown=false; rightDown=false; for(const k in KEYS) KEYS[k]=false;
   $('pmQ').value=SET.q; $('pmVol').value=SET.vol; $('pmSens').value=SET.sens; $('pmFov').value=SET.fov; menuLabels();
+  $('pmTouch').style.display=TOUCH?'':'none'; $('pmKeys').style.display=TOUCH?'none':'';
   $('pmWarn').textContent=peer&&server?'أنت المضيف — إذا طلعت رح تتسكّر الغرفة على الكل':'';
   $('pause').classList.remove('hidden');
 }
@@ -3277,30 +3302,50 @@ document.addEventListener('mousedown',e=>{ if(!playing) return; if(e.button===0)
 document.addEventListener('mouseup',e=>{ if(e.button===0) mouseDown=false; if(e.button===2) rightDown=false; });
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('wheel',e=>{ if(playing&&client) client.setSlot((Math.max(0,client.slot)+(e.deltaY>0?1:2))%3); });
+// ---------- rebindable keyboard (PC). Mobile button layout is saved separately (SET.touchL).
+const KEY_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'KeyC',ab1:'KeyQ',ab2:'KeyE',ab3:'KeyX',
+  pickup:'KeyF',reload:'KeyR',w1:'Digit1',w2:'Digit2',w3:'Digit3',loadout:'KeyB',quick:'KeyT',score:'Tab'};
+const KEY_NAME={fwd:'قدّام',back:'ورا',left:'يسار',right:'يمين',jump:'قفز',slide:'سلايد',ab1:'قدرة 1 (نطة)',ab2:'قدرة 2 (جرعة)',ab3:'قدرة 3 (سرعة)',
+  pickup:'أخذ سلاح',reload:'ريلود',w1:'السلاح الرئيسي',w2:'السلاح الثانوي',w3:'السكين',loadout:'الأسلحة / المعرض',quick:'رسائل سريعة',score:'النتائج'};
+const BIND={...KEY_DEF,...(SET.keys||{})};
+const keyLabel=c=>c?c.replace(/^Key/,'').replace(/^Digit/,'').replace('Space','Space').replace('ShiftLeft','Shift').replace('ShiftRight','R-Shift').replace('ControlLeft','Ctrl').replace('AltLeft','Alt').replace('Backquote','`'):'—';
+const KB=a=>!!KEYS[BIND[a]];
+let keyWait=null;
+function drawKeys(){ const used={}; for(const a in BIND) used[BIND[a]]=(used[BIND[a]]||0)+1;
+  $('keyList').innerHTML=Object.keys(KEY_DEF).map(a=>`<div class="kb${keyWait===a?' wait':''}${used[BIND[a]]>1?' dup':''}" data-a="${a}"><span>${KEY_NAME[a]}</span><kbd>${keyWait===a?'...':keyLabel(BIND[a])}</kbd></div>`).join('');
+  document.querySelectorAll('#keyList .kb').forEach(d=>d.onclick=()=>{ keyWait=d.dataset.a; drawKeys(); }); }
+function saveKeys(){ const o={}; for(const a in BIND) if(BIND[a]!==KEY_DEF[a]) o[a]=BIND[a]; SET.keys=o; saveSet(); }
+$('pmKeys').onclick=()=>{ keyWait=null; drawKeys(); $('keys').classList.remove('hidden'); };
+$('keyDone').onclick=()=>{ keyWait=null; $('keys').classList.add('hidden'); };
+$('keyReset').onclick=()=>{ Object.assign(BIND,KEY_DEF); saveKeys(); keyWait=null; drawKeys(); };
+// capture phase: grabs the next key while waiting, before the game sees it
+addEventListener('keydown',e=>{ if(!keyWait) return; e.preventDefault(); e.stopImmediatePropagation();
+  if(e.code!=='Escape') { BIND[keyWait]=e.code; saveKeys(); } keyWait=null; drawKeys(); },true);
 document.addEventListener('keydown',e=>{
-  if(!client||document.activeElement===$('chatTxt')) return;
-  if(e.code==='KeyB'&&!e.repeat){ loadoutOpen?closeLoadout(false):(client&&client.lobbyOn?openArmory():openLoadout()); return; }
+  if(!client||document.activeElement===$('chatTxt')||!$('keys').classList.contains('hidden')) return;
+  if(e.code===BIND.loadout&&!e.repeat){ loadoutOpen?closeLoadout(false):(client&&client.lobbyOn?openArmory():openLoadout()); return; }
   if(loadoutOpen) return;
   if(!$('quick').classList.contains('hidden')&&/^Digit[1-8]$/.test(e.code)){ sendQuick(+e.code.slice(5)-1); return; }
   if(playing&&(e.code==='Enter'||e.code==='NumpadEnter')){ e.preventDefault(); openChat(); return; }
-  if(playing&&e.code==='KeyT'){ $('quick').classList.contains('hidden')?openQuick():closeQuick(); return; }
-  if(e.code==='Tab'){e.preventDefault(); $('board').classList.remove('hidden'); if(client.snap) drawBoard(client,client.snap); return;}
+  if(playing&&e.code===BIND.quick){ $('quick').classList.contains('hidden')?openQuick():closeQuick(); return; }
+  if(e.code===BIND.score){e.preventDefault(); $('board').classList.remove('hidden'); if(client.snap) drawBoard(client,client.snap); return;}
   if(!playing) return;
   KEYS[e.code]=true;
-  switch(e.code){
-    case 'KeyC': client.slide(); break;
-    case 'KeyQ': client.useAbil(0); break;
-    case 'KeyE': client.useAbil(1); break;
-    case 'KeyX': client.useAbil(2); break;
-    case 'KeyF': client.pickup(); break;
-    case 'KeyR': client.reload(); break;
-    case 'Digit1': client.switchW(0); break;
-    case 'Digit2': client.switchW(1); break;
-    case 'Digit3': client.switchW(2); break;
-    case 'Space': e.preventDefault(); break;
+  const act=Object.keys(BIND).find(a=>BIND[a]===e.code);
+  switch(act){
+    case 'slide': client.slide(); break;
+    case 'ab1': client.useAbil(0); break;
+    case 'ab2': client.useAbil(1); break;
+    case 'ab3': client.useAbil(2); break;
+    case 'pickup': client.pickup(); break;
+    case 'reload': client.reload(); break;
+    case 'w1': client.switchW(0); break;
+    case 'w2': client.switchW(1); break;
+    case 'w3': client.switchW(2); break;
   }
+  if(e.code==='Space'||e.code==='Tab') e.preventDefault();
 });
-document.addEventListener('keyup',e=>{ KEYS[e.code]=false; if(e.code==='Tab') $('board').classList.add('hidden'); });
+document.addEventListener('keyup',e=>{ KEYS[e.code]=false; if(e.code===BIND.score) $('board').classList.add('hidden'); });
 addEventListener('blur',()=>{for(const k in KEYS) KEYS[k]=false; mouseDown=false;});
 
 /* =====================================================================
@@ -3362,6 +3407,35 @@ function enterGame(){
   btn('tChat',()=>{ if($('quick').classList.contains('hidden')) openQuick(); else { closeQuick(); playing=false; openChat(); } });
   btn('tTab',()=>{ const b=$('board'); b.classList.toggle('hidden'); if(!b.classList.contains('hidden')&&client.snap) drawBoard(client,client.snap); });
 }
+const TOUCH_IDS=['tFire','tJump','tScope','tSlide','tDash','tGren','tShield','tUlt','tReload','tWeap','tTab','tMenu','tChat','tPick'];
+const orientKey=()=>innerWidth>=innerHeight?'land':'port';
+let _tlKey='';
+function applyTouchLayout(){ const L=((SET.touchL||{})[orientKey()])||{}, key=orientKey()+JSON.stringify(L); if(key===_tlKey) return; _tlKey=key;
+  for(const id of TOUCH_IDS){ const el=$(id), v=L[id]; if(!el) continue;
+    if(!v){ el.style.left=el.style.top=el.style.right=el.style.bottom=el.style.transform=el.style.scale=''; continue; }
+    el.style.right='auto'; el.style.bottom='auto'; el.style.transform='translate(-50%,-50%)'; el.style.left=v.x+'%'; el.style.top=v.y+'%'; el.style.scale=v.s||1; } }
+let TE=null; // editor state
+function openTouchEdit(){ $('pause').classList.add('hidden'); TE={L:JSON.parse(JSON.stringify(((SET.touchL||{})[orientKey()])||{})),sel:null,drag:null};
+  // start from where every button is right now, so nothing jumps when the editor opens
+  for(const id of TOUCH_IDS){ const el=$(id); if(!el||TE.L[id]) continue; const r=el.getBoundingClientRect(); if(!r.width) continue;
+    TE.L[id]={x:+((r.left+r.width/2)/innerWidth*100).toFixed(2),y:+((r.top+r.height/2)/innerHeight*100).toFixed(2),s:1}; }
+  document.body.classList.add('tedit'); $('tedit').classList.remove('hidden'); teApply(); }
+function teApply(){ SET.touchL=SET.touchL||{}; const keep=SET.touchL[orientKey()]; SET.touchL[orientKey()]=TE.L; _tlKey=''; applyTouchLayout(); SET.touchL[orientKey()]=keep; _tlKey='x';
+  TOUCH_IDS.forEach(id=>$(id)&&$(id).classList.toggle('sel',id===TE.sel)); }
+function closeTouchEdit(save){ if(save){ SET.touchL=SET.touchL||{}; SET.touchL[orientKey()]=TE.L; saveSet(); }
+  TE=null; document.body.classList.remove('tedit'); $('tedit').classList.add('hidden'); TOUCH_IDS.forEach(id=>$(id)&&$(id).classList.remove('sel')); _tlKey=''; applyTouchLayout(); openMenu(); }
+$('pmTouch').onclick=openTouchEdit;
+$('teSave').onclick=()=>closeTouchEdit(true);
+$('teCancel').onclick=()=>closeTouchEdit(false);
+$('teReset').onclick=()=>{ if(SET.touchL) delete SET.touchL[orientKey()]; saveSet(); TE.L={}; _tlKey=''; applyTouchLayout(); closeTouchEdit(false); };
+$('teSize').oninput=e=>{ if(TE&&TE.sel){ TE.L[TE.sel].s=+e.target.value; teApply(); } };
+// capture phase so the game's own button handlers never fire while editing
+const teDown=e=>{ if(!TE) return; const t=e.touches?e.touches[0]:e, el=e.target.closest&&e.target.closest('#touch .tb'); if(e.target.closest&&e.target.closest('#tedit')) return;
+  e.preventDefault(); e.stopImmediatePropagation(); if(!el) return; TE.sel=el.id; $('teSize').value=TE.L[el.id].s||1; TE.drag={id:el.id}; teApply(); };
+const teMove=e=>{ if(!TE||!TE.drag) return; e.preventDefault(); e.stopImmediatePropagation(); const t=e.touches?e.touches[0]:e;
+  TE.L[TE.drag.id].x=+clamp(t.clientX/innerWidth*100,3,97).toFixed(2); TE.L[TE.drag.id].y=+clamp(t.clientY/innerHeight*100,3,97).toFixed(2); teApply(); };
+const teUp=e=>{ if(!TE) return; if(TE.drag){ e.stopImmediatePropagation(); } TE.drag=null; };
+for(const [ev,f] of [['touchstart',teDown],['mousedown',teDown],['touchmove',teMove],['mousemove',teMove],['touchend',teUp],['mouseup',teUp]]) addEventListener(ev,f,{capture:true,passive:false});
 function startServerLoop(){
   let last=performance.now();
   setInterval(()=>{const n=performance.now(); server.tick(Math.min(0.1,(n-last)/1000)); last=n;},1000/30);
@@ -3447,7 +3521,7 @@ function frame(){
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
   updateFx(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt); AURA_T.value=t;
-  fitView();
+  fitView(); if(TOUCH&&!TE) applyTouchLayout();
   if(armOpen) renderArmory(dt); else if(loadoutOpen) renderLoPreview(dt);
   if(barriers[0].visible) barriers.forEach(b=>{ b.material.map.offset.y=t*0.25; b.material.opacity=0.28+Math.sin(t*3)*0.08; });
   renderer.clear(); if(composer) composer.render(); else renderer.render(scene,camera); renderer.clearDepth(); renderer.render(vmScene,vmCam);
