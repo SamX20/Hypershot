@@ -3770,7 +3770,7 @@ function hostRoom(){
   peer.on('error',e=>{ if(e.type==='unavailable-id'){peer.destroy(); hostRoom();} else room.textContent='خطأ في الشبكة: '+e.type; });
 }
 // ---------- dedicated server rooms (Railway): same game protocol over a WebSocket; P2P stays as the fallback
-const SRV_URL=(()=>{ try{ const o=QS.get('srv')||localStorage.getItem('hs_srv'); if(o) return o; }catch(e){} return 'wss://hyper-shot-server-production.up.railway.app/ws'; })();
+const SRV_URL=(()=>{ try{ const o=QS.get('srv')||localStorage.getItem('hs_srv'); if(o) return o; }catch(e){} return 'wss://game-server-production-e627.up.railway.app/ws'; })();
 let ws=null;
 function srvStart(q,onFail){
   try{ ws=new WebSocket(SRV_URL+'?'+q); }catch(e){ return onFail('تعذّر الاتصال بالسيرفر'); }
