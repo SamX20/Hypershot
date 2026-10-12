@@ -4088,7 +4088,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
   function build(){ const nm=getName(), key=nm+':'+((SET.load&&SET.load.p)||0)+':'+JSON.stringify(SET.skins||{});
     if(av&&avKey===key) return; if(av) sc.remove(av.g); avKey=key;
     av=makeAvatar(0,nm,true); av.g.traverse(o=>{ if(o.userData&&o.userData.ghost) o.visible=false; if(o.isSprite) o.visible=false; });
-    av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-0.6; sc.add(av.g);
+    av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-1.75; sc.add(av.g);   // three-quarter view so the gun on the back shows
     $('mmName').textContent=nm; $('mmAv').innerHTML=AVATAR_SVG(nm); }
   function frame(){ if(!on) return; requestAnimationFrame(frame);
     const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
@@ -4101,10 +4101,10 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
     av.torso.position.y=1.05+br*0.012; av.torso.rotation.x=0.18+br*0.015; av.torso.rotation.y=Math.sin(t*0.5)*0.07;
     av.head.rotation.y=Math.sin(t*0.37)*0.35; av.head.rotation.x=-0.12+Math.sin(t*0.6)*0.05;
     av.legs[0].hip.rotation.x=0.08; av.legs[1].hip.rotation.x=-0.12; av.legs[1].knee.rotation.x=-0.15; av.inner.rotation.z=Math.sin(t*0.5)*0.015;
-    nextInspect-=dt; if(nextInspect<=0&&inspect<=0){ inspect=2.4; nextInspect=rand(6,10); }
-    let ins=0; if(inspect>0){ inspect-=dt; ins=Math.sin(clamp(1-inspect/2.4,0,1)*Math.PI); }
-    av.gun.position.set(0.05-ins*0.05,0.15+ins*0.15,-0.42); av.gun.rotation.set(-0.45+ins*0.45,1.05-ins*0.5,0.35+ins*0.6);   // diagonal low ready across the chest → tilted up to look at it
-    av.grip=gunGrips(av); if(av.grip){ aimArm(av.arms[0],...av.grip.R,1); if(av.grip.L) aimArm(av.arms[1],...av.grip.L,1); else aimArm(av.arms[1],-0.5,-0.2,-0.1,1); }
+    // weapon slung across the back (bigger, so it reads from the front), arms relaxed at the sides swinging gently with the breathing
+    av.gun.scale.setScalar(2.1); av.gun.position.set(0.05,0.3,0.34); av.gun.rotation.order='ZYX'; av.gun.rotation.set(0,Math.PI/2,-1.0);   // stock low-left, barrel up over the right shoulder
+    const sw=Math.sin(t*1.7)*0.02, sw2=Math.sin(t*0.9+1)*0.03;
+    aimArm(av.arms[0],0.52,-0.22+sw,0.04+sw2,1); aimArm(av.arms[1],-0.52,-0.22-sw,0.04-sw2,1);
     // camera: soldier on the right third, slow drift
     const nar=w<760; cam.position.set((nar?0:-1.6)+Math.sin(t*0.15)*0.3,1.7+Math.sin(t*0.2)*0.05,6.2); cam.lookAt(nar?0:-1.6,1.15,0);
     ring.material.opacity=0.6+Math.sin(t*2)*0.2; ring2.rotation.z+=dt*0.1; dust.rotation.y+=dt*0.02; AURA_T.value=t;
