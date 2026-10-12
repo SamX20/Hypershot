@@ -136,9 +136,8 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #kb.hs{--kc:#ffc23a;--kc2:#fff2b0}
 #kb .em{width:132px;height:132px;margin:-66px 0 0 -66px;opacity:0}
 #kb svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-#kb .fr{fill:#0b0f1e;stroke:var(--kc);stroke-width:3;stroke-linejoin:miter;filter:drop-shadow(0 0 6px var(--kc))}
-#kb .fr2{fill:none;stroke:var(--kc2);stroke-width:1.2;opacity:.8}
-#kb .sk{fill:#f3f5ff} #kb .sk .d{fill:#0b0f1e} #kb .sk .e{fill:var(--kc);filter:drop-shadow(0 0 3px var(--kc))}
+#kb .sk{fill:#fff;filter:drop-shadow(0 0 2px rgba(0,0,0,.8)) drop-shadow(0 0 8px var(--kc))} #kb .sk .e{fill:#ff2233;filter:drop-shadow(0 0 4px #ff2233)}
+#kb .ar{fill:#fff;stroke:var(--kc);stroke-width:1.5;stroke-linejoin:miter;filter:drop-shadow(0 0 5px var(--kc))}
 #kb .burst{width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;opacity:0;
   background:repeating-conic-gradient(var(--kc) 0 3deg,transparent 3deg 22deg);-webkit-mask:radial-gradient(circle,transparent 26%,#000 30%,transparent 70%);mask:radial-gradient(circle,transparent 26%,#000 30%,transparent 70%)}
 #kb .ring{width:150px;height:150px;margin:-75px 0 0 -75px;border:3px solid var(--kc2);border-radius:50%;opacity:0}
@@ -152,7 +151,7 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #kb .xh{width:132px;height:132px;margin:-66px 0 0 -66px;opacity:0}
 #kb .xh svg{stroke:#fff;stroke-width:3;fill:none;filter:drop-shadow(0 0 4px var(--kc))}
 #kb.go .em{animation:kbEm 1.9s cubic-bezier(.2,1.4,.4,1) forwards}
-#kb.go .em .fr,#kb.go .em .fr2{transform-origin:66px 66px;animation:kbFr .45s cubic-bezier(.2,1.3,.4,1)}
+#kb.go .ar{animation:kbAr .5s cubic-bezier(.2,1.5,.4,1)}
 #kb.go .burst{animation:kbBurst .7s ease-out forwards}
 #kb.go .ring{animation:kbRing .55s ease-out .05s forwards}
 #kb.go .sh{animation:kbSh .7s cubic-bezier(.1,.8,.3,1) .04s forwards}
@@ -160,7 +159,7 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #kb.go .pips{animation:kbTx 1.9s ease-out .1s forwards}
 #kb.go .xh{animation:kbXh 1.9s ease-out forwards}
 @keyframes kbEm{0%{opacity:0;transform:scale(2.4) rotate(-12deg)}12%{opacity:1;transform:scale(.88) rotate(2deg)}18%{transform:scale(1.06)}22%{transform:scale(1) translate(-3px,1px)}25%{transform:translate(3px,-1px)}28%{transform:none}82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.7)}}
-@keyframes kbFr{0%{transform:scale(1.5) rotate(40deg)}100%{transform:none}}
+@keyframes kbAr{0%{transform:translateY(-40px) scale(1.4);opacity:0}60%{opacity:1}100%{transform:none}}
 @keyframes kbBurst{0%{opacity:0;transform:scale(.4) rotate(0)}20%{opacity:.9}100%{opacity:0;transform:scale(1.3) rotate(35deg)}}
 @keyframes kbRing{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(1.7)}}
 @keyframes kbSh{0%{opacity:1;transform:rotate(var(--a)) translateY(-20px) scale(1.2)}100%{opacity:0;transform:rotate(var(--a)) translateY(-130px) scale(.3) rotate(160deg)}}
@@ -2735,15 +2734,18 @@ function killFeed(m,mine){
   const f=$('feed'); f.prepend(d); while(f.children.length>6) f.lastChild.remove(); setTimeout(()=>d.remove(),7000);
 }
 // fierce skull emblem: spiked badge frame, angular skull with slanted glowing eyes and jagged teeth
+// kill emblem: white skull (cut-outs are see-through) with red eyes, three big arrowheads around it (up, bottom-left, bottom-right)
+const KB_ARROW='<path d="M0 -36L22 6L7 0L0 12L-7 0L-22 6Z"/>';
 const KB_SVG=`<svg viewBox="0 0 132 132">
-<path class="fr" d="M66 2L78 20L98 8L96 32L120 30L108 50L130 66L108 82L120 102L96 100L98 124L78 112L66 130L54 112L34 124L36 100L12 102L24 82L2 66L24 50L12 30L36 32L34 8L54 20Z"/>
-<path class="fr2" d="M66 22L92 36L104 66L92 96L66 110L40 96L28 66L40 36Z"/>
-<g class="sk" transform="translate(66 62) scale(1.3) translate(-66 -58)"><path d="M44 50Q44 30 66 28Q88 30 88 50L88 64L82 70L82 84L76 88L56 88L50 84L50 70L44 64Z"/>
-<path class="e" d="M48 52L62 58L60 66L50 63Z"/><path class="e" d="M84 52L70 58L72 66L82 63Z"/>
-<path class="d" d="M66 66L62 74L70 74Z"/>
-<path class="d" d="M54 78h24v2.5h-24zM57 76.5h2.5v10h-2.5zM62 76.5h2.5v11h-2.5zM67.5 76.5h2.5v11h-2.5zM72.5 76.5h2.5v10h-2.5z"/>
-<path class="d" d="M66 28L63 36L68 40L64 46" stroke="#0b0f1e" stroke-width="1.6" fill="none"/>
-<path class="d" d="M44 50L36 42L46 46ZM88 50L96 42L86 46Z"/></g></svg>`;
+<defs><mask id="kbM"><rect width="132" height="132" fill="#fff"/>
+<path d="M66 66L62 74L70 74Z" fill="#000"/>
+<path d="M54 78h24v2.5h-24zM57 76.5h2.5v10h-2.5zM62 76.5h2.5v11h-2.5zM67.5 76.5h2.5v11h-2.5zM72.5 76.5h2.5v10h-2.5z" fill="#000"/>
+<path d="M66 28L63 36L68 40L64 46" stroke="#000" stroke-width="1.8" fill="none"/>
+<path d="M48 52L62 58L60 66L50 63ZM84 52L70 58L72 66L82 63Z" fill="#000"/></mask></defs>
+${[0,120,240].map(r=>`<g transform="rotate(${r} 66 66) translate(66 10)"><g class="ar">${KB_ARROW}</g></g>`).join('')}
+<g class="sk" transform="translate(66 64) scale(1.15) translate(-66 -58)">
+<path mask="url(#kbM)" d="M44 50Q44 30 66 28Q88 30 88 50L88 64L82 70L82 84L76 88L56 88L50 84L50 70L44 64ZM44 50L36 42L46 46ZM88 50L96 42L86 46Z"/>
+<path class="e" d="M49.5 53.5L61 58.5L59.4 64.5L51 62Z"/><path class="e" d="M82.5 53.5L71 58.5L72.6 64.5L81 62Z"/></g></svg>`;
 const KB_XH=`<svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56"/><path d="M66 0v26M66 106v26M0 66h26M106 66h26"/><path d="M48 18L66 4L84 18" stroke-width="2"/></svg>`;
 let kbTO=0;
 function killBanner(victim,n,head){
