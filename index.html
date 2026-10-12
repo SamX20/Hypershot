@@ -1243,30 +1243,39 @@ class Server{
    AUDIO (synthesized)
 ===================================================================== */
 let AC=null,MASTER=null,NB=null;
-function ac(){ if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)(); MASTER=AC.createGain(); MASTER.gain.value=0.55*SET.vol; MASTER.connect(AC.destination);
+let DEST=null; // when set, synth voices go here (a 3D panner) instead of straight to the mix
+function ac(){ if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)(); MASTER=AC.createGain(); MASTER.gain.value=0.55*SET.vol;
+  // master chain: gentle high-shelf cut (less ear fatigue) → limiter so stacked gunfire never clips or gets harsh
+  const shelf=AC.createBiquadFilter(); shelf.type='highshelf'; shelf.frequency.value=6000; shelf.gain.value=-5;
+  const lim=AC.createDynamicsCompressor(); lim.threshold.value=-16; lim.knee.value=8; lim.ratio.value=6; lim.attack.value=0.003; lim.release.value=0.2;
+  MASTER.connect(shelf).connect(lim).connect(AC.destination);
   // small arena reverb: synthetic decaying-noise impulse on a send
   { const len=AC.sampleRate*1.3|0, ir=AC.createBuffer(2,len,AC.sampleRate);
     for(let c=0;c<2;c++){const d=ir.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
-    const cv=AC.createConvolver(); cv.buffer=ir; const wet=AC.createGain(); wet.gain.value=0.22; MASTER.connect(cv).connect(wet).connect(AC.destination); }
+    const cv=AC.createConvolver(); cv.buffer=ir; const wet=AC.createGain(); wet.gain.value=0.12; MASTER.connect(cv).connect(wet).connect(lim); }
   NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate); const d=NB.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;} return AC; }
 function noise(dur,vol,freq,type='lowpass'){const a=ac(),t=a.currentTime,s=a.createBufferSource(); s.buffer=NB; const f=a.createBiquadFilter(); f.type=type; f.frequency.value=freq;
-  const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f).connect(g).connect(MASTER); s.start(t); s.stop(t+dur);}
+  const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); s.connect(f).connect(g).connect(DEST||MASTER); s.start(t,Math.random()*0.1); s.stop(t+dur);}
 function tone(f0,f1,dur,vol,type='square'){const a=ac(),t=a.currentTime,o=a.createOscillator(); o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
-  const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g).connect(MASTER); o.start(t); o.stop(t+dur);}
+  const g=a.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g).connect(DEST||MASTER); o.start(t); o.stop(t+dur);}
+// 3D: an HRTF panner at a world position (distance loudness is still handled by the caller's v, so rolloff is off)
+function panner(p){ const a=AC, n=a.createPanner(); n.panningModel='HRTF'; n.distanceModel='linear'; n.rolloffFactor=0;
+  if(n.positionX){ n.positionX.value=p[0]; n.positionY.value=p[1]; n.positionZ.value=p[2]; } else n.setPosition(p[0],p[1],p[2]);
+  n.connect(MASTER); return n; }
+const _lf=new THREE.Vector3(), _lu=new THREE.Vector3();
+function updateListener(cam){ if(!AC) return; const L=AC.listener; cam.getWorldDirection(_lf); _lu.set(0,1,0).applyQuaternion(cam.quaternion); const p=cam.getWorldPosition(new THREE.Vector3());
+  if(L.positionX){ const t=AC.currentTime; L.positionX.setTargetAtTime(p.x,t,0.02); L.positionY.setTargetAtTime(p.y,t,0.02); L.positionZ.setTargetAtTime(p.z,t,0.02);
+    L.forwardX.setTargetAtTime(_lf.x,t,0.02); L.forwardY.setTargetAtTime(_lf.y,t,0.02); L.forwardZ.setTargetAtTime(_lf.z,t,0.02); L.upX.value=_lu.x; L.upY.value=_lu.y; L.upZ.value=_lu.z; }
+  else { L.setPosition(p.x,p.y,p.z); L.setOrientation(_lf.x,_lf.y,_lf.z,_lu.x,_lu.y,_lu.z); } }
 // Kenney CC0 samples (assets/sounds). Loaded on first audio use; sfx() falls back to the synth below until/unless they load.
 const SND_DIR='assets/sounds/';
 const SAMPLE_DEFS={
-  rifle:     {files:[0,1,2,3,4].map(i=>'laserSmall_00'+i), vol:0.55, thump:[160,55,0.07,0.22]},
-  shotgun:   {files:['laserLarge_000','laserLarge_001'], vol:0.75, rate:0.8, thump:[115,32,0.22,0.45]},
-  sniper:    {files:['laserLarge_002','laserLarge_003'], vol:0.8, thump:[95,28,0.4,0.5]},
   boom:      {files:['lowFrequency_explosion_000','lowFrequency_explosion_001','explosionCrunch_000'], vol:1.0},
   step:      {files:[0,1,2,3,4].map(i=>'footstep_concrete_00'+i), vol:0.5, jitter:0.12},
   wood:      {files:[0,1,2].map(i=>'impactWood_medium_00'+i), vol:0.7},
   woodbreak: {files:[0,1,2].map(i=>'impactPlank_medium_00'+i), vol:0.9},
   metal:     {files:[0,1,2].map(i=>'impactMetal_light_00'+i), vol:0.6},
   metalbreak:{files:[0,1,2].map(i=>'impactMetal_heavy_00'+i), vol:0.9},
-  pistol:    {files:[0,1,2].map(i=>'laserRetro_00'+i), vol:0.55, thump:[150,60,0.06,0.2]},
-  smg:       {files:['laserRetro_003','laserRetro_004'], vol:0.4, rate:1.25, thump:[170,70,0.04,0.12]},
   stab:      {files:[0,1,2].map(i=>'impactPunch_medium_00'+i), vol:0.9},
   barrier:   {files:['forceField_000','forceField_001'], vol:0.6},
 };
@@ -1287,22 +1296,45 @@ function playSample(k,v){
   const g=a.createGain(); g.gain.value=def.vol*v;
   if(v<0.6){ const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1500; s.connect(f).connect(g); } // distant: lose the highs
   else s.connect(g);
-  g.connect(MASTER); s.start(t);
+  g.connect(DEST||MASTER); s.start(t);
   if(def.thump){ const [f0,f1,d,vol]=def.thump; tone(f0,f1,d,vol*v,'sine'); } // keep the synthesized low-end punch under gunshots
   return true;
 }
-function sfx(k,v=1){
+// sfx(name, volume 0..1, optional world position → 3D)
+function sfx(k,v=1,pos){
   if(v<0.03) return;
-  try{ ac(); loadSamples(); if(playSample(k,v)) return; }catch(e){}
+  try{ ac(); loadSamples(); if(pos&&AC.state==='running') DEST=panner(pos); if(playSample(k,v)){ DEST=null; return; } }catch(e){}
+  try{ sfxSynth(k,v); }catch(e){} DEST=null;
+}
+// reload foley timeline (fraction of the reload time, sound, only-when-empty)
+const RELOAD_EV={mag:[[0.1,'magout'],[0.6,'magin'],[0.76,'boltback',1],[0.84,'boltfwd',1]],
+  pis:[[0.1,'magout'],[0.6,'magin'],[0.78,'boltback',1],[0.82,'boltfwd',1]],
+  bolt:[[0.06,'boltback'],[0.2,'magout'],[0.6,'magin'],[0.86,'boltfwd']],
+  sg:[[0.14,'shell'],[0.26,'shell'],[0.38,'shell'],[0.5,'shell'],[0.62,'shell'],[0.74,'shell'],[0.86,'pump']]};
+const _chgT=new THREE.Vector3();
+function gunshot(v,o){ const near=v>0.6;
+  noise(0.018,o.crack*v,near?5200:1800,near?'highpass':'lowpass');            // crack
+  noise(o.bodyT,o.bodyV*v,near?o.body:o.body*0.5,'bandpass');                   // body
+  tone(o.boom[0],o.boom[1],o.boom[2],o.boom[3]*v*(near?1:1.3),'sine');          // low boom (carries further)
+  noise(o.tail,0.12*v,near?700:380);                                            // short room tail
+}
+function sfxSynth(k,v){
   try{ switch(k){
     // gunshots: sharp transient + filtered body + low thump, distant shots lose their highs
-    case 'rifle': tone(1900,300,0.025,0.18*v); noise(0.1,0.42*v,v>0.6?3600:1400); noise(0.22,0.16*v,450); tone(160,55,0.07,0.28*v,'sine'); break;
-    case 'shotgun': tone(1200,200,0.03,0.2*v); noise(0.3,0.7*v,v>0.6?2000:900); noise(0.55,0.3*v,280); tone(115,32,0.22,0.5*v,'sine'); break;
-    case 'sniper': tone(2600,350,0.04,0.25*v); noise(0.45,0.75*v,v>0.6?4200:1500); noise(0.9,0.3*v,230); tone(95,28,0.4,0.55*v,'sine'); break;
+    case 'rifle': gunshot(v,{crack:0.35,body:1300,bodyV:0.5,bodyT:0.11,boom:[130,45,0.09,0.4],tail:0.3}); break;
+    case 'shotgun': gunshot(v,{crack:0.3,body:800,bodyV:0.8,bodyT:0.22,boom:[95,30,0.25,0.65],tail:0.6}); break;
+    case 'sniper': gunshot(v,{crack:0.5,body:1100,bodyV:0.85,bodyT:0.2,boom:[80,26,0.35,0.7],tail:0.9}); break;
     case 'hit': tone(1700,1600,0.04,0.12,'triangle'); noise(0.03,0.08,5000,'highpass'); break;
     case 'head': tone(2600,2600,0.06,0.14,'triangle'); setTimeout(()=>tone(3900,3900,0.12,0.12,'sine'),45); break;
-    case 'pistol': tone(2200,400,0.03,0.2*v); noise(0.12,0.45*v,v>0.6?3000:1300); tone(140,60,0.06,0.25*v,'sine'); break;
-    case 'smg': tone(1700,300,0.02,0.15*v); noise(0.07,0.35*v,v>0.6?3800:1500); tone(170,70,0.05,0.18*v,'sine'); break;
+    case 'pistol': gunshot(v,{crack:0.35,body:1600,bodyV:0.42,bodyT:0.09,boom:[150,60,0.07,0.32],tail:0.22}); break;
+    case 'smg': gunshot(v,{crack:0.25,body:1800,bodyV:0.32,bodyT:0.06,boom:[170,70,0.05,0.22],tail:0.15}); break;
+    // reload foley
+    case 'magout': noise(0.05,0.22,3200,'bandpass'); tone(1100,700,0.025,0.06,'square'); setTimeout(()=>noise(0.09,0.12,1200,'bandpass'),60); break;
+    case 'magin': noise(0.05,0.3,1700,'bandpass'); tone(190,90,0.06,0.18,'sine'); setTimeout(()=>{noise(0.025,0.3,4200,'highpass'); tone(1500,1200,0.02,0.07,'square');},55); break;
+    case 'boltback': noise(0.09,0.26,2300,'bandpass'); tone(700,320,0.06,0.07,'square'); break;
+    case 'boltfwd': noise(0.04,0.38,3600,'bandpass'); tone(260,120,0.05,0.16,'triangle'); setTimeout(()=>noise(0.02,0.2,5000,'highpass'),30); break;
+    case 'shell': noise(0.04,0.22,2800,'bandpass'); tone(750,520,0.03,0.07,'triangle'); break;
+    case 'pump': noise(0.1,0.3,1400,'bandpass'); setTimeout(()=>{noise(0.07,0.38,2600,'bandpass'); tone(220,110,0.05,0.14,'triangle');},130); break;
     case 'knife': noise(0.18,0.28*v,2600,'highpass'); break;
     case 'stab': noise(0.08,0.45*v,800,'bandpass'); tone(200,90,0.08,0.22*v,'triangle'); break;
     case 'barrier': tone(220,880,0.5,0.15*v,'sine'); break;
@@ -1314,7 +1346,7 @@ function sfx(k,v=1){
     case 'pick': tone(600,1300,0.15,0.15,'triangle'); break;
     case 'flag': tone(500,1000,0.12,0.15,'square'); setTimeout(()=>tone(700,1400,0.2,0.15,'square'),130); break;
     case 'cap': [0,120,240].forEach((d,i)=>setTimeout(()=>tone(500+i*250,900+i*250,0.2,0.16,'square'),d)); break;
-    case 'reload': tone(300,260,0.05,0.1); setTimeout(()=>tone(500,520,0.05,0.1),250); break;
+    case 'reload': break; // staged foley is played by the viewmodel
     case 'hurt': tone(160,80,0.15,0.22,'sawtooth'); break;
     case 'ult': tone(200,1600,0.6,0.2,'sawtooth'); break;
     case 'shield': tone(400,800,0.3,0.14,'sine'); break;
@@ -1648,7 +1680,7 @@ function crateHit(c,p){
   const cols=CRATE_COL[c.crate];
   for(let i=0;i<5;i++){const m=new THREE.Mesh(_chipGeo,new THREE.MeshBasicMaterial({color:cols[i%3],transparent:true})); m.position.set(...p);
     addDebris(m,[rand(-3,3),rand(1,4),rand(-3,3)],[rand(-9,9),rand(-9,9)],0.6,c.y0); debris[debris.length-1].own=true;}
-  sfx(woodLook(c)?'wood':'metal',client?client.vol(p):1);
+  sfx(woodLook(c)?'wood':'metal',client?client.vol(p):1,p);
 }
 function crateBreak(c){
   const V=c.view, s=c.x1-c.x0, cx=V.base.x, cy=V.base.y, cz=V.base.z;
@@ -2425,8 +2457,8 @@ class Client{
         sfx('pick'); showMsg('حملت '+W[WKEYS[m.w]].name+' ✋',1200); break;
       case 'snap': if(this.id) this.onSnap(m); break;
       case 'tr':{ const sav=m.s&&this.avatars.get(m.s); const col=(sav&&skinColor(sav.sk))||(sav?.team===this.team?0x9fd8ff:0xffb08a);
-        (m.e||[]).forEach(e=>addTracer(m.o,e,col)); sfx(W[WKEYS[m.w|0]].snd,this.vol(m.o)*0.8); break;}
-      case 'boom': addBoom(m.x,m.y,m.z); {const v=this.vol([m.x,m.y,m.z]); sfx('boom',v); this.shake=Math.max(this.shake,v*1.2);} break;
+        (m.e||[]).forEach(e=>addTracer(m.o,e,col)); sfx(W[WKEYS[m.w|0]].snd,this.vol(m.o)*0.8,m.o); break;}
+      case 'boom': addBoom(m.x,m.y,m.z); {const v=this.vol([m.x,m.y,m.z]); sfx('boom',v,[m.x,m.y,m.z]); this.shake=Math.max(this.shake,v*1.2);} break;
       case 'hc': hitMarker(m.k); if(m.k) sfx('kill'); break;
       case 'hurt': sfx('hurt'); flash('hurt'); break;
       case 'pick': sfx('pick'); showMsg(m.k==='hp'?'<span style="color:#3dff8a">+40 صحة</span>':'<span style="color:#ffcc33">+40 طاقة خارقة</span>',1000); break;
@@ -2537,22 +2569,31 @@ class Client{
     vmGuns.forEach((g,i)=>{g.visible=this.alive&&i===this.w&&!zoom;});
     const g=vmGuns[this.w], wk=W[WKEYS[this.w]];
     const rp=this.reloadT>0?clamp(1-this.reloadT/wk.reload,0,1):0, rl=Math.sin(rp*Math.PI); // reload progress 0..1 and its dip curve
+    // staged reload: each mechanical step has its own sound and motion (charging handle / slide only when the gun was empty)
+    const rk=WKEYS[this.w], rcls=rk==='shotgun'?'sg':rk==='sniper'?'bolt':(rk==='pistol'||rk==='m1911t')?'pis':'mag';
+    if(rp>0) for(const [t,snd,emptyOnly] of RELOAD_EV[rcls]) if((this.rPrev||0)<t&&rp>=t&&(!emptyOnly||this.rEmpty)) sfx(snd,0.9);
+    this.rPrev=rp;
+    const jolt=rcls!=='sg'&&rp>=0.6?Math.exp(-(rp-0.6)*28):0;                                   // magazine seated: gun bumps up
+    const chg=this.rEmpty&&(rcls==='mag'||rcls==='pis')&&rp>0.72&&rp<0.9?Math.sin((rp-0.72)/0.18*Math.PI):0; // charging handle / slide rack
     this.swing=Math.max(0,this.swing-dt*3.2); const sw=Math.sin((1-this.swing)*Math.PI)*(this.swing>0?1:0);
     const stab=this.w===KNIFE;
-    g.position.set((stab?0.2:0.24)+Math.cos(this.bob)*0.012-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)+Math.abs(Math.sin(this.bob))*0.012-rl*0.08+sw*(stab?0.06:0.05),(stab?-0.42:-0.5)+this.kick*0.08-sw*(stab?0.32:0.12));
-    g.rotation.set(this.kick*0.25+rl*0.22-sw*(stab?0.15:0.5),sw*(stab?0.25:0.9),rl*0.3+sw*(stab?-0.2:0.6));
+    g.position.set((stab?0.2:0.24)+Math.cos(this.bob)*0.012-sw*(stab?0.08:0.12),(stab?-0.16:-0.23)+Math.abs(Math.sin(this.bob))*0.012-rl*0.08+sw*(stab?0.06:0.05)+jolt*0.025,(stab?-0.42:-0.5)+this.kick*0.08-sw*(stab?0.32:0.12)+chg*0.02);
+    g.rotation.set(this.kick*0.25+rl*0.22-sw*(stab?0.15:0.5)-jolt*0.12,sw*(stab?0.25:0.9)-chg*0.15,rl*0.3+sw*(stab?-0.2:0.6)+chg*0.3);
     // magazine out → new magazine in, left hand fetches it; mag-less guns pump/feed with the left hand instead
     const U=g.userData;
     this.cycle=Math.max(0,(this.cycle||0)-dt*(WKEYS[this.w]==='sniper'?1.4:2.4)); const cy=this.cycle>0&&this.cycle<0.85?Math.sin((0.85-this.cycle)/0.85*Math.PI):0;
     if(U.pump){ U.pump.position.x=-0.12*cy; if(U.L&&U.Lrest&&rp<=0) U.L.position.z=U.Lrest.z+0.12*cy*(U.wrap?U.wrap.userData.sc:1)*1.0; }
-    if(U.bolt){ U.bolt.rotation.x=-cy*1.1; U.bolt.position.x=-0.07*Math.max(0,cy*1.3-0.3); }
+    if(U.bolt){ U.bolt.rotation.x=-cy*1.1; U.bolt.position.x=-0.07*Math.max(0,cy*1.3-0.3);
+      if(rp>0){ const o=rp<0.12?rp/0.12:rp<0.84?1:Math.max(0,1-(rp-0.84)/0.06); U.bolt.rotation.x=-o*1.1; U.bolt.position.x=-0.07*o; } } // bolt stays open during the reload
+    if(U.pump&&rp>0.84) U.pump.position.x=-0.12*Math.sin(clamp((rp-0.84)/0.14,0,1)*Math.PI);
     if(U.mag){ const out=rp>0.12&&rp<0.42?(rp-0.12)/0.3:0, back=rp>=0.42&&rp<0.8?1-(rp-0.42)/0.38:0, off=rp>=0.12&&rp<0.8?(rp<0.42?out:back):0;
       U.mag.position.copy(U.magBase); U.mag.position.y-=off*1.4; U.mag.visible=!(rp>0.38&&rp<0.48); }
     if(U.L&&U.Lrest){ const t2=U.L.position; t2.copy(U.Lrest);
       if(U.oneHand){ U.L.visible=rp>0.04&&rp<0.96; t2.add(new THREE.Vector3(-0.06,-0.3,0.18).multiplyScalar(1-Math.sin(clamp((rp-0.04)/0.92,0,1)*Math.PI))); }
       if(rp>0.08&&rp<0.9){ const k2=Math.sin((rp-0.08)/0.82*Math.PI);
         if(U.mag){ g.updateMatrixWorld(true); const mp=U.mag.getWorldPosition(new THREE.Vector3()); g.worldToLocal(mp); t2.lerp(mp.add(new THREE.Vector3(-0.02,-0.04,0)),k2); }
-        else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } } }
+        else { t2.z+=Math.sin(rp*Math.PI*6)*0.06*k2; t2.y-=0.03*k2; } }
+      if(chg>0&&!U.oneHand) t2.lerp(_chgT.set(U.Lrest.x+0.03,U.Lrest.y+0.09,U.Lrest.z+0.3),chg); }
     if(g.userData.flash.visible&&(this.flashT-=dt)<=0) g.userData.flash.visible=false;
     this.updateAvatars(dt);
   }
@@ -2568,7 +2609,7 @@ class Client{
       if(this.ut<=0){this.ammo[this.w]--; if(this.ammo[this.w]<=0) this.reload();}
     }
   }
-  reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; sfx('reload');}
+  reload(){const w=W[WKEYS[this.w]]; if(w.melee||this.reloadT>0||this.ammo[this.w]>=w.mag) return; this.reloadT=w.reload; this.rEmpty=this.ammo[this.w]<=0; this.rPrev=0;}
   // slots: 0 primary, 1 secondary, 2 knife
   setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; }
   switchW(sl){ this.setSlot(sl); }
@@ -2647,6 +2688,7 @@ class Client{
   }
   ult(){}
   updateAvatars(dt){
+    updateListener(camera);
     const k=1-Math.exp(-15*dt), t=performance.now()/1000;
     for(const av of this.avatars.values()){
       if(av.pos.distanceTo(av.target)>6) av.pos.copy(av.target);
@@ -2676,7 +2718,7 @@ class Client{
         else aimArm(av.arms[1],-0.52,-0.12,-0.08-Math.sin(av.walk)*run*0.3,ka); }
       const fl2=av.flinch>0.09; if(fl2!==av._fl){ av._fl=fl2; for(const m of av.tint){ m.emissive.setHex(fl2?0xffffff:m.userData.baseEm); m.emissiveIntensity=fl2?0.8:m.userData.baseEi; } }
       // footsteps of nearby players
-      if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
+      if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v,[av.pos.x,av.pos.y,av.pos.z]);}}
       let dy=av.yaw-av.ryaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); av.ryaw+=dy*k;
       av.g.position.copy(av.pos); av.g.rotation.y=av.ryaw; av.g.visible=av.alive;
       const gk=av.w+':'+av.sk; if(av.shownKey!==gk&&AVATAR_MODELS[WKEYS[av.w]]){ av.gun.clear(); av.gun.add(worldGun(WKEYS[av.w],av.sk,'lite')); av.shownKey=gk; }
