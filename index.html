@@ -3043,7 +3043,7 @@ function updateHudFrame(c){
   if(TOUCH){ document.querySelectorAll('.tb[data-cd]').forEach(el=>{const k=el.dataset.cd; el.style.setProperty('--cd',c.cd[k]/CD[k]*100);});
     const u=$('tUlt'); u.style.setProperty('--cd',c.ut>0?0:100-c.u); u.style.boxShadow=c.u>=100&&c.ut<=0?'0 0 18px #ffcc33':'';
     $('tScope').style.display=WKEYS[c.w]==='sniper'?'flex':'none'; }
-  for(const k of ['slide','dash','gren','shield']){const el=$('ab-'+k), p=c.cd[k]/CD[k]*100; el.querySelector('.cd').style.setProperty('--p',p+'%'); el.querySelector('.t').textContent=c.cd[k]>0?Math.ceil(c.cd[k]):'';
+  for(const k of ['slide','dash','gren','shield']){const el=$('ab-'+k), p=c.cd[k]/CD[k]*100; const cdEl=el.querySelector('.cd'); cdEl.style.setProperty('--p',p+'%'); cdEl.style.visibility=p>0.5?'visible':'hidden'; /* an empty conic still draws a 1px seam at 12 o'clock */ el.querySelector('.t').textContent=c.cd[k]>0?Math.ceil(c.cd[k]):'';
     const cool=c.cd[k]>0; if(el._cool&&!cool){ el.classList.remove('ready-flash'); void el.offsetWidth; el.classList.add('ready-flash'); } el.classList.toggle('cool',cool); el._cool=cool;}
   { const st=Math.max(0,c.streak|0), ks=$('kstreak'); ks.querySelector('i').style.height=((c.streakT||0)/STREAK_WIN*100)+'%';
     if(ks._st!==st){ ks._st=st; $('kstxt').textContent='×'+st; ks.classList.toggle('hot',st>=3); } }
