@@ -131,19 +131,42 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #streak{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%) scale(.6);font-size:44px;font-weight:900;letter-spacing:1px;opacity:0;direction:rtl;
   background:linear-gradient(90deg,#ffd23f,#ff5c8a,#7f6bff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(255,120,160,.6))}
 #streak.show{animation:pop 1.8s ease-out forwards}
-#kb{position:absolute;top:62%;left:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;opacity:0}
-#kb.show{animation:kbIn 1.6s ease-out forwards}
-#kb .ic{position:relative;width:96px;height:96px;margin:auto}
-#kb .sk{position:absolute;inset:18px;fill:#fff;filter:drop-shadow(0 0 10px var(--kc))}
-#kb .rg{position:absolute;inset:0;border-radius:50%;border:3px solid var(--kc);box-shadow:0 0 14px var(--kc),inset 0 0 10px var(--kc)}
-#kb .rg+.rg{inset:-9px;opacity:.7} #kb .rg+.rg+.rg{inset:-18px;opacity:.5} #kb .rg+.rg+.rg+.rg{inset:-27px;opacity:.35} #kb .rg+.rg+.rg+.rg+.rg{inset:-36px;opacity:.25}
-#kb .sh{position:absolute;inset:-10px;border-radius:50%;border:2px solid #fff;opacity:0}
-#kb.show .sh{animation:kbRing .5s ease-out}
-#kb .nm{margin-top:14px;font-size:15px;font-weight:700;letter-spacing:2px;color:#fff;text-shadow:0 0 8px #000}
-#kb .nm b{color:var(--kc)}
-@keyframes kbIn{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}10%{opacity:1;transform:translate(-50%,-50%) scale(.95)}16%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
-@keyframes kbRing{from{opacity:.9;transform:scale(.6)}to{opacity:0;transform:scale(1.6)}}
-body.touch #kb{top:58%;transform:translate(-50%,-50%) scale(.75)}
+#kb{position:absolute;top:60%;left:50%;width:0;height:0;pointer-events:none;--kc:#ff3b4e;--kc2:#ff9aa4}
+#kb>*{position:absolute;left:0;top:0}
+#kb.hs{--kc:#ffc23a;--kc2:#fff2b0}
+#kb .em{width:132px;height:132px;margin:-66px 0 0 -66px;opacity:0}
+#kb svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#kb .fr{fill:#0b0f1e;stroke:var(--kc);stroke-width:3;stroke-linejoin:miter;filter:drop-shadow(0 0 6px var(--kc))}
+#kb .fr2{fill:none;stroke:var(--kc2);stroke-width:1.2;opacity:.8}
+#kb .sk{fill:#f3f5ff} #kb .sk .d{fill:#0b0f1e} #kb .sk .e{fill:var(--kc);filter:drop-shadow(0 0 3px var(--kc))}
+#kb .burst{width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;opacity:0;
+  background:repeating-conic-gradient(var(--kc) 0 3deg,transparent 3deg 22deg);-webkit-mask:radial-gradient(circle,transparent 26%,#000 30%,transparent 70%);mask:radial-gradient(circle,transparent 26%,#000 30%,transparent 70%)}
+#kb .ring{width:150px;height:150px;margin:-75px 0 0 -75px;border:3px solid var(--kc2);border-radius:50%;opacity:0}
+#kb .sh{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:18px solid var(--kc);margin:-9px 0 0 -7px;opacity:0;filter:drop-shadow(0 0 4px var(--kc))}
+#kb .tx{top:74px;transform:translateX(-50%);white-space:nowrap;text-align:center;opacity:0}
+#kb .tx .t1{font-size:22px;font-weight:700;letter-spacing:4px;color:#fff;text-shadow:0 0 10px var(--kc),0 2px 2px #000;font-style:italic}
+#kb .tx .t1 b{color:var(--kc)}
+#kb .tx .t2{display:inline-block;margin-top:2px;padding:1px 16px;background:linear-gradient(90deg,transparent,var(--kc),transparent);font-size:13px;font-weight:700;letter-spacing:3px;color:#0b0f1e}
+#kb .pips{top:-86px;transform:translateX(-50%);display:flex;gap:5px;opacity:0}
+#kb .pips i{width:14px;height:8px;background:var(--kc);clip-path:polygon(0 0,100% 0,50% 100%);filter:drop-shadow(0 0 3px var(--kc))}
+#kb .xh{width:132px;height:132px;margin:-66px 0 0 -66px;opacity:0}
+#kb .xh svg{stroke:#fff;stroke-width:3;fill:none;filter:drop-shadow(0 0 4px var(--kc))}
+#kb.go .em{animation:kbEm 1.9s cubic-bezier(.2,1.4,.4,1) forwards}
+#kb.go .em .fr,#kb.go .em .fr2{transform-origin:66px 66px;animation:kbFr .45s cubic-bezier(.2,1.3,.4,1)}
+#kb.go .burst{animation:kbBurst .7s ease-out forwards}
+#kb.go .ring{animation:kbRing .55s ease-out .05s forwards}
+#kb.go .sh{animation:kbSh .7s cubic-bezier(.1,.8,.3,1) .04s forwards}
+#kb.go .tx{animation:kbTx 1.9s ease-out forwards}
+#kb.go .pips{animation:kbTx 1.9s ease-out .1s forwards}
+#kb.go .xh{animation:kbXh 1.9s ease-out forwards}
+@keyframes kbEm{0%{opacity:0;transform:scale(2.4) rotate(-12deg)}12%{opacity:1;transform:scale(.88) rotate(2deg)}18%{transform:scale(1.06)}22%{transform:scale(1) translate(-3px,1px)}25%{transform:translate(3px,-1px)}28%{transform:none}82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.7)}}
+@keyframes kbFr{0%{transform:scale(1.5) rotate(40deg)}100%{transform:none}}
+@keyframes kbBurst{0%{opacity:0;transform:scale(.4) rotate(0)}20%{opacity:.9}100%{opacity:0;transform:scale(1.3) rotate(35deg)}}
+@keyframes kbRing{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(1.7)}}
+@keyframes kbSh{0%{opacity:1;transform:rotate(var(--a)) translateY(-20px) scale(1.2)}100%{opacity:0;transform:rotate(var(--a)) translateY(-130px) scale(.3) rotate(160deg)}}
+@keyframes kbTx{0%,10%{opacity:0;letter-spacing:18px}24%{opacity:1;letter-spacing:4px}82%{opacity:1}100%{opacity:0}}
+@keyframes kbXh{0%{opacity:0;transform:scale(2.2) rotate(90deg)}14%{opacity:1;transform:scale(.9) rotate(0)}22%{transform:scale(1)}70%{opacity:.9}100%{opacity:0;transform:scale(1.1)}}
+body.touch #kb{top:58%;transform:scale(.75)}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
 #tSlide{right:290px;bottom:60px;width:60px;height:60px}
 /* ---------- touch controls ---------- */
@@ -1122,10 +1145,10 @@ class Server{
       const rushing=MODE==='ctf'&&B.role==='att'&&ef.s==='home'&&dist2(ef.x,ef.z)<30&&(wx||wz);
       if(rushing){wx=wx*0.95+sx*0.2; wz=wz*0.95+sz*0.2;}
       else if(carrying){wx=wx*0.9+sx*0.35; wz=wz*0.9+sz*0.35;}
-      else if(retreat){wx=-ax*0.8+sx*0.6; wz=-az*0.8+sz*0.6;}
+      else if(retreat){wx=-ax*0.45+sx*0.85; wz=-az*0.45+sz*0.85;}
       else if(pushing){wx=wx*0.85+ax*Math.max(rk,0)*0.2+sx*BD.strafe*0.45; wz=wz*0.85+az*Math.max(rk,0)*0.2+sz*BD.strafe*0.45;}
       else if(b.w===2&&b.lastHit>1.5&&al>20){wx=sx*0.25;wz=sz*0.25;}
-      else{wx=wx*0.35+ax*rk*0.6+sx*BD.strafe; wz=wz*0.35+az*rk*0.6+sz*BD.strafe;}
+      else{ const rb=rk<0&&WKEYS[b.w]!=='sniper'?rk*0.3:rk; /* only snipers really back off; others mostly strafe */ wx=wx*0.35+ax*rb*0.6+sx*BD.strafe; wz=wz*0.35+az*rb*0.6+sz*BD.strafe;}
       const l=Math.hypot(wx,wz); if(l>1){wx/=l;wz/=l;}
     }
     // ---- stuck handling: shoot the crate in the way, else jump / jitter
@@ -1820,6 +1843,15 @@ function outlineGeo(geo,t){ // copy of the box grown by t on every side around i
   geo.computeBoundingBox(); const bb=geo.boundingBox, c=bb.getCenter(new THREE.Vector3()), sz=bb.getSize(new THREE.Vector3());
   const g=geo.clone(); g.translate(-c.x,-c.y,-c.z); g.scale((sz.x+2*t)/Math.max(sz.x,1e-4),(sz.y+2*t)/Math.max(sz.y,1e-4),(sz.z+2*t)/Math.max(sz.z,1e-4)); g.translate(c.x,c.y,c.z);
   _outGeo.set(key,g); return g; }
+const _ad=new THREE.Vector3(), _dn=new THREE.Vector3(0,-1,0), _gb=new THREE.Box3();
+function aimArm(A,x,y,z,k){ _ad.set(x,y,z).sub(A.g.position); const len=clamp(_ad.length(),0.3,0.85); _ad.normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(_dn,_ad); A.g.quaternion.slerp(q,k);
+  const sc=len/0.55; A.arm.scale.y+=(sc-A.arm.scale.y)*k; A.hand.position.y+=(-len+0.04-A.hand.position.y)*k; }
+// where the hands go on the current third-person gun (measured once per weapon, in torso space)
+function gunGrips(av){ const gun=av.gun, par=gun.parent; par.remove(gun); gun.updateMatrixWorld(true); _gb.setFromObject(gun); par.add(gun);
+  if(_gb.isEmpty()) return null; const c=_gb.getCenter(new THREE.Vector3()), L=_gb.max.z-_gb.min.z, H=_gb.max.y-_gb.min.y;
+  const k=WKEYS[av.w], one=k==='pistol'||k==='m1911t'||k==='smg'||k==='mp7'||k==='knife';
+  return {R:[c.x,c.y-H*0.25,_gb.max.z-L*(one?0.35:0.22)],L:one?null:[c.x-0.03,c.y-H*0.2,_gb.min.z+L*0.36]}; }
 function makeAvatar(team,name,friendly){
   const g=new THREE.Group(), L=playerLook(name), tint=[], ghosts=[];
   const mat=(hex,rough=0.75,metal=0.05)=>{ const m=new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:metal}); m.userData.baseEm=0; m.userData.baseEi=1; tint.push(m); return m; };
@@ -1842,9 +1874,9 @@ function makeAvatar(team,name,friendly){
     M(new THREE.BoxGeometry(0.1,0.025,0.02),mHair,sx*0.09,0.1,-0.214,head); }   // eyes + brows
   M(new THREE.BoxGeometry(0.12,0.03,0.02),mMouth,0,-0.1,-0.213,head);   // mouth
   if(L.cap){ M(new THREE.BoxGeometry(0.46,0.12,0.46),mCap,0,0.25,0,head); M(new THREE.BoxGeometry(0.4,0.03,0.16),mCap,0,0.2,-0.28,head); }
-  const armR=new THREE.Group(); armR.position.set(0.42,0.45,0); armR.rotation.set(1.35,0,-0.1); torso.add(armR); M(GEO.arm,mJacket,0,0,0,armR); M(GEO.hand,mSkin,0,-0.5,0,armR);
-  const armL=new THREE.Group(); armL.position.set(-0.42,0.45,0); armL.rotation.set(1.3,0,-0.75); torso.add(armL); M(GEO.arm,mJacket,0,0,0,armL); M(GEO.hand,mSkin,0,-0.5,0,armL);
-  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.2,0.3,-0.55); torso.add(gun); avatarGuns.push(gun);
+  const arms=[0.42,-0.42].map(x=>{ const a=new THREE.Group(); a.position.set(x,0.45,0); torso.add(a);
+    return {g:a,arm:M(GEO.arm,mJacket,0,0,0,a),hand:M(GEO.hand,mSkin,0,-0.5,0,a)}; });
+  const gun=AVATAR_GUN.clone(); gun.scale.setScalar(1.2); gun.position.set(0.16,0.32,-0.42); torso.add(gun); avatarGuns.push(gun);
   const shield=new THREE.Mesh(GEO.shield,new THREE.MeshBasicMaterial({color:0x66e0ff,transparent:true,opacity:0.22,wireframe:true})); shield.position.y=1; shield.visible=false; inner.add(shield);
   // outline on the body parts (not the tiny face details), plus the behind-walls silhouette for teammates
   const body=[]; inner.traverse(o=>{ if(o.isMesh&&o!==shield&&o.material.isMeshStandardMaterial) body.push(o); });
@@ -1852,7 +1884,7 @@ function makeAvatar(team,name,friendly){
     if(friendly){ const gh=new THREE.Mesh(o.geometry,GHOST_MAT); gh.renderOrder=20; gh.userData.ghost=true; gh.visible=false; o.add(gh); ghosts.push(gh); } }
   const tag=makeLabel(name,TEAM_CSS[team],!friendly); tag.position.y=2.35;
   g.add(inner,tag);
-  return {g,inner,legs,torso,head,gun,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
+  return {g,inner,legs,torso,head,gun,arms,grip:null,idle:Math.random()*6,tint,ghosts,ghostT:Math.random()*0.2,shield,sl:false,pos:new THREE.Vector3(),target:new THREE.Vector3(),yaw:0,ryaw:0,pitch:0,alive:true,team,walk:0,wasAlive:true,flinch:0,lastY:0,vy:0,step:0};
 }
 // first-person hands use your own look: skin-coloured hands, jacket sleeves
 function setOwnLook(name){ const L=playerLook(name); HAND_MAT.glove.color.setHex(L.skin); HAND_MAT.glove.roughness=0.8; HAND_MAT.sleeve.color.setHex(L.jacket); HAND_MAT.sleeve.roughness=0.85; HAND_MAT.sleeve.metalness=0.05; }
@@ -2615,16 +2647,26 @@ class Client{
       const sp=Math.hypot(av.pos.x-before.x,av.pos.z-before.z)/Math.max(dt,1e-4);
       av.vy+=((av.pos.y-av.lastY)/Math.max(dt,1e-4)-av.vy)*Math.min(1,dt*10); av.lastY=av.pos.y;
       const air=Math.abs(av.vy)>1.5, run=Math.min(1,sp/4);
-      av.walk+=dt*sp*1.6; const sw=Math.sin(av.walk)*run*0.75;
+      // which way are we moving relative to where we face? (-Z is forward): backwards steps play the cycle in reverse
+      const mvx=av.pos.x-before.x, mvz=av.pos.z-before.z, fwd=sp>0.3?(-(mvx*Math.sin(av.ryaw))-(mvz*Math.cos(av.ryaw)))/Math.max(Math.hypot(mvx,mvz),1e-5):1;
+      av.walk+=dt*sp*1.6*(fwd<-0.3?-1:1); const sw=Math.sin(av.walk)*run*(0.45+0.3*Math.abs(fwd));
       av.legs.forEach((L,i)=>{const s_=i?-sw:sw;
-        const hipX=av.sl?-1.25:air?-0.7+i*0.4:s_, kneeX=av.sl?0.2:air?1.1:Math.max(0,-Math.sin(av.walk+(i?Math.PI:0)))*run*1.1;
+        const hipX=av.sl?-1.25:air?-0.7+i*0.4:s_, kneeX=av.sl?-0.2:air?-1.1:-Math.max(0,-Math.sin(av.walk+(i?Math.PI:0)))*run*1.2;
         L.hip.rotation.x+=(hipX-L.hip.rotation.x)*Math.min(1,dt*16); L.knee.rotation.x+=(kneeX-L.knee.rotation.x)*Math.min(1,dt*16);});
       av.inner.rotation.x+=((av.sl?1.05:0)-av.inner.rotation.x)*Math.min(1,dt*14);
       av.inner.position.y=air||av.sl?0:Math.abs(Math.cos(av.walk))*run*0.05;
       // upper body follows aim pitch; hits knock it back for a moment
       av.flinch=Math.max(0,av.flinch-dt);
       const fl=av.flinch>0?Math.sin(av.flinch/0.18*Math.PI)*0.35:0;
-      av.torso.rotation.x=clamp(av.pitch,-1,1)*0.45+fl; av.head.rotation.x=clamp(av.pitch,-1,1)*0.35;
+      av.idle+=dt; const br=Math.sin(av.idle*1.8)*(1-run), bob=Math.sin(av.walk*2)*run;
+      av.torso.rotation.x=clamp(av.pitch,-1,1)*0.45+fl+br*0.02+bob*0.03; av.head.rotation.x=clamp(av.pitch,-1,1)*0.35-br*0.02;
+      av.torso.rotation.z=Math.sin(av.walk)*run*0.05; av.torso.rotation.y=Math.sin(av.idle*0.7)*0.04*(1-run); av.torso.position.y=1.05+br*0.012;
+      // hands: right on the grip, left on the handguard (or swinging at the side for one-handed guns)
+      if(!av.grip||av.gripKey!==av.shownKey){ av.grip=gunGrips(av); av.gripKey=av.shownKey; }
+      if(av.grip){ const G=av.grip, ka=Math.min(1,dt*14), rc=av.flinch>0?0.03:0;
+        aimArm(av.arms[0],G.R[0],G.R[1],G.R[2]+rc,ka);
+        if(G.L) aimArm(av.arms[1],G.L[0],G.L[1]+br*0.01,G.L[2]+rc,ka);
+        else aimArm(av.arms[1],-0.5,-0.25,-0.05-Math.sin(av.walk)*run*0.35,ka); }
       const fl2=av.flinch>0.09; if(fl2!==av._fl){ av._fl=fl2; for(const m of av.tint){ m.emissive.setHex(fl2?0xffffff:m.userData.baseEm); m.emissiveIntensity=fl2?0.8:m.userData.baseEi; } }
       // footsteps of nearby players
       if(av.alive&&!air&&!av.sl&&sp>3){const st=Math.floor(av.walk/Math.PI); if(st!==av.step){av.step=st; const v=this.vol([av.pos.x,av.pos.y,av.pos.z])*1.6-0.6; if(v>0) sfx('step',v*0.8);}}
@@ -2692,12 +2734,26 @@ function killFeed(m,mine){
   d.appendChild(nm(m.v,TEAM_CSS[m.vt]));
   const f=$('feed'); f.prepend(d); while(f.children.length>6) f.lastChild.remove(); setTimeout(()=>d.remove(),7000);
 }
+// fierce skull emblem: spiked badge frame, angular skull with slanted glowing eyes and jagged teeth
+const KB_SVG=`<svg viewBox="0 0 132 132">
+<path class="fr" d="M66 2L78 20L98 8L96 32L120 30L108 50L130 66L108 82L120 102L96 100L98 124L78 112L66 130L54 112L34 124L36 100L12 102L24 82L2 66L24 50L12 30L36 32L34 8L54 20Z"/>
+<path class="fr2" d="M66 22L92 36L104 66L92 96L66 110L40 96L28 66L40 36Z"/>
+<g class="sk" transform="translate(66 62) scale(1.3) translate(-66 -58)"><path d="M44 50Q44 30 66 28Q88 30 88 50L88 64L82 70L82 84L76 88L56 88L50 84L50 70L44 64Z"/>
+<path class="e" d="M48 52L62 58L60 66L50 63Z"/><path class="e" d="M84 52L70 58L72 66L82 63Z"/>
+<path class="d" d="M66 66L62 74L70 74Z"/>
+<path class="d" d="M54 78h24v2.5h-24zM57 76.5h2.5v10h-2.5zM62 76.5h2.5v11h-2.5zM67.5 76.5h2.5v11h-2.5zM72.5 76.5h2.5v10h-2.5z"/>
+<path class="d" d="M66 28L63 36L68 40L64 46" stroke="#0b0f1e" stroke-width="1.6" fill="none"/>
+<path class="d" d="M44 50L36 42L46 46ZM88 50L96 42L86 46Z"/></g></svg>`;
+const KB_XH=`<svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56"/><path d="M66 0v26M66 106v26M0 66h26M106 66h26"/><path d="M48 18L66 4L84 18" stroke-width="2"/></svg>`;
 let kbTO=0;
 function killBanner(victim,n,head){
-  const k=$('kb'), col=head?'#ffd23f':n>=5?'#ff3df0':n>=3?'#ff5c5c':'#ff4655';
-  k.style.setProperty('--kc',col);
-  k.innerHTML=`<div class="ic">${'<div class="rg"></div>'.repeat(Math.min(5,Math.max(1,n)))}<div class="sh"></div>${WICON.skull.replace('<svg','<svg class="sk"')}</div><div class="nm">${head?'HEADSHOT · ':''}ELIMINATED <b>${escapeHtml(String(victim).replace(' 🤖',''))}</b></div>`;
-  k.classList.remove('show'); void k.offsetWidth; k.classList.add('show'); clearTimeout(kbTO); kbTO=setTimeout(()=>k.classList.remove('show'),1600);
+  const k=$('kb'); n=Math.max(1,Math.min(5,n|0));
+  let sh=''; for(let i=0;i<10;i++) sh+=`<i class="sh" style="--a:${i*36+((i*53)%20)}deg"></i>`;
+  k.className=head?'hs':'';
+  k.innerHTML=`<div class="burst"></div><div class="ring"></div>${sh}${head?`<div class="xh">${KB_XH}</div>`:''}<div class="em">${KB_SVG}</div>`+
+    `<div class="pips">${'<i></i>'.repeat(n)}</div>`+
+    `<div class="tx"><div class="t1">ELIMINATED <b>${escapeHtml(String(victim).replace(' 🤖',''))}</b></div>${head?'<div class="t2">HEADSHOT</div>':n>1?`<div class="t2">x${n} STREAK</div>`:''}</div>`;
+  void k.offsetWidth; k.classList.add('go'); clearTimeout(kbTO); kbTO=setTimeout(()=>{k.className=''; k.innerHTML='';},1950);
 }
 let stTO=0;
 function streakBanner(txt){const s=$('streak'); s.textContent=txt; s.classList.remove('show'); void s.offsetWidth; s.classList.add('show'); clearTimeout(stTO); stTO=setTimeout(()=>s.classList.remove('show'),1800);}
