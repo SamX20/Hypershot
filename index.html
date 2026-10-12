@@ -3230,7 +3230,7 @@ let _ranksKey='';
 let _lobbyKey='';
 let _tlIcon='';
 function updateLoadIcon(c){ const k=WKEYS[(c.nextLoad||c.load).p], u=gunIcon(k); if(!u||_tlIcon===k) return; _tlIcon=k; $('tLoad').innerHTML=`<img class="gi" src="${u}" alt="">`; }
-function drawLobby(c,s){ if(TOUCH) updateLoadIcon(c); const lb=s.lb; $('lobbyHud').classList.toggle('hidden',!lb); document.body.classList.toggle('inlobby',!!lb);
+function drawLobby(c,s){ updateLoadIcon(c); const lb=s.lb; $('lobbyHud').classList.toggle('hidden',!lb); document.body.classList.toggle('inlobby',!!lb);
   const near=lb&&Math.hypot(c.me.x-(LOBBY.x+LOBBY.half-1.2),c.me.z-LOBBY.z)<3.2; $('armHint').classList.toggle('hidden',!near||loadoutOpen); if(near&&$('armHint').dataset.t!==String(TOUCH)){ $('armHint').dataset.t=String(TOUCH); $('armHint').innerHTML=TOUCH?'🔫 اضغط هون لفتح معرض الأسلحة':'اكبس <kbd>B</kbd> لفتح معرض الأسلحة'; }
   if(!lb) return;
   const hs=s.p.filter(p=>!p.b), ready=new Set(lb.r), all=hs.length&&ready.size===hs.length;
