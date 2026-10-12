@@ -62,6 +62,8 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 .fi.k{direction:ltr;border-left:3px solid var(--ac,#fff)}
 .fi.me{background:rgba(255,210,63,.18);border-color:#ffd23f;box-shadow:0 0 10px rgba(255,210,63,.25)}
 .fi svg{height:16px;width:auto;fill:#e8ecff;flex:none}
+.fi .gi{height:20px;width:auto;flex:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
+#tLoad .gi{width:70%;height:auto;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 .fi .hs{fill:#ffd23f}
 @keyframes fin{from{opacity:0;transform:translateX(20px)}to{opacity:1}}
 #bl{position:absolute;bottom:18px;left:18px;width:300px;direction:rtl}
@@ -3134,11 +3136,27 @@ const WICON={
   skull:'<svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 3 5.7 3 10.5c0 2.8 1.3 4.8 3 6V20c0 1 .8 2 2 2h1v-3h2v3h2v-3h2v3h1c1.2 0 2-1 2-2v-3.5c1.7-1.2 3-3.2 3-6C21 5.7 17.5 2 12 2zM8.5 14a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4zm7 0a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4z"/></svg>',
   head:'<svg viewBox="0 0 24 24" class="hs"><circle cx="12" cy="12" r="9" fill="none" stroke="#ffd23f" stroke-width="2.5"/><circle cx="12" cy="12" r="3.5" fill="#ffd23f"/></svg>'};
 const WCLASS={}; for(const k of WKEYS){ const c=k==='m16'||k==='scar'?'rifle':k==='mp7'?'smg':k==='m1911t'?'pistol':k; WCLASS[W[k].name]=c; }
+const GUN_ICON={}, ICON_MAT=new THREE.MeshBasicMaterial({color:0xffffff});
+let iconR=null;
+function gunIcon(k){
+  if(GUN_ICON[k]) return GUN_ICON[k]; const src=AVATAR_MODELS[k]; if(!src) return null;
+  const W_=256,H_=96;
+  if(!iconR){ iconR=new THREE.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true}); iconR.setPixelRatio(1); iconR.setSize(W_,H_); iconR.setClearColor(0x000000,0); }
+  const obj=src.clone(true); obj.traverse(o=>{ if(o.isPoints||o.userData.aura) o.visible=false; else if(o.isMesh) o.material=ICON_MAT; });
+  const sc=new THREE.Scene(); sc.add(obj); obj.updateMatrixWorld(true);
+  const b=new THREE.Box3(); obj.traverse(o=>{ if(o.isMesh&&o.visible) b.expandByObject(o); });
+  const sz=b.getSize(new THREE.Vector3()), c=b.getCenter(new THREE.Vector3());
+  const hw=Math.max(sz.z/2,sz.y/2*W_/H_)*1.04, hh=hw*H_/W_;
+  // camera on +X looking at the gun's left side: the muzzle (-Z) points to the right of the icon
+  const cam=new THREE.OrthographicCamera(-hw,hw,hh,-hh,0.01,50); cam.position.set(c.x+10,c.y,c.z); cam.lookAt(c);
+  iconR.render(sc,cam); return (GUN_ICON[k]=iconR.domElement.toDataURL('image/png')); }
+const NAME2KEY={}; for(const k of WKEYS) NAME2KEY[W[k].name]=k;
+function gunIconHTML(name,cls){ const k=NAME2KEY[name], u=k&&gunIcon(k); return u?`<img class="${cls||'gi'}" src="${u}" alt="">`:(WICON[WCLASS[name]]||WICON.skull); }
 function killFeed(m,mine){
   const d=document.createElement('div'); d.className='fi k'+(mine?' me':''); d.style.setProperty('--ac',TEAM_CSS[m.at]);
   const nm=(t,c)=>{const s=document.createElement('span'); s.textContent=String(t).replace(' 🤖',''); s.style.color=c; return s;};
   d.appendChild(nm(m.a||'',TEAM_CSS[m.at]));
-  const ic=document.createElement('span'); ic.innerHTML=(WICON[WCLASS[m.w]]||WICON.skull)+(m.h?WICON.head:''); ic.style.display='flex'; ic.style.gap='4px'; ic.title=m.w; d.appendChild(ic);
+  const ic=document.createElement('span'); ic.innerHTML=gunIconHTML(m.w)+(m.h?WICON.head:''); ic.style.display='flex'; ic.style.gap='4px'; ic.title=m.w; d.appendChild(ic);
   d.appendChild(nm(m.v,TEAM_CSS[m.vt]));
   const f=$('feed'); f.prepend(d); while(f.children.length>6) f.lastChild.remove(); setTimeout(()=>d.remove(),7000);
 }
@@ -3210,7 +3228,9 @@ function AVATAR_SVG(name){
 let _ranksKey='';
 // ---------- lobby HUD: who is ready, countdown, armory hint
 let _lobbyKey='';
-function drawLobby(c,s){ const lb=s.lb; $('lobbyHud').classList.toggle('hidden',!lb); document.body.classList.toggle('inlobby',!!lb);
+let _tlIcon='';
+function updateLoadIcon(c){ const k=WKEYS[(c.nextLoad||c.load).p], u=gunIcon(k); if(!u||_tlIcon===k) return; _tlIcon=k; $('tLoad').innerHTML=`<img class="gi" src="${u}" alt="">`; }
+function drawLobby(c,s){ if(TOUCH) updateLoadIcon(c); const lb=s.lb; $('lobbyHud').classList.toggle('hidden',!lb); document.body.classList.toggle('inlobby',!!lb);
   const near=lb&&Math.hypot(c.me.x-(LOBBY.x+LOBBY.half-1.2),c.me.z-LOBBY.z)<3.2; $('armHint').classList.toggle('hidden',!near||loadoutOpen); if(near&&$('armHint').dataset.t!==String(TOUCH)){ $('armHint').dataset.t=String(TOUCH); $('armHint').innerHTML=TOUCH?'🔫 اضغط هون لفتح معرض الأسلحة':'اكبس <kbd>B</kbd> لفتح معرض الأسلحة'; }
   if(!lb) return;
   const hs=s.p.filter(p=>!p.b), ready=new Set(lb.r), all=hs.length&&ready.size===hs.length;
