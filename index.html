@@ -11,6 +11,8 @@
 <style>
 :root{--red:#ff3b5c;--blue:#2fa8ff;--cyan:#00e5ff;--bg:#070a18;--panel:rgba(10,14,32,.82);--text:#e8ecff}
 *{box-sizing:border-box}
+/* everything still scrolls, but no scrollbars are drawn anywhere */
+*{scrollbar-width:none;-ms-overflow-style:none} *::-webkit-scrollbar{display:none;width:0;height:0}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Rajdhani","Cairo","Segoe UI",Tahoma,Arial,sans-serif;user-select:none}
 #game canvas{display:block}
 .hidden{display:none!important}
