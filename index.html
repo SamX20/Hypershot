@@ -104,6 +104,8 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #board tr.me{background:rgba(255,255,255,.08)}
 #lobbyHud{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);text-align:center;direction:rtl;pointer-events:none;padding:8px 18px;border-radius:12px;background:rgba(10,14,34,.7);border:1px solid rgba(120,200,255,.35)}
 body.inlobby #mini,body.inlobby #ranks,body.inlobby #top{display:none}
+body.touch #lobbyHud{top:8px;bottom:auto;padding:4px 12px;max-width:46vw} body.touch #lobbyMsg{font-size:12px;margin:0 0 3px} body.touch #lobbyMsg b{font-size:16px}
+body.touch #lobbyHud .lt{font-size:10px} body.touch #lobbyList span{font-size:10px;padding:1px 5px} body.touch #armHint{bottom:auto;top:90px;font-size:14px;pointer-events:auto;padding:8px 16px;background:rgba(80,40,160,.9)}
 #lobbyHud .lt{font-size:13px;letter-spacing:3px;color:#7fd8ff;font-weight:800}
 #lobbyMsg{font-size:18px;font-weight:700;margin:2px 0 6px}
 #lobbyMsg b{color:#3dff8a;font-size:26px}
@@ -1492,7 +1494,11 @@ function setHQ(on){
 // narrow/portrait screens: widen the weapon camera so the gun doesn't swallow the view
 const fitVm=()=>{const a=innerWidth/innerHeight; vmCam.aspect=a; vmCam.fov=a<1.4?Math.min(100,65*Math.pow(1.4/a,0.7)):65; vmCam.updateProjectionMatrix();};
 fitVm();
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight); if(composer) composer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); fitVm();});
+let _vw=0,_vh=0;
+function fitView(){ const w=innerWidth,h=innerHeight; if(w===_vw&&h===_vh) return; _vw=w; _vh=h;
+  renderer.setSize(w,h); if(composer) composer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); fitVm(); }
+// phones report the old size during rotation, so the size is also re-checked every frame (cheap: two numbers compared)
+addEventListener('resize',fitView); addEventListener('orientationchange',()=>setTimeout(fitView,300));
 
 scene.add(new THREE.HemisphereLight(...THEME.hemi));
 const sun=new THREE.DirectionalLight(DAY?0xfff1d6:0xffffff,DAY?2.4:0.7); sun.position.set(DAY?40:20,DAY?80:60,DAY?25:10); scene.add(sun);
@@ -2983,7 +2989,7 @@ let _ranksKey='';
 // ---------- lobby HUD: who is ready, countdown, armory hint
 let _lobbyKey='';
 function drawLobby(c,s){ const lb=s.lb; $('lobbyHud').classList.toggle('hidden',!lb); document.body.classList.toggle('inlobby',!!lb);
-  const near=lb&&Math.hypot(c.me.x-(LOBBY.x+LOBBY.half-1.2),c.me.z-LOBBY.z)<3.2; $('armHint').classList.toggle('hidden',!near||loadoutOpen);
+  const near=lb&&Math.hypot(c.me.x-(LOBBY.x+LOBBY.half-1.2),c.me.z-LOBBY.z)<3.2; $('armHint').classList.toggle('hidden',!near||loadoutOpen); if(near&&$('armHint').dataset.t!==String(TOUCH)){ $('armHint').dataset.t=String(TOUCH); $('armHint').innerHTML=TOUCH?'🔫 اضغط هون لفتح معرض الأسلحة':'اكبس <kbd>B</kbd> لفتح معرض الأسلحة'; }
   if(!lb) return;
   const hs=s.p.filter(p=>!p.b), ready=new Set(lb.r), all=hs.length&&ready.size===hs.length;
   $('lobbyMsg').innerHTML=all?`الدخول للمباراة بعد <b>${Math.max(1,Math.ceil(3-lb.t))}</b>`:'ادخل الدائرة بالنص لما تكون جاهز — جهّز أسلحتك من المعرض';
@@ -3192,6 +3198,7 @@ function drawArmory(){
     d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
     d.onclick=()=>{ ARM.sk=i; drawArmory(); }; box.appendChild(d); });
 }
+$('armHint').onclick=()=>{ if(client&&client.lobbyOn) openArmory(); };
 $('armSave').onclick=()=>{ const cur=client.nextLoad||client.load, k=WKEYS[ARM.w];
   if(ARM.slot!=='k'&&cur[ARM.slot]!==ARM.w) chooseLoad({...cur,[ARM.slot]:ARM.w});
   chooseSkin(k,ARM.sk); sfx('pick'); drawArmory(); showMsg('✓ انحفظ',900); };
@@ -3424,6 +3431,7 @@ function frame(){
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
   updateFx(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt); AURA_T.value=t;
+  fitView();
   if(armOpen) renderArmory(dt); else if(loadoutOpen) renderLoPreview(dt);
   if(barriers[0].visible) barriers.forEach(b=>{ b.material.map.offset.y=t*0.25; b.material.opacity=0.28+Math.sin(t*3)*0.08; });
   renderer.clear(); if(composer) composer.render(); else renderer.render(scene,camera); renderer.clearDepth(); renderer.render(vmScene,vmCam);
