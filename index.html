@@ -4245,15 +4245,42 @@ $('cl').textContent={ctf:`أول من يجمع ${SCORE_LIMIT} أعلام`,tdm:`�
 // ===== main menu scene =====
 const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
   const R=new THREE.WebGLRenderer({canvas:cv,antialias:true}); R.setPixelRatio(Math.min(devicePixelRatio,1.5)); R.toneMapping=THREE.ACESFilmicToneMapping; R.outputColorSpace=THREE.SRGBColorSpace;
-  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x05070f); sc.fog=new THREE.Fog(0x05070f,8,22);
+  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x0a1230); sc.fog=new THREE.Fog(0x0a1230,9,34);
   sc.environment=new THREE.PMREMGenerator(R).fromScene(new RoomEnvironment(),0.04).texture;
   const key=new THREE.SpotLight(0xffffff,60,20,0.5,0.6); key.position.set(-3,6,4); sc.add(key,key.target);
-  const rim=new THREE.PointLight(0x00e5ff,18,10); rim.position.set(2,2.2,-2.5); const rim2=new THREE.PointLight(0xff3b5c,10,10); rim2.position.set(-2.5,1.5,-2); sc.add(rim,rim2,new THREE.HemisphereLight(0x8899ff,0x110a20,0.5));
-  // floor: dark metal disc, glowing ring, faint grid
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(9,64),new THREE.MeshStandardMaterial({color:0x0c0f1c,metalness:0.7,roughness:0.45})); floor.rotation.x=-Math.PI/2; sc.add(floor);
+  const rim=new THREE.PointLight(0x00e5ff,14,10); rim.position.set(2,2.2,-2.5); const rim2=new THREE.PointLight(0xff3b5c,8,10); rim2.position.set(-2.5,1.5,-2); sc.add(rim,rim2,new THREE.HemisphereLight(0x6f86ff,0x140c08,0.55));
+  // ---- night in Fantasy Town: moonlight, warm lanterns, a little plaza with houses behind the soldier (Kenney Fantasy Town kit, CC0)
+  const moon=new THREE.DirectionalLight(0x9db4ff,1.1); moon.position.set(-6,10,-4); sc.add(moon);
+  const moonDisc=new THREE.Mesh(new THREE.CircleGeometry(1.4,40),new THREE.MeshBasicMaterial({color:0xe8eeff,fog:false})); moonDisc.position.set(-14,15,-30); sc.add(moonDisc);
+  const glowC=document.createElement('canvas'); glowC.width=glowC.height=128; { const x=glowC.getContext('2d'), gr=x.createRadialGradient(64,64,0,64,64,64); gr.addColorStop(0,'rgba(200,215,255,.55)'); gr.addColorStop(1,'rgba(200,215,255,0)'); x.fillStyle=gr; x.fillRect(0,0,128,128); }
+  const moonGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(glowC),fog:false,depthWrite:false,transparent:true})); moonGlow.scale.set(12,12,1); moonGlow.position.copy(moonDisc.position); sc.add(moonGlow);
+  { const n=500, sp=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, e=Math.random()*1.2+0.1; sp[i*3]=Math.cos(a)*40*Math.cos(e); sp[i*3+1]=Math.sin(e)*40; sp[i*3+2]=Math.sin(a)*40*Math.cos(e)-10; }
+    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sc.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.12,fog:false,transparent:true,opacity:0.8}))); }
+  const lampLights=[]; for(const [x,z] of [[-6,-4.5],[3.2,-7.5],[9,-3]]){ const L=new THREE.PointLight(0xffa64a,10,12,1.5); L.position.set(x,2.6,z); sc.add(L); lampLights.push(L); }
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(40,48),new THREE.MeshStandardMaterial({color:0x2a2a2e,roughness:0.95})); floor.rotation.x=-Math.PI/2; floor.position.y=-0.01; sc.add(floor);
+  { const L=new GLTFLoader(), cache={}, S=2.4, get=n=>cache[n]||(cache[n]=new Promise(r=>L.load('assets/fantasy/'+n+'.glb',g=>r(g.scene),undefined,()=>r(null))));
+    const put=async(n,x,y,z,ry=0,s=S)=>{ const m=await get(n); if(!m) return; const o=m.clone(); o.position.set(x,y,z); o.rotation.y=ry; o.scale.setScalar(s); o.traverse(q=>{ if(q.isMesh&&q.material&&!q.material.userData.night){ q.material.envMapIntensity=0.12; q.material.userData.night=1; } }); sc.add(o); return o; }; /* night: barely any studio reflection on the town */
+    // cobblestone plaza
+    for(let i=-6;i<=6;i++) for(let j=-7;j<=1;j++) put('road',i*S,0,j*S).then(o=>o&&o.traverse(q=>{ if(q.isMesh){ q.material=q.material.clone(); q.material.color.setScalar(0.5); } })); /* darker cobbles at night */
+    // a house = 1×1 cell box of wall panels per floor + roof (panels sit on the cell's +x edge, so rotate for each side)
+    const house=(x,z,floors,stone,roof,face=0)=>{ for(let f=0;f<floors;f++) for(let k=0;k<4;k++){ const front=k===3; /* rotating the +x panel by 270° puts it on the +z side, facing the camera */
+        const n=(stone&&f===0?'wall':'wall-wood')+(front?(f===0?'-door':'-window-shutters'):(f>0&&k!==1?'-window-small':''));
+        put(n,x,f*S,z,face+k*Math.PI/2); }
+      put(roof,x,floors*S,z,face); };
+    // a continuous street front behind the plaza, varied heights and roofs
+    const row=[[2,1,'roof-high-gable'],[1,0,'roof-high-point'],[2,1,'roof-gable'],[2,1,'roof-high-gable'],[1,0,'roof-high-point'],[2,1,'roof-gable'],[1,0,'roof-high-gable'],[2,1,'roof-high-point'],[1,1,'roof-gable'],[2,0,'roof-high-gable'],[1,1,'roof-high-point']];
+    row.forEach(([f,st,rf],i)=>house((i-5)*S,-17-(i%3)*0.35,f,!!st,rf));
+    put('banner-red',-2*S,S*0.9,-17.35,Math.PI/2); put('banner-green',3*S,S*0.9,-17.7,Math.PI/2); put('banner-red',-3*S,S*0.9,-17,Math.PI/2);
+    put('fountain-round',-4.5,0,-8.5,0,1.6); put('fountain-center',-4.5,0,-8.5,0,1.6);
+    put('stall-red',-9,0,-7,0.5,2.2); put('stall-green',8,0,-9,-0.6,2.2); put('cart',5,0,-4.5,-0.9,2.0); put('stall-bench',-7.5,0,-3.5,1.2,2.0);
+    put('lantern',-6,0,-4.5,0,1.8); put('lantern',3.2,0,-7.5,0,1.8); put('lantern',9,0,-3,0,1.8);
+    for(const [x,z,n] of [[-13,-9,'tree-high-round'],[13,-10,'tree-high'],[-12,-3,'tree'],[12.5,-2.5,'tree-crooked'],[15,-14,'tree-high-crooked'],[-15,-14,'tree-high-round']]) put(n,x,0,z,Math.random()*6,2.2);
+    put('rock-large',9,0,-11,0.4,1.6); put('rock-small',-10,0,-11,0,1.6);
+  }
+  let MMWIND=null;
   const ring=new THREE.Mesh(new THREE.RingGeometry(1.05,1.12,96),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0.8})); ring.rotation.x=-Math.PI/2; ring.position.y=0.01; sc.add(ring);
   const ring2=new THREE.Mesh(new THREE.RingGeometry(1.5,1.52,96),new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:0.25})); ring2.rotation.x=-Math.PI/2; ring2.position.y=0.01; sc.add(ring2);
-  const grid=new THREE.GridHelper(18,36,0x1b2b55,0x111a33); grid.position.y=0.005; grid.material.transparent=true; grid.material.opacity=0.35; sc.add(grid);
+
   // floating dust
   const N=220, pp=new Float32Array(N*3); for(let i=0;i<N;i++){ pp[i*3]=rand(-6,6); pp[i*3+1]=rand(0,5); pp[i*3+2]=rand(-6,3); }
   const dg=new THREE.BufferGeometry(); dg.setAttribute('position',new THREE.BufferAttribute(pp,3));
@@ -4281,8 +4308,10 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
     const sw=Math.sin(t*1.7)*0.02, sw2=Math.sin(t*0.9+1)*0.03;
     aimArm(av.arms[0],0.52,-0.22+sw,0.04+sw2,1); aimArm(av.arms[1],-0.52,-0.22-sw,0.04-sw2,1);
     // camera: soldier on the right third, slow drift
-    const nar=w<760; cam.position.set((nar?0:-1.6)+Math.sin(t*0.15)*0.3,1.7+Math.sin(t*0.2)*0.05,6.2); cam.lookAt(nar?0:-1.6,1.15,0);
+    const nar=w<760; cam.position.set((nar?0:-1.6)+Math.sin(t*0.15)*0.3,1.35+Math.sin(t*0.2)*0.05,6.2); cam.lookAt(nar?0:-1.6,1.45,0);
     ring.material.opacity=0.6+Math.sin(t*2)*0.2; ring2.rotation.z+=dt*0.1; dust.rotation.y+=dt*0.02; AURA_T.value=t;
+    for(let i=0;i<lampLights.length;i++) lampLights[i].intensity=8+Math.sin(t*9+i*3)*0.6+Math.sin(t*23+i)*0.4; /* lantern flicker */
+    if(MMWIND) MMWIND.rotation.x+=dt*0.35;
     R.render(sc,cam); }
   frame();
   return { stop(){ on=false; }, start(){ if(!on){ on=true; last=performance.now(); frame(); } } };
