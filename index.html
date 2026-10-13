@@ -3632,6 +3632,15 @@ function drawMini(c){
       mini.strokeStyle=TEAM_CSS[c.team]; mini.lineWidth=2; mini.stroke(); } mini.globalAlpha=1; }
   if(c.alive){ const x=X(c.me.x),z=Z(c.me.z),a=c.yaw; mini.fillStyle='#fff'; mini.beginPath();
     mini.moveTo(x-Math.sin(a)*6,z-Math.cos(a)*6); mini.lineTo(x-Math.sin(a+2.5)*4,z-Math.cos(a+2.5)*4); mini.lineTo(x-Math.sin(a-2.5)*4,z-Math.cos(a-2.5)*4); mini.fill(); }
+  if(c.online&&c.ping!=null) drawPing(c.ping,Wd);
+}
+// ping badge in the minimap's top-right corner (online games only): signal bars + ms, green / yellow / red
+function drawPing(ms,Wd){
+  const col=ms<80?'#3dff8a':ms<150?'#ffd54a':'#ff4d5e', bars=ms<80?4:ms<150?3:ms<250?2:1, txt=ms+'ms';
+  mini.font='bold 15px sans-serif'; const tw=mini.measureText(txt).width, w=tw+30, x0=Wd-w-3, y0=3;
+  mini.fillStyle='rgba(0,0,0,.6)'; mini.beginPath(); mini.roundRect?mini.roundRect(x0,y0,w,20,6):mini.rect(x0,y0,w,20); mini.fill();
+  for(let i=0;i<4;i++){ mini.fillStyle=i<bars?col:'rgba(255,255,255,.25)'; mini.fillRect(x0+5+i*5,y0+16-(i+1)*3.2,3.5,(i+1)*3.2); }
+  mini.fillStyle=col; mini.textAlign='left'; mini.textBaseline='middle'; mini.fillText(txt,x0+26,y0+10.5);
 }
 
 /* =====================================================================
@@ -4032,7 +4041,7 @@ function srvStart(q,onFail){
         if(m.map!==MAP_ID||m.mode!==MODE||m.diff!==DIFF){ // this page was built for another map: reload into the room's config
           try{ ws.onclose=null; ws.close(); sessionStorage.setItem('hs_auto','sjoin'); localStorage.setItem('hs_name',$('name').value.trim()); }catch(e){}
           location.replace(location.pathname+`?map=${m.map}&mode=${m.mode}&diff=${m.diff}#${m.code}`); return; }
-        client=new Client(x=>{ if(ws.readyState===1) ws.send(JSON.stringify(x)); });
+        client=new Client(x=>{ if(ws.readyState===1) ws.send(JSON.stringify(x)); }); client.online=true;
         ws.send(JSON.stringify({t:'ready'})); client.send({t:'join',name:getName()});
         const room=$('room'); room.classList.remove('hidden'); room.innerHTML='<span class="rx">🖥️ غرفة السيرفر: </span><b></b><span class="rx"> — أرسل الكود لأصحابك</span>'; room.querySelector('b').textContent=m.code;
         JOIN_CODE=m.code; ws.onclose=()=>{ showMsg('انقطع الاتصال بالسيرفر',100000); setTimeout(()=>location.reload(),3000); };
@@ -4059,7 +4068,7 @@ function joinRoomP2P(code){
     const conn=peer.connect(PREFIX+code,{reliable:true,serialization:'json'});
     conn.on('open',()=>{
       clearTimeout(to);
-      client=new Client(m=>{ try{ if(conn.open) conn.send(m); }catch(e){} });
+      client=new Client(m=>{ try{ if(conn.open) conn.send(m); }catch(e){} }); client.online=true;
       conn.on('data',d=>{ if(d&&typeof d==='object') client.onMessage(d); });
       conn.on('close',()=>{ showMsg('انقطع الاتصال بالمضيف',100000); setTimeout(()=>location.reload(),3000); });
       client.send({t:'join',name:getName()});
