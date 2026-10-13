@@ -1147,7 +1147,7 @@ class Server{
           p.vio=(p.vio||0)+1; this.send(p.id,{t:'fix',x:r2(p.x),y:r2(p.y),z:r2(p.z)}); break; }
         p.x=nx; p.y=ny; p.z=nz; p.vx=+m.vx||0; p.vz=+m.vz||0; p.yaw=+m.yw||0; p.pitch=+m.pt||0; if(this.held(p).includes(m.w|0)) p.w=m.w|0; p.sl=m.sl?1:0;
         break;}
-      case 'po': if(p) p.rtt=clamp(this.now-(+m.s||0),0,1); break;
+      case 'po': if(p) p.rtt=clamp(performance.now()/1000-(+m.s||0),0,1) /* wall clock, not tick time (ticks are 33 ms apart and made ping read too low) */; break;
       case 'rl':{ // reload: the mag refills on the server after the reload time
         if(!p||!p.alive) return; const wi=m.w|0, w=W[WKEYS[wi%NW]]; if(!w||w.melee||!this.held(p).includes(wi)) return;
         if(!(p.rlEnd&&p.rlW===wi)){ p.rlW=wi; p.rlEnd=this.now+w.reload*0.85; }
@@ -1346,7 +1346,7 @@ class Server{
   ammoReady(p,w){ if(p.rlEnd&&this.now>=p.rlEnd-0.3){ /* grace: the client's reload finishes ~rtt/2 before ours */ if(p.rlW===w) p.ammo[w]=W[WKEYS[w]].mag; p.rlEnd=0; } return !(p.rlEnd&&p.rlW===w); }
   tick(dt){
     this.now+=dt; this.record();
-    if((this.pingT-=dt)<=0){ this.pingT=2; for(const p of this.players.values()) if(!p.isBot) this.send(p.id,{t:'pg',s:this.now,r:p.rtt??null}); }
+    if((this.pingT-=dt)<=0){ this.pingT=2; for(const p of this.players.values()) if(!p.isBot) this.send(p.id,{t:'pg',s:performance.now()/1000,r:p.rtt??null}); }
     if(this.lobby){ // everyone (humans) inside the ring for 3 s → go
       for(const p of this.players.values()) if(!p.alive&&!p.isBot) this.spawn(p);
       const hs=[...this.players.values()].filter(p=>!p.isBot&&p.alive);
