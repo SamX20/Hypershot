@@ -40,6 +40,8 @@ body.touch #hud,body.touch #touch{top:calc(env(safe-area-inset-top,0px) + 12px);
 #pingB{display:inline-flex;align-items:flex-end;gap:2px;margin-inline-start:8px;padding-inline-start:8px;border-inline-start:1px solid rgba(255,255,255,.2);direction:ltr;vertical-align:middle;font-weight:800}
 #pingB i{width:3px;border-radius:1px}#pingB i:nth-child(1){height:4px}#pingB i:nth-child(2){height:7px}#pingB i:nth-child(3){height:10px}#pingB i:nth-child(4){height:13px}#pingB em{font-style:normal;margin-left:4px;line-height:13px}
 .dn.cn{color:#ffd54a;font-size:18px;text-shadow:0 0 6px #000,0 2px 0 #7a5200}.dn.gm{color:#5ff4ff;text-shadow:0 0 6px #000,0 2px 0 #00606b}
+.wal{font-size:12px;color:#ffd54a;direction:ltr;margin-top:2px} .wal b{font-size:13px}
+.sw.lock{position:relative} .sw.lock i{filter:grayscale(.6) brightness(.6)} .sw.lock .pr{position:absolute;top:2px;left:2px;font-size:10px;font-weight:800;background:rgba(0,0,0,.7);color:#ffd54a;border-radius:5px;padding:0 4px;direction:ltr}
 #dmgLog{position:absolute;left:12px;top:46%;display:flex;flex-direction:column;gap:3px;direction:rtl;pointer-events:none;font-size:13px;font-weight:700}
 #dmgLog .dl{padding:2px 9px;border-radius:5px;background:rgba(8,12,30,.7);transition:opacity .6s;white-space:nowrap}
 #dmgLog .dl.out{color:#ffd54a;border-right:3px solid #ffd54a} #dmgLog .dl.in{color:#ff6b7d;border-right:3px solid #ff4d5e} #dmgLog .dl.old{opacity:0}
@@ -596,7 +598,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="lcat">السلاح الثانوي (زر 2)</div><div class="lrow" id="loS"></div>
   <div class="lcat">السكن</div>
   <div id="loTabs"><b data-t="p">الرئيسي</b><b data-t="s">الثانوي</b><b data-t="k">السكين</b></div>
-  <div id="loSkins"></div>
+  <div class="wal" id="loWallet"></div><div id="loSkins"></div>
   </div><div class="lside">
   <div class="lskin"><canvas id="loPrev"></canvas><div id="loPrevName"></div></div>
   <div class="lnote">🔪 السكين معك دايماً (زر 3) — بتركض فيه أسرع، و3 طعنات بتقتل<br>إذا مات حدا بيوقع سلاحه — قرّب منه واضغط <b>F</b> لتبدّله بسلاحك</div>
@@ -607,7 +609,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
   <div class="ahead"><div class="at">ARMORY</div><div class="as">معرض الأسلحة</div></div>
   <div class="ainfo"><div id="armName"></div><div id="armSkinName"></div><div id="armStats"></div></div>
   <div class="aright"><div class="aslots" id="armSlots"></div>
-  <div class="askins"><div class="ah">السكنات</div><div id="armSkins"></div></div></div>
+  <div class="askins"><div class="ah">السكنات <span class="wal" id="armWallet"></span></div><div id="armSkins"></div></div></div>
   <div class="aguns" id="armGuns"></div>
   <div class="abtns"><button class="btn" id="armSave">✓ تجهيز وحفظ</button><button class="btn ghost" id="armBack">✕ رجوع</button></div>
   <div class="ahint">اسحب بالماوس لتلف السلاح • العجلة للتقريب</div>
@@ -646,7 +648,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
 
 <div id="lobby">
   <canvas id="mmCv"></canvas>
-  <div class="mmCard"><div class="mmAv" id="mmAv"></div><div><div class="mmN" id="mmName">Player</div><div class="mmR">جاهز للقتال</div></div></div>
+  <div class="mmCard"><div class="mmAv" id="mmAv"></div><div><div class="mmN" id="mmName">Player</div><div class="mmR">جاهز للقتال</div><div class="wal" id="mmWallet"></div></div></div>
   <div class="mmVer">HYPER SHOT · BETA</div>
   <div class="lob">
     <div class="logo">HYPER<b>SHOT</b></div>
@@ -2882,6 +2884,19 @@ const SKINS=[
   {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3, ribbons:0xffd65a, aura:0xffd65a, fx:'star'},
 ];
 const RARITY=[{n:'عادي',c:'#9aa3ad'},{n:'مميّز',c:'#3fd36b'},{n:'نادر',c:'#3fa0ff'},{n:'ملحمي',c:'#b24cff'},{n:'أسطوري',c:'#ffb000'}];
+// ---- skin shop: coins/gems from kills buy skins (saved on this device for now; moves to the account server later)
+const PRICE=[null,{c:150},{c:400},{c:900},{g:40}]; // by rarity; legendary costs gems
+function ownedSkins(){ let o=null; try{ o=JSON.parse(localStorage.getItem('hs_owned')||'null'); }catch(e){}
+  if(!o){ o=[0]; for(const v of Object.values(SET.skins||{})) if(!o.includes(v|0)) o.push(v|0); try{ localStorage.setItem('hs_owned',JSON.stringify(o)); }catch(e){} } return o; } // first run: keep what you already use
+const ownsSkin=i=>!PRICE[(SKINS[i]&&SKINS[i].rarity)|0]||ownedSkins().includes(i);
+const priceTxt=i=>{ const pr=PRICE[(SKINS[i].rarity)|0]; return pr.g?pr.g+' 💎':pr.c+' 🪙'; };
+function buySkin(i){ if(ownsSkin(i)) return true; const pr=PRICE[SKINS[i].rarity|0];
+  if(pr.c&&WALLET.c<pr.c){ showMsg(`<span style="color:#ff6b7d">تحتاج ${pr.c-WALLET.c} 🪙 كمان — اقتل أعداء واجمع العملات</span>`,1600); sfx('pick',0.3); return false; }
+  if(pr.g&&WALLET.g<pr.g){ showMsg(`<span style="color:#ff6b7d">تحتاج ${pr.g-WALLET.g} 💎 كمان — الهيدشوت بيعطي جواهر</span>`,1600); sfx('pick',0.3); return false; }
+  if(pr.c) WALLET.c-=pr.c; if(pr.g) WALLET.g-=pr.g; const o=ownedSkins(); o.push(i);
+  try{ localStorage.setItem('hs_owned',JSON.stringify(o)); localStorage.setItem('hs_coins',WALLET.c); localStorage.setItem('hs_gems',WALLET.g); }catch(e){}
+  showMsg(`<span style="color:#ffd54a">🛒 اشتريت ${SKINS[i].name}!</span>`,1400); sfx('streak'); drawWallet(); return true; }
+function drawWallet(){ for(const id of ['mmWallet','loWallet','armWallet']){ const e=$(id); if(e) e.innerHTML=`<b>${WALLET.c}</b> 🪙 &nbsp; <b>${WALLET.g}</b> 💎`; } }
 [0,1,1,1,2,2,2,2,3].forEach((r,i)=>{ SKINS[i].rarity??=r; });
 // shader patterns painted across the gun surface in metric object space, animated by AURA_T
 const SKIN_GLSL=`
@@ -3853,7 +3868,9 @@ function drawSkins(){
   SKINS.forEach((sk,i)=>{ if(sk.only&&sk.only!==k) return; const d=document.createElement('div'); d.className='sw'+(i===cur?' on':''); d.title=sk.name;
     const R=RARITY[sk.rarity||0], bg=sk.anim?`linear-gradient(135deg,#${new THREE.Color(sk.a).getHexString()},${sk.sw},#${new THREE.Color(sk.c).getHexString()})`:sk.pattern?'linear-gradient(135deg,'+(sk.pattern[1]||['#2a2d33','#14161a']).join(',')+')':sk.sw;
     d.style.setProperty('--rc',R.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.model?' 💠':sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${R.c}">${R.n}</em>`;
-    d.onclick=()=>chooseSkin(k,i); box.appendChild(d); });
+    if(!ownsSkin(i)){ d.classList.add('lock'); d.insertAdjacentHTML('beforeend',`<b class="pr">🔒 ${priceTxt(i)}</b>`); }
+    d.onclick=()=>{ if(buySkin(i)) chooseSkin(k,i); drawSkins(); }; box.appendChild(d); });
+  drawWallet();
   const R=RARITY[SKINS[cur].rarity||0]; $('loPrevName').innerHTML=`${W[k].name} — ${SKINS[cur].name} <b style="color:${R.c}">${R.n}</b>`; loPrevKey='';
 }
 function chooseSkin(k,i){
@@ -3902,7 +3919,9 @@ function drawArmory(){
   SKINS.forEach((sk,i)=>{ if(sk.only&&sk.only!==k) return; const d=document.createElement('div'); d.className='sw'+(i===ARM.sk?' on':''); const RR=RARITY[sk.rarity||0];
     const bg=sk.anim?`linear-gradient(135deg,#${new THREE.Color(sk.a).getHexString()},${sk.sw},#${new THREE.Color(sk.c).getHexString()})`:sk.pattern?'linear-gradient(135deg,'+(sk.pattern[1]||['#2a2d33','#14161a']).join(',')+')':sk.sw;
     d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.model?' 💠':sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
+    if(!ownsSkin(i)){ d.classList.add('lock'); d.insertAdjacentHTML('beforeend',`<b class="pr">🔒 ${priceTxt(i)}</b>`); }
     d.onclick=()=>{ ARM.sk=i; drawArmory(); }; box.appendChild(d); });
+  $('armSave').textContent=ownsSkin(ARM.sk)?'✓ تجهيز وحفظ':'🛒 شراء '+priceTxt(ARM.sk); drawWallet();
 }
 document.body.appendChild($('armHint')); // above the full-screen touch layer (#touch, z 6)
 $('armHint').onclick=()=>{ if(client&&client.lobbyOn) openArmory(); };
@@ -3910,7 +3929,7 @@ $('armHint').onclick=()=>{ if(client&&client.lobbyOn) openArmory(); };
 $('armHint').addEventListener('touchstart',e=>{ e.preventDefault(); e.stopPropagation(); if(client&&client.lobbyOn) openArmory(); },{passive:false});
 $('armSave').onclick=()=>{ const cur=client.nextLoad||client.load, k=WKEYS[ARM.w];
   if(ARM.slot!=='k'&&cur[ARM.slot]!==ARM.w) chooseLoad({...cur,[ARM.slot]:ARM.w});
-  chooseSkin(k,ARM.sk); sfx('pick'); drawArmory(); showMsg('✓ انحفظ',900); };
+  if(!buySkin(ARM.sk)){ drawArmory(); return; } chooseSkin(k,ARM.sk); sfx('pick'); drawArmory(); showMsg('✓ انحفظ',900); };
 $('armBack').onclick=()=>{ closeArmory(); closeLoadout(false); };
 { const cv=$('armCv');
   cv.addEventListener('pointerdown',e=>{ ARM.drag=[e.clientX,e.clientY]; cv.setPointerCapture(e.pointerId); });
@@ -4329,7 +4348,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
     if(av&&avKey===key) return; if(av) sc.remove(av.g); avKey=key;
     av=makeAvatar(0,nm,true); av.g.traverse(o=>{ if(o.userData&&o.userData.ghost) o.visible=false; if(o.isSprite) o.visible=false; });
     av.w=(SET.load&&SET.load.p)||0; av.sk=mySkin(WKEYS[av.w]); av.shownKey=''; av.grip=null; av.g.rotation.y=Math.PI-0.55; sc.add(av.g);   // three-quarter view so the gun on the back shows
-    $('mmName').textContent=nm; $('mmAv').innerHTML=AVATAR_SVG(nm); }
+    $('mmName').textContent=nm; $('mmAv').innerHTML=AVATAR_SVG(nm); drawWallet(); }
   function frame(){ if(!on) return; requestAnimationFrame(frame);
     const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
     const w=cv.clientWidth, h=cv.clientHeight; if(cv.width!==Math.round(w*R.getPixelRatio())){ R.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
@@ -4349,7 +4368,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
     const nar=w<760; cam.position.set((nar?0:-1.6)+Math.sin(t*0.15)*0.3,1.35+Math.sin(t*0.2)*0.05,6.2); cam.lookAt(nar?0:-1.6,1.45,0);
     ring.material.opacity=0.6+Math.sin(t*2)*0.2; ring2.rotation.z+=dt*0.1; dust.rotation.y+=dt*0.02; AURA_T.value=t;
     for(let i=0;i<lampLights.length;i++) lampLights[i].intensity=8+Math.sin(t*9+i*3)*0.6+Math.sin(t*23+i)*0.4; /* lantern flicker */
-    if(MMWIND) MMWIND.rotation.x+=dt*0.35;
+    if(MMWIND) MMWIND.rotation.x+=dt*0.35; if((t%2)<dt) drawWallet();
     R.render(sc,cam); }
   frame();
   return { stop(){ on=false; }, start(){ if(!on){ on=true; last=performance.now(); frame(); } } };
