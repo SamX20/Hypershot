@@ -667,7 +667,7 @@ body.touch #ranks{transform:translateX(-50%) scale(.75);transform-origin:top cen
         <select id="tsize"><option value="1">1 ضد 1</option><option value="2">2 ضد 2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option></select></div>
     </div>
     <div class="row">
-      <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option><option value="city">المدينة</option></select></div>
+      <div><label>الخريطة</label><select id="mapSel"><option value="neon">الساحة النيون</option><option value="yard">المستودع</option><option value="towers">الأبراج</option><option value="city">المدينة</option><option value="fantasy">البلدة الخيالية</option></select></div>
       <div><label>النمط</label><select id="modeSel"><option value="ctf">امسك العلم</option><option value="tdm">فريق ضد فريق</option><option value="koth">ملك التلة</option></select></div>
       <div><label>صعوبة البوتات</label><select id="diffSel"><option value="easy">سهل</option><option value="normal">عادي</option><option value="hard">صعب</option><option value="insane">خارق</option></select></div>
     </div>
@@ -768,7 +768,7 @@ const r2=v=>Math.round(v*100)/100;
 ===================================================================== */
 // match config comes from the URL (?map=yard&mode=tdm&diff=hard) so every peer builds the same world
 const QS=new URLSearchParams(location.search);
-const MAP_ID=['neon','yard','towers','city'].includes(QS.get('map'))?QS.get('map'):'neon';
+const MAP_ID=['neon','yard','towers','city','fantasy'].includes(QS.get('map'))?QS.get('map'):'neon';
 const MODE=['ctf','tdm','koth'].includes(QS.get('mode'))?QS.get('mode'):'ctf';
 const DIFF=['easy','normal','hard','insane'].includes(QS.get('diff'))?QS.get('diff'):'normal';
 const MODES={ctf:{name:'امسك العلم',limit:10},tdm:{name:'فريق ضد فريق',limit:50},koth:{name:'ملك التلة',limit:100}};
@@ -776,17 +776,19 @@ const SCORE_LIMIT=MODES[MODE].limit;
 const BOXES=[], PADS=[], PICKUPS_DEF=[], NODES=[], CRATES=[];
 const FLAG_HOME=[[-56,0.4,0],[56,0.4,0]];
 let HILL={x:0,y:0,z:0,r:5};
-const NEUTRAL={neon:0x2a3350,yard:0x3b4252,towers:0x2f2a4a,city:0x8d8f94}[MAP_ID];
+const NEUTRAL={neon:0x2a3350,yard:0x3b4252,towers:0x2f2a4a,city:0x8d8f94,fantasy:0x7a6a58}[MAP_ID];
 const THEME={
   neon:  {bg:0x070a18,fog:[45,150],floor:'grid',  floorA:'#0b1024',floorB:'#1f2d63',hemi:[0x8899ff,0x221133,0.9]},
   yard:  {bg:0x10131c,fog:[50,160],floor:'concrete',floorA:'#2a2d33',floorB:'#3a3e46',hemi:[0xc8d0ff,0x332a22,1.1]},
   towers:{bg:0x0d0718,fog:[45,150],floor:'tiles', floorA:'#140d24',floorB:'#3a2466',hemi:[0xb090ff,0x221133,0.95]},
   city:  {bg:0x101622,fog:[60,170],floor:'concrete',floorA:'#3c3f46',floorB:'#4a4d55',hemi:[0xc8d4ff,0x2a2620,1.1]},
+  fantasy:{bg:0x0d1638,fog:[40,140],floor:'tiles',floorA:'#3a342e',floorB:'#57504a',hemi:[0x8fa6ff,0x2a1c10,1.05]},
 }[MAP_ID];
 // time of day is a per-player visual preference (doesn't affect gameplay, so it isn't part of the room config)
 let DAY=true; try{ DAY=localStorage.getItem('hs_time')!=='night'; }catch(e){}
+if(MAP_ID==='fantasy') DAY=false; // the fantasy town is always a lantern-lit night
 if(DAY) Object.assign(THEME,{bg:0xbfe0fa,fog:[80,240],hemi:[0xe6f2ff,0x8a7b66,1.5]},
-  {neon:{floorA:'#7f8aa3',floorB:'#56638a'},yard:{floorA:'#9b9a93',floorB:'#7c7b75'},towers:{floorA:'#a99fbd',floorB:'#7d6aa3'},city:{floorA:'#a9aaa6',floorB:'#94958f'}}[MAP_ID]);
+  {neon:{floorA:'#7f8aa3',floorB:'#56638a'},yard:{floorA:'#9b9a93',floorB:'#7c7b75'},towers:{floorA:'#a99fbd',floorB:'#7d6aa3'},city:{floorA:'#a9aaa6',floorB:'#94958f'},fantasy:{floorA:'#8a8278',floorB:'#7a7268'}}[MAP_ID]);
 function B(x,y,z,w,h,d,c=NEUTRAL,tm=-1){const b={x0:x-w/2,x1:x+w/2,y0:y,y1:y+h,z0:z-d/2,z1:z+d/2,c,tm}; BOXES.push(b); return b;}
 function M(x,y,z,w,h,d,team=false,c=NEUTRAL){
   B(x,y,z,w,h,d,team?TEAM_COLOR[1]:c,team?1:-1);
@@ -908,6 +910,40 @@ const MAPS={
     HILL={x:0,y:0,z:0,r:6};
     [[0,-6],[0,6],[0,-24],[0,24],[0,-33],[0,33],[12,0],[12,17],[12,-19],[20,-10],[24,-30],[24,-22],[24,-6],[24,6],[24,22],[24,31],
      [34,0],[34,18],[34,-14],[38,-3],[16,33],[16,-34],[6,-20],[6,20]].forEach(([x,z])=>N(x,z));
+  }},
+  fantasy:{name:'البلدة الخيالية',build(){
+    arenaAndBases();
+    const S=3; // one kit cell = 3 m (walls are 1×1 cells)
+    // house: solid box for collision; the client wraps it in wall panels + roofs (Kenney Fantasy Town kit)
+    const FH=(x,z,cw,cd,fl,roof,stone)=>{ for(const sx of x?[1,-1]:[1]){ const X=x*sx, w=cw*S, d=cd*S; const b=B(X,0,z,w,fl*S,d); b.city=true;
+        for(let f=0;f<fl;f++) for(let i=0;i<cw;i++) for(let j=0;j<cd;j++){ const cx=X-w/2+S/2+i*S, cz=z-d/2+S/2+j*S, y=f*S, base=(stone&&f===0?'fantasy/wall':'fantasy/wall-wood');
+          const win=f===0?'':'-window-shutters', door=f===0&&i===(cw>>1)?'-door':win;
+          if(j===cd-1) CITY_DECOR.push({m:base+(sx>0?door:win),x:cx,y,z:cz,ry:-Math.PI/2,s:S});   /* +z side */
+          if(j===0) CITY_DECOR.push({m:base+(sx<0?door:win),x:cx,y,z:cz,ry:Math.PI/2,s:S});      /* -z side */
+          if(i===cw-1) CITY_DECOR.push({m:base+(f>0?'-window-small':''),x:cx,y,z:cz,ry:0,s:S});   /* +x side */
+          if(i===0) CITY_DECOR.push({m:base+(f>0?'-window-small':''),x:cx,y,z:cz,ry:Math.PI,s:S}); } /* -x side */
+        for(let i=0;i<cw;i++) for(let j=0;j<cd;j++) CITY_DECOR.push({m:'fantasy/'+roof,x:X-w/2+S/2+i*S,y:fl*S,z:z-d/2+S/2+j*S,ry:cd>cw?Math.PI/2:0,s:S}); } };
+    const FS=(m,x,z,w,h,d,ry=0,sc=S)=>{ for(const sx of x?[1,-1]:[1]){ const b=B(x*sx,0,z,w,h,d); b.city=true; CITY_DECOR.push({m:'fantasy/'+m,x:x*sx,y:0,z,ry:sx<0?-ry+Math.PI:ry,s:sc}); } }; // solid prop
+    const FD=(m,x,z,ry=0,sc=S,y=0,mirror=true)=>{ for(const sx of (mirror&&x)?[1,-1]:[1]) CITY_DECOR.push({m:'fantasy/'+m,x:x*sx,y,z,ry:sx<0?-ry+Math.PI:ry,s:sc}); }; // decoration only
+    // central plaza: fountain (low cover) + market stalls around it
+    FS('fountain-round',0,0,6,0.85,6,0,3); FD('fountain-center',0,0,0,3,0,false);
+    FS('stall-red',7,-7,3,3.7,3,0.3); FS('stall-green',7,7,3,3.7,3,-0.3); FS('cart',12,0,2.8,1.7,4,0,3);
+    // streets of houses
+    FH(16,-24,2,2,2,'roof-high-gable',true); FH(16,24,2,1,1,'roof-gable',false); FH(28,-10,1,2,2,'roof-high-gable',false);
+    FH(28,12,2,2,1,'roof-high-point',true); FH(8,-18,1,1,1,'roof-point',false); FH(36,-28,1,1,2,'roof-high-point',true); FH(34,27,2,1,2,'roof-high-gable',false);
+    FH(4,28,1,1,2,'roof-high-point',true); FH(4,-30,2,1,1,'roof-gable',true);
+    // low cover: hedges, rocks, benches
+    FS('hedge-large',20,0,1.5,1.4,6,0,3); FS('rock-large',22,-16,3,2.2,3,0.4,2.4); FS('rock-wide',22,17,4,1.4,3,0,2.4); FS('stall-bench',36,-4,3,1.2,1.4,0,2.6);
+    // wooden crates (breakable)
+    CR(10,0,-12,2); CR(10,0,13,2); CR(24,0,4,2); CR(24,0,-4,1.6); CR(32,0,-18,2); CR(32,0,18,2); CR(3,0,-12,1.6); CR(3,0,12,1.6); CR(24,2,4,1.4);
+    // decoration: lanterns, trees, banners, barrels of hay feel
+    for(const [x,z] of [[4,-5],[4,5],[14,-11],[14,11],[26,-22],[26,22],[38,-12],[38,12]]) FD('lantern',x,z,0,2);
+    for(const [x,z,n] of [[40,-33,'tree-high-round'],[40,33,'tree-high'],[20,33,'tree'],[20,-33,'tree-crooked'],[8,33,'tree-high-crooked'],[30,-33,'tree']]) FD(n,x,z,x*0.1,2.6);
+    FD('banner-red',16,-27.05,Math.PI/2,3,3); FD('banner-green',16,25.55,-Math.PI/2,3,1.6);
+    K(0,0,-27,'hp'); K(0,0,27,'hp');
+    HILL={x:0,y:0,z:0,r:7};
+    // bot paths: an even grid of walkable points (anything not inside a box)
+    for(let x=0;x<=40;x+=5) for(let z=-32;z<=32;z+=5){ if(!BOXES.some(b=>x>b.x0-1&&x<b.x1+1&&z>b.z0-1&&z<b.z1+1&&b.y1>0.9&&b.y0<0.5)) N(x,z); }
   }},
   towers:{name:'الأبراج',build(){
     arenaAndBases();
@@ -2055,7 +2091,7 @@ const SPACE_STYLE={neon:'variation-a',yard:'colormap',towers:'variation-b'}[MAP_
 const SPACE_ACCENT={'variation-a':0x4a7dff,'colormap':0xff8a2a,'variation-b':0x2fd38a}[SPACE_STYLE];
 const SPACE_BODY={'variation-a':0xe4e0f6,'colormap':0xd6cfec,'variation-b':0xcdc3e6}[SPACE_STYLE];
 (function dressSpace(){
-  if(MAP_ID==='city'){ dressCity(); return; }
+  if(MAP_ID==='city'||MAP_ID==='fantasy'){ dressCity(); return; }
   const isPerimeter=b=>(b.x1-b.x0)>=100||(b.z1-b.z0)>=70;
   // boxes that become kit walls: long, thin, tall neutral walls
   const isWall=b=>!b.crate&&b.tm<0&&!isPerimeter(b)&&(b.y1-b.y0)>=1.8&&Math.min(b.x1-b.x0,b.z1-b.z0)<=1.2&&Math.max(b.x1-b.x0,b.z1-b.z0)>=3.9;
@@ -2107,12 +2143,14 @@ function dressCity(){
   const add=(m,mtx)=>(byModel.get(m)||byModel.set(m,[]).get(m)).push(mtx);
   for(const d of CITY_DECOR) add(d.m,M4(d.x,d.y,d.z,d.ry,d.s));
   // roads on an 8 m grid: avenue along x at z=0, streets along z at x = 0 and ±24, crossroads where they meet
+  if(MAP_ID==='city'){
   for(let x=-40;x<=40;x+=8) add(x===0||Math.abs(x)===24?'roads/road-crossroad':'roads/road-straight',M4(x,0.012,0,0,8));   // road-straight runs along x
-  for(const x of [0,24,-24]) for(let z=-32;z<=32;z+=8) if(z) add('roads/road-straight',M4(x,0.012,z,Math.PI/2,8));
+  for(const x of [0,24,-24]) for(let z=-32;z<=32;z+=8) if(z) add('roads/road-straight',M4(x,0.012,z,Math.PI/2,8)); }
+
   const big=m=>/building|container|tank/.test(m);
-  Promise.all([...byModel.keys()].map(m=>loader.loadAsync('assets/city/'+m+'.glb').then(g=>[m,g.scene]).catch(()=>[m,null]))).then(list=>{
+  Promise.all([...byModel.keys()].map(m=>loader.loadAsync('assets/'+(m.startsWith('fantasy/')?'':'city/')+m+'.glb').then(g=>[m,g.scene]).catch(()=>[m,null]))).then(list=>{
     for(const [m,root] of list){ if(!root) continue; const mats=byModel.get(m); root.updateMatrixWorld(true);
-      root.traverse(o=>{ if(!o.isMesh) return; if(o.material.map) o.material.map.colorSpace=THREE.SRGBColorSpace;
+      root.traverse(o=>{ if(!o.isMesh) return; if(o.material.map) o.material.map.colorSpace=THREE.SRGBColorSpace; if(m==='fantasy/road'){ o.material=o.material.clone(); o.material.color.setScalar(0.6); }
         const im=new THREE.InstancedMesh(o.geometry,o.material,mats.length); mats.forEach((mt,i)=>im.setMatrixAt(i,new THREE.Matrix4().multiplyMatrices(mt,o.matrixWorld)));
         im.castShadow=SHADOWS&&big(m); im.receiveShadow=SHADOWS; scene.add(im); }); }
     for(const b of BOXES) if(b.city&&b.mesh){ b.mesh.visible=false; b.edge.visible=false; }   // the models replace their collision boxes
@@ -2178,7 +2216,7 @@ const CRATE_TEX=(()=>{
   for(let i=0;i<6;i++){const x=rand(120,392),y=rand(120,392); for(let k=0;k<4;k++) crack(x,y,rand(0,6.28),rand(50,110),5,5);}
   return {wood:{map:tex(wa,true),bumpMap:tex(wb)},metal:{map:tex(ma,true),bumpMap:tex(mb)},crack:tex(ca,true)};
 })();
-const CRATE_LOOK='scifi'; // 'wood' = Fortnite planks (kept for a wooden map), 'scifi' = cargo crates matching the space kit
+const CRATE_LOOK=MAP_ID==='fantasy'?'wood':'scifi'; // 'wood' = Fortnite planks (kept for a wooden map), 'scifi' = cargo crates matching the space kit
 function sciCrateTex(heavy){
   const N=512, mk=()=>{const c=document.createElement('canvas'); c.width=c.height=N; return [c,c.getContext('2d')];};
   const [ca,a]=mk(), [cb,b]=mk(), [ce,e]=mk(), acc='#'+new THREE.Color(SPACE_ACCENT).getHexString(), body='#'+new THREE.Color(SPACE_BODY).getHexString();

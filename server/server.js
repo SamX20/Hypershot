@@ -14,7 +14,7 @@ const a=HTML.indexOf('// @@SHARED-BEGIN'), b=HTML.indexOf('// @@SHARED-END');
 if(a<0||b<0) throw new Error('shared block markers not found in index.html');
 const SHARED=new vm.Script(HTML.slice(a,b)+'\n;globalThis.__Server=Server;',{filename:'shared.js'});
 
-const MAPS=['neon','yard','towers','city'], MODES=['ctf','tdm','koth'], DIFFS=['easy','normal','hard','insane'];
+const MAPS=['neon','yard','towers','city','fantasy'], MODES=['ctf','tdm','koth'], DIFFS=['easy','normal','hard','insane'];
 const CODE_CHARS='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const rooms=new Map(); // code → {server, map, mode, diff, clients:Set, emptyT}
 
