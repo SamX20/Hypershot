@@ -2837,11 +2837,11 @@ const SKINS=[
   {id:'angel',   name:'ملائكي',      sw:'#f3e2b0', anim:4, a:0xf3f0ea, b:0xe0b24a, c:0x4fc8ff, accent:0xe8bf55, aura:0xffd56a, fx:'leaf',  rarity:4},
   {id:'corrupt', name:'مُفسَد',      sw:'#ff3fd0', anim:6, a:0x0d0a12, b:0xff2fd0, c:0xffd6f6, accent:0xff4fe0, aura:0xff3fd8, fx:'spark', rarity:4, ribbons:0xff3fd8},
   // model skins: a different 3D model for one weapon (assets/skins, credits in assets/skins/CREDITS.txt)
-  {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4, aura:0xff4fd0, fx:'star'},
-  {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3, aura:0x3f8cff, fx:'spark'},
-  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', tex:'m4_asiimov.webp', rarity:4, aura:0xff7a1a, fx:'ember'},
-  {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3, aura:0x5ff4ff, fx:'spark'},
-  {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3, aura:0xffd65a, fx:'star'},
+  {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4, ribbons:0xff4fd0, aura:0xff4fd0, fx:'star'},
+  {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3, ribbons:0x3f8cff, aura:0x3f8cff, fx:'spark'},
+  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', tex:'m4_asiimov.webp', rarity:4, ribbons:0xff7a1a, aura:0xff7a1a, fx:'ember'},
+  {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3, ribbons:0x5ff4ff, aura:0x5ff4ff, fx:'spark'},
+  {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3, ribbons:0xffd65a, aura:0xffd65a, fx:'star'},
 ];
 const RARITY=[{n:'عادي',c:'#9aa3ad'},{n:'مميّز',c:'#3fd36b'},{n:'نادر',c:'#3fa0ff'},{n:'ملحمي',c:'#b24cff'},{n:'أسطوري',c:'#ffb000'}];
 [0,1,1,1,2,2,2,2,3].forEach((r,i)=>{ SKINS[i].rarity??=r; });
