@@ -37,6 +37,9 @@ kbd{background:#1b2350;border:1px solid #3a4690;border-radius:5px;padding:1px 6p
 #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
 /* phones: keep HUD + buttons inside the safe area (notch, rounded corners, a status bar that may slide in) */
 body.touch #hud,body.touch #touch{top:calc(env(safe-area-inset-top,0px) + 12px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);bottom:env(safe-area-inset-bottom,0px)}
+#pingB{display:inline-flex;align-items:flex-end;gap:2px;margin-inline-start:8px;padding-inline-start:8px;border-inline-start:1px solid rgba(255,255,255,.2);direction:ltr;vertical-align:middle;font-weight:800}
+#pingB i{width:3px;border-radius:1px}#pingB i:nth-child(1){height:4px}#pingB i:nth-child(2){height:7px}#pingB i:nth-child(3){height:10px}#pingB i:nth-child(4){height:13px}#pingB em{font-style:normal;margin-left:4px;line-height:13px}
+.dn.cn{color:#ffd54a;font-size:18px;text-shadow:0 0 6px #000,0 2px 0 #7a5200}.dn.gm{color:#5ff4ff;text-shadow:0 0 6px #000,0 2px 0 #00606b}
 #dmgLog{position:absolute;left:12px;top:46%;display:flex;flex-direction:column;gap:3px;direction:rtl;pointer-events:none;font-size:13px;font-weight:700}
 #dmgLog .dl{padding:2px 9px;border-radius:5px;background:rgba(8,12,30,.7);transition:opacity .6s;white-space:nowrap}
 #dmgLog .dl.out{color:#ffd54a;border-right:3px solid #ffd54a} #dmgLog .dl.in{color:#ff6b7d;border-right:3px solid #ff4d5e} #dmgLog .dl.old{opacity:0}
@@ -3109,6 +3112,7 @@ class Client{
     const tn=t=>`<span style="color:${TEAM_CSS[t]}">${TEAM_NAME[t]}</span>`;
     switch(m.k){
       case 'kill': killFeed(m,m.ai===this.id||m.vi===this.id);
+        { const av=this.avatars.get(m.vi), pos=m.vi===this.id?this.me:av&&av.pos; if(pos&&m.ai&&m.ai!==m.vi) lootBurst(pos,m.ai===this.id,!!m.h); }
         if(m.vt===this.team){ const av=this.avatars.get(m.vi), pos=m.vi===this.id?this.me:av&&av.pos; if(pos) DEATH_MARKS.push({x:pos.x,z:pos.z,t:performance.now()}); }
         if(m.vi===this.id){this.killer=m.ai&&m.ai!==this.id?m.a:''; this.streak=0; this.streakT=0;}
         else if(m.ai===this.id){ this.streak++; this.streakT=STREAK_WIN; /* each kill refills the timer; when it runs out the streak resets */ const S={2:'قتل مزدوج!',3:'قتل ثلاثي!',4:'مجزرة!',5:'لا يُوقَف! 🔥',7:'أسطوري! 👑'};
@@ -3185,7 +3189,7 @@ class Client{
     // nearest weapon on the ground → pickup prompt
     this.nearW=null; if(this.alive){ let bd=2.2; for(const [i,g] of wdropMeshes){ const d=Math.hypot(g.position.x-me.x,g.position.z-me.z); if(d<bd&&Math.abs(g.position.y-me.y)<2&&g.userData.w!==this.load.p){bd=d; this.nearW=i;} } }
     { const pp=$('pickp'), g=this.nearW?wdropMeshes.get(this.nearW):null; pp.classList.toggle('hidden',!g||TOUCH); $('tPick').classList.toggle('hidden',!g||!TOUCH);
-      if(g) pp.innerHTML=`<kbd>F</kbd> خذ ${W[WKEYS[g.userData.w]].name} (بدل ${W[WKEYS[this.load.p]].name})`; }
+      if(g) pp.innerHTML=`<kbd>${keyLabel(BIND.pickup)}</kbd> خذ ${W[WKEYS[g.userData.w]].name} (بدل ${W[WKEYS[this.load.p]].name})`; }
     if(this.alive){
       this.stT-=dt;
       if(this.stT<=0){this.stT=0.05; this.send({t:'st',x:r2(me.x),y:r2(me.y),z:r2(me.z),vx:r2(me.vx),vz:r2(me.vz),yw:r2(this.yaw),pt:r2(this.pitch),w:this.w,sl:me.slideT>0?1:0});}
@@ -3277,6 +3281,10 @@ class Client{
   setSlot(sl){ if(sl===this.slot||!this.alive) return; this.slot=sl; this.w=[this.load.p,this.load.s,KNIFE][sl]; this.reloadT=0; this.fireCd=sl===2?0.15:0.3; this.zoomed=false; this.aiming=false; }
   switchW(sl){ this.setSlot(sl); }
   pickup(){ if(this.nearW&&this.alive) this.send({t:'pk',i:this.nearW}); }
+  // quick melee (Valorant-style): knife out, one stab, back to the gun you had
+  quickMelee(){ if(!this.alive||this.qmT>0) return; const back=this.slot; if(back===2){ if(this.fireCd<=0){ this.melee(); this.fireCd=W.knife.rate; } return; }
+    this.setSlot(2); this.melee(); this.fireCd=W.knife.rate; this.qmT=0.45;
+    setTimeout(()=>{ this.qmT=0; if(this.alive&&this.slot===2) this.setSlot(back); },450); }
   melee(){ // knife: hits the closest enemy in a short cone in front; from behind it's a one-shot
     const me=this.me, w=W.knife; this.swing=1; sfx('knife');
     const fx=-Math.sin(this.yaw)*Math.cos(this.pitch), fy=Math.sin(this.pitch), fz=-Math.cos(this.yaw)*Math.cos(this.pitch);
@@ -3422,8 +3430,34 @@ function feed(parts){
   const f=$('feed'); f.prepend(d); while(f.children.length>6) f.lastChild.remove(); setTimeout(()=>d.remove(),7000);
 }
 const dmgNums=[]; const _pv=new THREE.Vector3();
-function dmgNum(p,v,head){
-  const el=document.createElement('div'); el.className='dn'+(head?' hd':''); el.textContent=v; $('dmgs').appendChild(el);
+// ---------- kill loot: coins + gems pop out of the body, bounce, then get vacuumed to the killer (instanced: 2 draw calls total)
+const LOOT_N=160, LOOT=[], WALLET={c:0,g:0}; try{ WALLET.c=+(localStorage.getItem('hs_coins')||0); WALLET.g=+(localStorage.getItem('hs_gems')||0); }catch(e){}
+const lootCoin=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.22,0.06,14).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:0xffc928,emissive:0x8a5a00,metalness:0.7,roughness:0.3}),LOOT_N);
+const lootGem=new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshStandardMaterial({color:0x3ff0ff,emissive:0x0a6070,metalness:0.2,roughness:0.1}),40);
+for(const im of [lootCoin,lootGem]){ im.count=0; im.frustumCulled=false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(im); }
+const _lm=new THREE.Matrix4(), _lq=new THREE.Quaternion(), _le=new THREE.Euler(), _ls=new THREE.Vector3(1,1,1), _lp=new THREE.Vector3();
+function lootBurst(pos,mine,head){ const nc=8+(Math.random()*5|0), ng=head?2:Math.random()<0.35?1:0;
+  for(let i=0;i<nc+ng;i++){ if(LOOT.length>=LOOT_N) LOOT.shift(); const a=Math.random()*6.283, sp=1.5+Math.random()*2.5;
+    LOOT.push({gem:i>=nc,x:pos.x,y:pos.y+1.1,z:pos.z,vx:Math.cos(a)*sp,vy:3+Math.random()*3,vz:Math.sin(a)*sp,r:Math.random()*6,t:0,mine,v:i>=nc?1:1+(Math.random()*2|0)}); } }
+function updateLoot(dt){
+  if(!LOOT.length&&!lootCoin.count&&!lootGem.count) return;
+  let nc=0, ng=0, gotC=0, gotG=0; const me=client&&client.alive?client.me:null;
+  for(let i=LOOT.length-1;i>=0;i--){ const L=LOOT[i]; L.t+=dt; L.r+=dt*6;
+    if(L.mine&&me&&L.t>0.7){ const tx=me.x-L.x, ty=me.y+1.0-L.y, tz=me.z-L.z, d=Math.hypot(tx,ty,tz), k=Math.min(1,(8+L.t*30)*dt/Math.max(d,0.01));
+      L.x+=tx*k; L.y+=ty*k; L.z+=tz*k; if(d<0.5){ if(L.gem) gotG+=L.v; else gotC+=L.v; LOOT.splice(i,1); continue; } }
+    else { L.vy-=14*dt; L.x+=L.vx*dt; L.y+=L.vy*dt; L.z+=L.vz*dt; const fl=0.15; if(L.y<fl){ L.y=fl; L.vy=Math.abs(L.vy)>1?-L.vy*0.45:0; L.vx*=0.7; L.vz*=0.7; }
+      if((!L.mine&&L.t>2.2)||L.t>6){ LOOT.splice(i,1); continue; } }
+    _ls.setScalar(!L.mine&&L.t>1.8?Math.max(0.01,(2.2-L.t)/0.4):1);
+    _lm.compose(_lp.set(L.x,L.y,L.z),_lq.setFromEuler(_le.set(0,L.r,0)),_ls);
+    if(L.gem){ if(ng<40) lootGem.setMatrixAt(ng++,_lm); } else if(nc<LOOT_N) lootCoin.setMatrixAt(nc++,_lm); }
+  lootCoin.count=nc; lootGem.count=ng; lootCoin.instanceMatrix.needsUpdate=true; lootGem.instanceMatrix.needsUpdate=true;
+  if((gotC||gotG)&&me){ camera.getWorldDirection(_lp); const at=(dx,dy)=>[camera.position.x+_lp.x*3+dx,camera.position.y+_lp.y*3+dy,camera.position.z+_lp.z*3];
+    if(gotC){ WALLET.c+=gotC; dmgNum(at(0.5,0.3),'+'+gotC+' 🪙',false,'cn'); sfx('pick'); }
+    if(gotG){ WALLET.g+=gotG; dmgNum(at(0.7,0.6),'+'+gotG+' 💎',false,'gm'); }
+    try{ localStorage.setItem('hs_coins',WALLET.c); localStorage.setItem('hs_gems',WALLET.g); }catch(e){} }
+}
+function dmgNum(p,v,head,cls){
+  const el=document.createElement('div'); el.className='dn'+(head?' hd':'')+(cls?' '+cls:''); el.textContent=v; $('dmgs').appendChild(el);
   dmgNums.push({el,x:p[0]+rand(-0.3,0.3),y:p[1],z:p[2]+rand(-0.3,0.3),t:0.8});
 }
 function updateDmgNums(dt){
@@ -3636,15 +3670,15 @@ function drawMini(c){
       mini.strokeStyle=TEAM_CSS[c.team]; mini.lineWidth=2; mini.stroke(); } mini.globalAlpha=1; }
   if(c.alive){ const x=X(c.me.x),z=Z(c.me.z),a=c.yaw; mini.fillStyle='#fff'; mini.beginPath();
     mini.moveTo(x-Math.sin(a)*6,z-Math.cos(a)*6); mini.lineTo(x-Math.sin(a+2.5)*4,z-Math.cos(a+2.5)*4); mini.lineTo(x-Math.sin(a-2.5)*4,z-Math.cos(a-2.5)*4); mini.fill(); }
-  if(c.online&&c.ping!=null) drawPing(c.ping,Wd);
+  if(c.online&&c.ping!=null) drawPing(c.ping);
 }
-// ping badge in the minimap's top-right corner (online games only): signal bars + ms, green / yellow / red
-function drawPing(ms,Wd){
-  const col=ms<80?'#3dff8a':ms<150?'#ffd54a':'#ff4d5e', bars=ms<80?4:ms<150?3:ms<250?2:1, txt=ms+'ms';
-  mini.font='bold 15px sans-serif'; const tw=mini.measureText(txt).width, w=tw+30, x0=Wd-w-3, y0=3;
-  mini.fillStyle='rgba(0,0,0,.6)'; mini.beginPath(); mini.roundRect?mini.roundRect(x0,y0,w,20,6):mini.rect(x0,y0,w,20); mini.fill();
-  for(let i=0;i<4;i++){ mini.fillStyle=i<bars?col:'rgba(255,255,255,.25)'; mini.fillRect(x0+5+i*5,y0+16-(i+1)*3.2,3.5,(i+1)*3.2); }
-  mini.fillStyle=col; mini.textAlign='left'; mini.textBaseline='middle'; mini.fillText(txt,x0+26,y0+10.5);
+// ping badge next to the room-code badge under the minimap (online games only): signal bars + ms, green / yellow / red
+function drawPing(ms){
+  const room=$('room'); if(!room||room.classList.contains('hidden')) return;
+  let el=$('pingB'); if(!el||el.parentNode!==room){ el=document.createElement('span'); el.id='pingB'; el.innerHTML='<i></i><i></i><i></i><i></i><em></em>'; room.appendChild(el); el._v=-1; }
+  if(el._v===ms) return; el._v=ms;
+  const col=ms<80?'#3dff8a':ms<150?'#ffd54a':'#ff4d5e', bars=ms<80?4:ms<150?3:ms<250?2:1;
+  el.style.color=col; el.querySelectorAll('i').forEach((b,k)=>b.style.background=k<bars?col:'rgba(255,255,255,.25)'); el.querySelector('em').textContent=ms+'ms';
 }
 
 /* =====================================================================
@@ -3838,9 +3872,9 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('wheel',e=>{ if(playing&&client) client.setSlot((Math.max(0,client.slot)+(e.deltaY>0?1:2))%3); });
 // ---------- rebindable keyboard (PC). Mobile button layout is saved separately (SET.touchL).
 const KEY_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',slide:'KeyC',ab1:'KeyQ',ab2:'KeyE',ab3:'KeyX',
-  pickup:'KeyF',reload:'KeyR',w1:'Digit1',w2:'Digit2',w3:'Digit3',loadout:'KeyB',quick:'KeyT',score:'Tab'};
+  pickup:'KeyG',melee:'KeyF',reload:'KeyR',w1:'Digit1',w2:'Digit2',w3:'Digit3',loadout:'KeyB',quick:'KeyT',score:'Tab'};
 const KEY_NAME={fwd:'قدّام',back:'ورا',left:'يسار',right:'يمين',jump:'قفز',slide:'سلايد',ab1:'قدرة 1 (نطة)',ab2:'قدرة 2 (جرعة)',ab3:'قدرة 3 (سرعة)',
-  pickup:'أخذ سلاح',reload:'ريلود',w1:'السلاح الرئيسي',w2:'السلاح الثانوي',w3:'السكين',loadout:'الأسلحة / المعرض',quick:'رسائل سريعة',score:'النتائج'};
+  pickup:'أخذ سلاح',melee:'ضربة سكين سريعة',reload:'ريلود',w1:'السلاح الرئيسي',w2:'السلاح الثانوي',w3:'السكين',loadout:'الأسلحة / المعرض',quick:'رسائل سريعة',score:'النتائج'};
 const BIND={...KEY_DEF,...(SET.keys||{})};
 const keyLabel=c=>c?c.replace(/^Key/,'').replace(/^Digit/,'').replace('Space','Space').replace('ShiftLeft','Shift').replace('ShiftRight','R-Shift').replace('ControlLeft','Ctrl').replace('AltLeft','Alt').replace('Backquote','`'):'—';
 const KB=a=>!!KEYS[BIND[a]];
@@ -3872,6 +3906,7 @@ document.addEventListener('keydown',e=>{
     case 'ab2': client.useAbil(1); break;
     case 'ab3': client.useAbil(2); break;
     case 'pickup': client.pickup(); break;
+    case 'melee': if(!e.repeat) client.quickMelee(); break;
     case 'reload': client.reload(); break;
     case 'w1': client.switchW(0); break;
     case 'w2': client.switchW(1); break;
@@ -4136,7 +4171,7 @@ function frame(){
   pickMeshes.forEach((m,i)=>{m.rotation.y=t*2; m.position.y=PICKUPS_DEF[i].y+0.9+Math.sin(t*3+i)*0.12;});
   if(client){ client.update(dt); updateHudFrame(client); if((miniT-=dt)<=0){miniT=0.05; drawMini(client);} }
   else { camera.position.set(Math.sin(t*0.08)*60,26,Math.cos(t*0.08)*45); camera.lookAt(0,0,0); }
-  updateFx(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt); AURA_T.value=t;
+  updateFx(dt); updateLoot(dt); updateCrates(dt); animDrops(t); animWDrops(t); watchPerf(dt); AURA_T.value=t;
   fitView(); if(TOUCH&&!TE) applyTouchLayout();
   if(armOpen) renderArmory(dt); else if(loadoutOpen) renderLoPreview(dt);
   if(barriers[0].visible) barriers.forEach(b=>{ b.material.map.offset.y=t*0.25; b.material.opacity=0.28+Math.sin(t*3)*0.08; });
