@@ -1757,7 +1757,28 @@ function adsPose(g,k){ const wrap=g.userData.wrap; if(!wrap) return null;
     if(!(x1>x0)) return 0; const c=x1-x0, r=(c*c/4+h*h)/(2*h); return r>0.03?0:r+0.001; }; // flat tops (r huge) = posts → aim at the tip
   const Fc=F.clone(); Fc.y-=ringR(F); const Rc=R.clone(); Rc.y-=ringR(R); Rc.x=Fc.x=cx;
   let pos;
-  if(k==='m16'){ // carry-handle aperture: parallel to the bore, lowered so the aperture centre is on the line of fire
+  if(g.userData.skinModel&&k!=='sniper'){ // skin models: parallel to the bore, the rear aperture's hole centred on the line of fire
+    // find the aperture: render just the rear sight (thin depth slice) looking down the bore, then take the enclosed opening nearest the top
+    g.position.set(0,0,0); g.quaternion.identity(); g.updateMatrixWorld(true);
+    const N=160, half=0.016, cam=new THREE.OrthographicCamera(cx-half,cx+half,R.y+0.002,R.y+0.002-2*half,0.0,0.06);
+    cam.position.set(0,0,R.z+0.03); cam.updateMatrixWorld(true); cam.layers.set(7);
+    const wm=[]; wrap.traverse(o=>{ if(o.isMesh&&!o.userData.aura){ o.layers.enable(7); wm.push(o); } });
+    const rt=new THREE.WebGLRenderTarget(N,N), prevT=renderer.getRenderTarget(), prevC=renderer.getClearColor(new THREE.Color()), prevA=renderer.getClearAlpha(), prevAC=renderer.autoClear, ov=g.parent;
+    const tmp=new THREE.Scene(); tmp.overrideMaterial=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}); if(ov) ov.remove(g); tmp.add(g);
+    renderer.setRenderTarget(rt); renderer.setClearColor(0x000000,1); renderer.autoClear=true; renderer.render(tmp,cam);
+    const px=new Uint8Array(N*N*4); renderer.readRenderTargetPixels(rt,0,0,N,N,px);
+    renderer.setRenderTarget(prevT); renderer.setClearColor(prevC,prevA); renderer.autoClear=prevAC; rt.dispose(); tmp.overrideMaterial.dispose();
+    tmp.remove(g); if(ov) ov.add(g); wm.forEach(o=>o.layers.disable(7));
+    const solid=i=>px[i*4]>127, seen=new Uint8Array(N*N), st=[];
+    for(let i=0;i<N;i++) for(const j of [i, (N-1)*N+i, i*N, i*N+N-1]) if(!solid(j)&&!seen[j]){ seen[j]=1; st.push(j); }
+    while(st.length){ const j=st.pop(), x=j%N, y=(j/N)|0; for(const k of [x>0?j-1:-1,x<N-1?j+1:-1,y>0?j-N:-1,y<N-1?j+N:-1]) if(k>=0&&!seen[k]&&!solid(k)){ seen[k]=1; st.push(k); } }
+    let best=null; for(let j=0;j<N*N;j++){ if(seen[j]||solid(j)) continue; /* an enclosed opening: flood it */ const comp=[j]; seen[j]=1; let sx=0,sy=0,n=0;
+      while(comp.length){ const q=comp.pop(), x=q%N, y=(q/N)|0; sx+=x; sy+=y; n++; for(const k of [x>0?q-1:-1,x<N-1?q+1:-1,y>0?q-N:-1,y<N-1?q+N:-1]) if(k>=0&&!seen[k]&&!solid(k)){ seen[k]=1; comp.push(k); } }
+      if(n>=6&&(!best||sy/n>best.y)) best={x:sx/n,y:sy/n}; } /* readPixels rows go bottom-up: bigger y = higher */
+    let gy=Rc.y, hx=cx; if(best){ hx=cx-half+(best.x+0.5)/N*2*half; gy=R.y+0.002-2*half+(best.y+0.5)/N*2*half; }
+    g.position.copy(sp); g.quaternion.copy(sq); g.updateMatrixWorld(true);
+    pos=new THREE.Vector3(-hx,-gy+(ADS_TRIM[g.userData.skinModel]||0),eye-R.z); }
+  else if(k==='m16'){ // carry-handle aperture: parallel to the bore, lowered so the aperture centre is on the line of fire
     pos=new THREE.Vector3(-cx,-Fc.y+(ADS_TRIM.m16||0),eye-R.z); }
   else { // line through the rear and front sight centres, rear centre on the line of fire
     q.setFromUnitVectors(Fc.clone().sub(Rc).normalize(),new THREE.Vector3(0,0,-1));
@@ -2818,7 +2839,7 @@ const SKINS=[
   // model skins: a different 3D model for one weapon (assets/skins, credits in assets/skins/CREDITS.txt)
   {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4},
   {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3},
-  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', rarity:4},
+  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', tex:'m4_asiimov.webp', rarity:4},
   {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3},
   {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3},
 ];
@@ -3026,12 +3047,19 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
 }
 function mySkin(k){ const i=(SET.skins&&SET.skins[k])|0, sk=SKINS[i]; return sk&&(!sk.only||sk.only===k)?i:0; }
 // ---- model skins: load once, keep the raw scene + a fitted copy for third-person / previews
-function skinOv(sk){ return {glb:true,fbx:undefined,proc:undefined,flip:false,ry:sk.ry,mag:sk.mag,keepMats:true,model:sk.model}; }
+function skinOv(sk){ return {len:GUN_MODELS[sk.only].len*(sk.scale||1.1),glb:true,fbx:undefined,proc:undefined,flip:false,ry:sk.ry,mag:sk.mag,keepMats:true,model:sk.model}; }
 function loadSkinModel(si){ const sk=SKINS[si]; if(!sk||!sk.model) return Promise.resolve(null); if(SKIN_RAW[sk.model]) return Promise.resolve(SKIN_RAW[sk.model]);
   return SKIN_WAIT[sk.model]||(SKIN_WAIT[sk.model]=new Promise(res=>{ const go=()=>{ if(!SKIN_LOADER) return setTimeout(go,200);
     SKIN_LOADER.load('assets/skins/'+sk.model+'.glb',g=>{ const root=g.scene;
+      /* rigged exports (SkinnedMesh) don't clone or measure right: bake the rest pose into plain meshes */
+      root.updateMatrixWorld(true); const sk2=[]; root.traverse(o=>{ if(o.isSkinnedMesh) sk2.push(o); });
+      for(const o of sk2){ o.skeleton.update(); const ge=o.geometry.clone(), src=ge.attributes.position, pa=new THREE.Float32BufferAttribute(src.count*3,3), v=new THREE.Vector3(); ge.setAttribute('position',pa); ge.deleteAttribute('normal'); /* quantized (int16) attributes can't hold baked floats */
+        for(let j=0;j<pa.count;j++){ v.fromBufferAttribute(src,j); o.applyBoneTransform(j,v); pa.setXYZ(j,v.x,v.y,v.z); }
+        ge.deleteAttribute('skinIndex'); ge.deleteAttribute('skinWeight'); ge.computeVertexNormals(); ge.computeBoundingBox(); ge.computeBoundingSphere();
+        const m=new THREE.Mesh(ge,o.material); m.name=o.name; m.position.copy(o.position); m.quaternion.copy(o.quaternion); m.scale.copy(o.scale); o.parent.add(m); o.parent.remove(o); }
       root.traverse(o=>{ if(!o.isMesh) return; const m=[].concat(o.material)[0]; /* source files are mirror-chrome (metal 1, rough 0) and look black without reflections: use a painted finish */
         const nm=new THREE.MeshStandardMaterial({map:m.map||null,normalMap:m.normalMap||null,color:m.color,metalness:0.25,roughness:0.5,name:'skin'}); if(nm.map) nm.map.colorSpace=THREE.SRGBColorSpace; o.material=nm; });
+      if(sk.tex){ const tx=new THREE.TextureLoader().load('assets/skins/'+sk.tex); tx.colorSpace=THREE.SRGBColorSpace; tx.flipY=false; tx.anisotropy=4; root.traverse(o=>{ if(!o.isMesh) return; const om=o.material.map; const t2=om?tx.clone():tx; if(om){ /* quantized UVs come with a texture transform: keep it */ t2.offset.copy(om.offset); t2.repeat.copy(om.repeat); t2.rotation=om.rotation; t2.center.copy(om.center); t2.channel=om.channel; } o.material.map=t2; }); }
       SKIN_RAW[sk.model]=root; const {wrap}=fitGun(root.clone(),sk.only,skinOv(sk)); SKIN_AV[sk.model]=wrap;
       if(client) for(const av of client.avatars.values()) av.shownKey=''; loPrevKey=''; armKey='';
       res(root); },undefined,e=>{ console.warn('skin model failed',sk.model,e); res(null); }); }; go(); })); }
@@ -4259,7 +4287,7 @@ const MM=(()=>{ const cv=$('mmCv'); if(!cv) return null;
 })();
 // fast repeat visits: cache models/sounds/three.js on the device (the page itself always comes fresh from the network)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
-window.HS={get client(){return client;},get armObj(){return armObj;},vmCam,get server(){return server;},CRATES,camera,vmGuns,scene,renderer}; // debug handle for the console
+window.HS={get client(){return client;},get armObj(){return armObj;},vmCam,get server(){return server;},CRATES,camera,vmGuns,scene,renderer,adsPose}; // debug handle for the console
 frame();
 </script>
 </body>
