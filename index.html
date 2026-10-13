@@ -2798,7 +2798,7 @@ function fitGun(root,k,ov){
     if(nA) for(let i=0;i<nA.count&&!bad;i++){ const l=Math.hypot(nA.getX(i),nA.getY(i),nA.getZ(i)); if(!(l>1e-4)) bad=true; }
     if(bad){ o.geometry=o.geometry.clone(); o.geometry.computeVertexNormals(); }
     if(m.map){m.map.colorSpace=THREE.SRGBColorSpace; m.map.anisotropy=4;} o.castShadow=false; });
-  wrap.userData.sc=sc; if((cfg.knife&&cfg.glb)||cfg.keepMats) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
+  wrap.userData.sc=sc; wrap.userData.knife=!!cfg.knife; if((cfg.knife&&cfg.glb)||cfg.keepMats) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
   // the FBX pack only names the M4A1 magazine: guess the others (lowest tall part around the middle of the gun)
   if(cfg.mag&&ov){ const mg=wrap.getObjectByName(cfg.mag); if(mg) mg.name='Mag'; }
   if(!cfg.mag&&!cfg.knife&&!cfg.proc&&!/pistol|m1911/.test(k)){
@@ -2946,7 +2946,7 @@ function applySkin(wrap,si,fx='full'){
   const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pos,3)); pg.setAttribute('aSeed',new THREE.BufferAttribute(seed,1));
   const pm=auraPointsMat(sk.aura,sk.fx).clone(); pm.uniforms.uT=AURA_T; pm.uniforms.uS.value=(b.max.y-b.min.y)*2.5;
   const pts=new THREE.Points(pg,pm); pts.userData.aura=true; pts.frustumCulled=false; wrap.add(pts);
-  if(sk.ribbons){ addRibbons(wrap,b,sk.ribbons,fx==='full'?5:2); if(fx!=='none') addThorns(wrap,b,sk.ribbons); }
+  if(sk.ribbons){ addRibbons(wrap,b,sk.ribbons,fx==='full'?5:2); if(fx!=='none'&&wrap.userData.knife) addThorns(wrap,b,sk.ribbons); } /* spikes only on the knife */
 }
 // smoke ribbons: helical strips around the gun's long axis; a shader streams soft wisps along them forever
 var RIBBON_MAT; // created on first use
