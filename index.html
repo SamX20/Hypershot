@@ -718,6 +718,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 
 // @@SHARED-BEGIN (game rules, maps, physics, authoritative Server: also loaded by server/server.js on Node)
@@ -2758,14 +2759,15 @@ const GUN_MODELS={
 };
 const GUN_GLB=GUN_MODELS; // older code reads .len from here
 const AVATAR_MODELS={}; // fitted, untinted model per weapon key
+let SKIN_LOADER=null, INSTALL_GUN=null; const DEFAULT_ROOT={}, SKIN_RAW={}, SKIN_AV={}, SKIN_WAIT={};
 const vmGuns=WKEYS.map(buildGun);
 const avatarGuns=[];
 const SLOTS=['Mat_Dark','Mat_Poly','Mat_Rubber','Mat_Steel','Mat_Glass','Mat_Wood','Mat_Caqui'];
-function fitGun(root,k){
-  const cfg=GUN_MODELS[k];
+function fitGun(root,k,ov){
+  const cfg=ov?{...GUN_MODELS[k],...ov}:GUN_MODELS[k];
   root.rotation.order='YXZ';
   if(cfg.knife&&cfg.glb) root.rotation.set(-Math.PI/2,0,0);
-  else root.rotation.set(cfg.fbx?-Math.PI/2:0,cfg.flip?-Math.PI/2:Math.PI/2,0); // stand Z-up FBX up, then turn the muzzle to face -Z
+  else root.rotation.set(cfg.fbx?-Math.PI/2:0,cfg.ry!=null?cfg.ry:cfg.flip?-Math.PI/2:Math.PI/2,0); // stand Z-up FBX up, then turn the muzzle to face -Z
   const wrap=new THREE.Group(); wrap.add(root); wrap.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(wrap), size=box.getSize(new THREE.Vector3()), c=box.getCenter(new THREE.Vector3());
   const sc=cfg.len/size.z; root.position.sub(c); wrap.scale.setScalar(sc);
@@ -2775,8 +2777,9 @@ function fitGun(root,k){
     if(nA) for(let i=0;i<nA.count&&!bad;i++){ const l=Math.hypot(nA.getX(i),nA.getY(i),nA.getZ(i)); if(!(l>1e-4)) bad=true; }
     if(bad){ o.geometry=o.geometry.clone(); o.geometry.computeVertexNormals(); }
     if(m.map){m.map.colorSpace=THREE.SRGBColorSpace; m.map.anisotropy=4;} o.castShadow=false; });
-  wrap.userData.sc=sc; if(cfg.knife&&cfg.glb) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
+  wrap.userData.sc=sc; if((cfg.knife&&cfg.glb)||cfg.keepMats) wrap.userData.keepMats=true; // knife keeps its own textures, skins only add the aura
   // the FBX pack only names the M4A1 magazine: guess the others (lowest tall part around the middle of the gun)
+  if(cfg.mag&&ov){ const mg=wrap.getObjectByName(cfg.mag); if(mg) mg.name='Mag'; }
   if(!cfg.mag&&!cfg.knife&&!cfg.proc&&!/pistol|m1911/.test(k)){
     wrap.updateMatrixWorld(true); const inv=wrap.matrixWorld.clone().invert(); let best=null,by=Infinity;
     wrap.traverse(o=>{ if(!o.isMesh) return; const b=new THREE.Box3().setFromObject(o).applyMatrix4(inv), s=b.getSize(new THREE.Vector3()), ct=b.getCenter(new THREE.Vector3());
@@ -2812,6 +2815,12 @@ const SKINS=[
   {id:'fracture',name:'كسر الزمن',   sw:'#c9a4ff', anim:3, a:0xe9e4f5, b:0xa64dff, c:0x37ff9a, accent:0x37ff9a, aura:0xb46cff, fx:'multi', rarity:4},
   {id:'angel',   name:'ملائكي',      sw:'#f3e2b0', anim:4, a:0xf3f0ea, b:0xe0b24a, c:0x4fc8ff, accent:0xe8bf55, aura:0xffd56a, fx:'leaf',  rarity:4},
   {id:'corrupt', name:'مُفسَد',      sw:'#ff3fd0', anim:6, a:0x0d0a12, b:0xff2fd0, c:0xffd6f6, accent:0xff4fe0, aura:0xff3fd8, fx:'spark', rarity:4, ribbons:0xff3fd8},
+  // model skins: a different 3D model for one weapon (assets/skins, credits in assets/skins/CREDITS.txt)
+  {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4},
+  {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3},
+  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', rarity:4},
+  {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3},
+  {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3},
 ];
 const RARITY=[{n:'عادي',c:'#9aa3ad'},{n:'مميّز',c:'#3fd36b'},{n:'نادر',c:'#3fa0ff'},{n:'ملحمي',c:'#b24cff'},{n:'أسطوري',c:'#ffb000'}];
 [0,1,1,1,2,2,2,2,3].forEach((r,i)=>{ SKINS[i].rarity??=r; });
@@ -2969,6 +2978,7 @@ function addRibbons(wrap,b,col,count){
 }
 // copy for other players / the ground: same skin, merged per material to keep draw calls low
 function worldGun(k,si,fx){
+  const msk=SKINS[si]; if(msk&&msk.model&&msk.only===k){ const sw=SKIN_AV[msk.model]; if(sw){ const w=sw.clone(); w.userData.sc=sw.userData.sc; w.userData.keepMats=true; if(fx!=='full') mergeByMaterial(w); return w; } loadSkinModel(si); si=0; }
   const src=AVATAR_MODELS[k]; if(!src) return null; const w=src.clone(); w.userData.sc=src.userData.sc;
   w.userData.keepMats=src.userData.keepMats;
   applySkin(w,si,fx); if(fx!=='full') mergeByMaterial(w); return w;
@@ -2988,9 +2998,12 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
 {
   const glb=new GLTFLoader(), draco=new DRACOLoader(); draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/'); glb.setDRACOLoader(draco);
   const fbx=new FBXLoader();
-  const install=(k,i,root)=>{
-    const {wrap,len}=fitGun(root,k), cfg=GUN_MODELS[k];
-    AVATAR_MODELS[k]=wrap.clone(); AVATAR_MODELS[k].userData.sc=wrap.userData.sc;
+  glb.setMeshoptDecoder(MeshoptDecoder); SKIN_LOADER=glb;
+  const install=(k,i,root,ov)=>{
+    if(!ov&&!DEFAULT_ROOT[k]) DEFAULT_ROOT[k]=root.clone();
+    const {wrap,len}=fitGun(root,k,ov), cfg=GUN_MODELS[k];
+    if(!ov){ AVATAR_MODELS[k]=wrap.clone(); AVATAR_MODELS[k].userData.sc=wrap.userData.sc; }
+    vmGuns[i].userData.skinModel=ov?ov.model:null;
     if(client) for(const av of client.avatars.values()) av.shownKey='';
     const g=vmGuns[i], model=g.children[0], flash=g.userData.flash;
     model.clear(); model.add(wrap,flash); model.position.set(0.03,-0.02,-0.12); model.scale.setScalar(1);
@@ -3001,15 +3014,31 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
     const mag=wrap.getObjectByName('Mag'); g.userData.mag=mag||null; if(mag) g.userData.magBase=mag.position.clone();
     g.userData.pump=cfg.pump?wrap.getObjectByName(cfg.pump):null; g.userData.bolt=cfg.bolt?wrap.getObjectByName(cfg.bolt):null;
     placeHands(g,k,len);
-    applySkin(wrap,mySkin(k),'full');
-    if(k==='rifle'){ AVATAR_GUN.clear(); AVATAR_GUN.add(AVATAR_MODELS.rifle.clone()); }
+    applySkin(wrap,ov?0:mySkin(k),'full');
+    if(k==='rifle'&&!ov){ AVATAR_GUN.clear(); AVATAR_GUN.add(AVATAR_MODELS.rifle.clone()); }
+    if(!ov) refreshVmSkin(k);
   };
+  INSTALL_GUN=install;
   WKEYS.forEach((k,i)=>{ const cfg=GUN_MODELS[k];
     if(cfg.proc) setTimeout(()=>install(k,i,cfg.proc()),0); // after the module finishes (client etc. exist)
     else if(cfg.fbx) fbx.load('assets/weapons/real/'+cfg.fbx+'.fbx',o=>install(k,i,o),undefined,e=>console.warn('weapon model failed',k,e));
     else glb.load(cfg.glb,gl=>install(k,i,gl.scene),undefined,e=>console.warn('weapon model failed',k,e)); });
 }
-function mySkin(k){ return (SET.skins&&SET.skins[k])|0; }
+function mySkin(k){ const i=(SET.skins&&SET.skins[k])|0, sk=SKINS[i]; return sk&&(!sk.only||sk.only===k)?i:0; }
+// ---- model skins: load once, keep the raw scene + a fitted copy for third-person / previews
+function skinOv(sk){ return {glb:true,fbx:undefined,proc:undefined,flip:false,ry:sk.ry,mag:sk.mag,keepMats:true,model:sk.model}; }
+function loadSkinModel(si){ const sk=SKINS[si]; if(!sk||!sk.model) return Promise.resolve(null); if(SKIN_RAW[sk.model]) return Promise.resolve(SKIN_RAW[sk.model]);
+  return SKIN_WAIT[sk.model]||(SKIN_WAIT[sk.model]=new Promise(res=>{ const go=()=>{ if(!SKIN_LOADER) return setTimeout(go,200);
+    SKIN_LOADER.load('assets/skins/'+sk.model+'.glb',g=>{ const root=g.scene;
+      root.traverse(o=>{ if(!o.isMesh) return; const m=[].concat(o.material)[0]; /* source files are mirror-chrome (metal 1, rough 0) and look black without reflections: use a painted finish */
+        const nm=new THREE.MeshStandardMaterial({map:m.map||null,normalMap:m.normalMap||null,color:m.color,metalness:0.25,roughness:0.5,name:'skin'}); if(nm.map) nm.map.colorSpace=THREE.SRGBColorSpace; o.material=nm; });
+      SKIN_RAW[sk.model]=root; const {wrap}=fitGun(root.clone(),sk.only,skinOv(sk)); SKIN_AV[sk.model]=wrap;
+      if(client) for(const av of client.avatars.values()) av.shownKey=''; loPrevKey=''; armKey='';
+      res(root); },undefined,e=>{ console.warn('skin model failed',sk.model,e); res(null); }); }; go(); })); }
+// first-person gun follows the chosen skin: the skin's model, or back to the stock model
+function refreshVmSkin(k){ const i=WKEYS.indexOf(k), g=vmGuns[i], si=mySkin(k), sk=SKINS[si]; if(!INSTALL_GUN) return;
+  if(sk.model){ if(g.userData.skinModel===sk.model) return; loadSkinModel(si).then(raw=>{ if(raw&&mySkin(k)===si) INSTALL_GUN(k,i,raw.clone(),skinOv(sk)); }); }
+  else if(g.userData.skinModel&&DEFAULT_ROOT[k]) INSTALL_GUN(k,i,DEFAULT_ROOT[k].clone(),null); }
 
 /* ---------------- effects ---------------- */
 const fx=[], FX_MAX=160, tracerPool=[];
@@ -3431,23 +3460,26 @@ function feed(parts){
 }
 const dmgNums=[]; const _pv=new THREE.Vector3();
 // ---------- kill loot: coins + gems pop out of the body, bounce, then get vacuumed to the killer (instanced: 2 draw calls total)
-const LOOT_N=160, LOOT=[], WALLET={c:0,g:0}; try{ WALLET.c=+(localStorage.getItem('hs_coins')||0); WALLET.g=+(localStorage.getItem('hs_gems')||0); }catch(e){}
+const LOOT_MAG=3.5, LOOT_N=160, LOOT=[], WALLET={c:0,g:0}; try{ WALLET.c=+(localStorage.getItem('hs_coins')||0); WALLET.g=+(localStorage.getItem('hs_gems')||0); }catch(e){}
 const lootCoin=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.22,0.06,14).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:0xffc928,emissive:0x8a5a00,metalness:0.7,roughness:0.3}),LOOT_N);
 const lootGem=new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.2),new THREE.MeshStandardMaterial({color:0x3ff0ff,emissive:0x0a6070,metalness:0.2,roughness:0.1}),40);
 for(const im of [lootCoin,lootGem]){ im.count=0; im.frustumCulled=false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(im); }
 const _lm=new THREE.Matrix4(), _lq=new THREE.Quaternion(), _le=new THREE.Euler(), _ls=new THREE.Vector3(1,1,1), _lp=new THREE.Vector3();
 function lootBurst(pos,mine,head){ const nc=8+(Math.random()*5|0), ng=head?2:Math.random()<0.35?1:0;
   for(let i=0;i<nc+ng;i++){ if(LOOT.length>=LOOT_N) LOOT.shift(); const a=Math.random()*6.283, sp=1.5+Math.random()*2.5;
-    LOOT.push({gem:i>=nc,x:pos.x,y:pos.y+1.1,z:pos.z,vx:Math.cos(a)*sp,vy:3+Math.random()*3,vz:Math.sin(a)*sp,r:Math.random()*6,t:0,mine,v:i>=nc?1:1+(Math.random()*2|0)}); } }
+    LOOT.push({gem:i>=nc,x:pos.x,y:pos.y+1.1,z:pos.z,vx:Math.cos(a)*sp,vy:3+Math.random()*3,vz:Math.sin(a)*sp,r:Math.random()*6,t:0,mine,life:mine?20:2.5,v:i>=nc?1:1+(Math.random()*2|0)}); } }
 function updateLoot(dt){
   if(!LOOT.length&&!lootCoin.count&&!lootGem.count) return;
   let nc=0, ng=0, gotC=0, gotG=0; const me=client&&client.alive?client.me:null;
   for(let i=LOOT.length-1;i>=0;i--){ const L=LOOT[i]; L.t+=dt; L.r+=dt*6;
-    if(L.mine&&me&&L.t>0.7){ const tx=me.x-L.x, ty=me.y+1.0-L.y, tz=me.z-L.z, d=Math.hypot(tx,ty,tz), k=Math.min(1,(8+L.t*30)*dt/Math.max(d,0.01));
+    /* the killer has to walk over to the loot: within LOOT_MAG metres it gets pulled in (and keeps flying once grabbed) */
+    const dm=L.mine&&me&&L.t>0.6?Math.hypot(me.x-L.x,me.y+1.0-L.y,me.z-L.z):99; if(dm<LOOT_MAG) L.grab=1;
+    if(L.grab&&me){ const tx=me.x-L.x, ty=me.y+1.0-L.y, tz=me.z-L.z, d=Math.hypot(tx,ty,tz); L.gs=(L.gs||4)+dt*40; const k=Math.min(1,L.gs*dt/Math.max(d,0.01));
       L.x+=tx*k; L.y+=ty*k; L.z+=tz*k; if(d<0.5){ if(L.gem) gotG+=L.v; else gotC+=L.v; LOOT.splice(i,1); continue; } }
-    else { L.vy-=14*dt; L.x+=L.vx*dt; L.y+=L.vy*dt; L.z+=L.vz*dt; const fl=0.15; if(L.y<fl){ L.y=fl; L.vy=Math.abs(L.vy)>1?-L.vy*0.45:0; L.vx*=0.7; L.vz*=0.7; }
-      if((!L.mine&&L.t>2.2)||L.t>6){ LOOT.splice(i,1); continue; } }
-    _ls.setScalar(!L.mine&&L.t>1.8?Math.max(0.01,(2.2-L.t)/0.4):1);
+    else { if(!L.rest){ L.vy-=14*dt; L.x+=L.vx*dt; L.y+=L.vy*dt; L.z+=L.vz*dt; if(L.y<0.2){ L.y=0.2; if(Math.abs(L.vy)>1.5){ L.vy=-L.vy*0.45; L.vx*=0.7; L.vz*=0.7; } else L.rest=1; } }
+      else L.y=0.25+Math.sin(L.t*3+L.r)*0.06; /* resting: hover + spin so it's easy to spot */
+      if(L.t>L.life){ LOOT.splice(i,1); continue; } }
+    _ls.setScalar(L.grab?1:Math.max(0.01,Math.min(1,(L.life-L.t)/0.6)));
     _lm.compose(_lp.set(L.x,L.y,L.z),_lq.setFromEuler(_le.set(0,L.r,0)),_ls);
     if(L.gem){ if(ng<40) lootGem.setMatrixAt(ng++,_lm); } else if(nc<LOOT_N) lootCoin.setMatrixAt(nc++,_lm); }
   lootCoin.count=nc; lootGem.count=ng; lootCoin.instanceMatrix.needsUpdate=true; lootGem.instanceMatrix.needsUpdate=true;
@@ -3750,15 +3782,15 @@ function drawSkins(){
   const k=loKey(), cur=mySkin(k);
   document.querySelectorAll('#loTabs b').forEach(b=>b.classList.toggle('on',b.dataset.t===loTab));
   const box=$('loSkins'); box.innerHTML='';
-  SKINS.forEach((sk,i)=>{ const d=document.createElement('div'); d.className='sw'+(i===cur?' on':''); d.title=sk.name;
+  SKINS.forEach((sk,i)=>{ if(sk.only&&sk.only!==k) return; const d=document.createElement('div'); d.className='sw'+(i===cur?' on':''); d.title=sk.name;
     const R=RARITY[sk.rarity||0], bg=sk.anim?`linear-gradient(135deg,#${new THREE.Color(sk.a).getHexString()},${sk.sw},#${new THREE.Color(sk.c).getHexString()})`:sk.pattern?'linear-gradient(135deg,'+(sk.pattern[1]||['#2a2d33','#14161a']).join(',')+')':sk.sw;
-    d.style.setProperty('--rc',R.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${R.c}">${R.n}</em>`;
+    d.style.setProperty('--rc',R.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.model?' 💠':sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${R.c}">${R.n}</em>`;
     d.onclick=()=>chooseSkin(k,i); box.appendChild(d); });
   const R=RARITY[SKINS[cur].rarity||0]; $('loPrevName').innerHTML=`${W[k].name} — ${SKINS[cur].name} <b style="color:${R.c}">${R.n}</b>`; loPrevKey='';
 }
 function chooseSkin(k,i){
   SET.skins=SET.skins||{}; SET.skins[k]=i; saveSet();
-  const g=vmGuns[WKEYS.indexOf(k)]; if(g.userData.wrap) applySkin(g.userData.wrap,i,'full');
+  const g=vmGuns[WKEYS.indexOf(k)]; if(g.userData.wrap&&!g.userData.skinModel&&!SKINS[i].model) applySkin(g.userData.wrap,i,'full'); refreshVmSkin(k);
   const c=client, cur=c.nextLoad||c.load; c.send({t:'load',p:cur.p,s:cur.s,sk:[mySkin(WKEYS[cur.p]),mySkin(WKEYS[cur.s]),mySkin('knife')]});
   drawLoadout();
 }
@@ -3799,9 +3831,9 @@ function drawArmory(){
   const dps=w.dmg*w.pellets/w.rate, bar=(l,v)=>`<div class="lst"><span>${l}</span><i style="--v:${Math.round(clamp(v,0.05,1)*100)}%"></i></div>`;
   $('armStats').innerHTML=w.melee?bar('الضرر',0.5)+bar('الحركة',0.9):bar('الضرر',dps/220)+bar('المدى',(LO_RANGE[ARM.w]||20)/150)+bar('الحركة',((w.speed||1)-0.85)/0.3)+bar('المخزن',w.mag/32);
   const box=$('armSkins'); box.innerHTML='';
-  SKINS.forEach((sk,i)=>{ const d=document.createElement('div'); d.className='sw'+(i===ARM.sk?' on':''); const RR=RARITY[sk.rarity||0];
+  SKINS.forEach((sk,i)=>{ if(sk.only&&sk.only!==k) return; const d=document.createElement('div'); d.className='sw'+(i===ARM.sk?' on':''); const RR=RARITY[sk.rarity||0];
     const bg=sk.anim?`linear-gradient(135deg,#${new THREE.Color(sk.a).getHexString()},${sk.sw},#${new THREE.Color(sk.c).getHexString()})`:sk.pattern?'linear-gradient(135deg,'+(sk.pattern[1]||['#2a2d33','#14161a']).join(',')+')':sk.sw;
-    d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
+    d.style.setProperty('--rc',RR.c); d.innerHTML=`<i style="background:${bg}"></i><span>${sk.name}${sk.model?' 💠':sk.anim?' 🌟':sk.aura?' ✨':''}</span><em style="color:${RR.c}">${RR.n}</em>`;
     d.onclick=()=>{ ARM.sk=i; drawArmory(); }; box.appendChild(d); });
 }
 document.body.appendChild($('armHint')); // above the full-screen touch layer (#touch, z 6)

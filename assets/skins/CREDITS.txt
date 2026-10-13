@@ -1,0 +1,11 @@
+Weapon skin models (optimized: textures resized to 1024 + WebP, meshopt compression)
+
+awp_psycho.glb  - "awp-csgo_Psycho" by NAKS (https://sketchfab.com/NAKS61424) - CC-BY-4.0
+                  https://sketchfab.com/3d-models/awp-csgo-psycho-36a29f1e92b14c97a30eed70111a7b22
+awp_gzhel.glb   - "awp-csgo_Gzhel" by NAKS - CC-BY-NC-4.0 (NON-COMMERCIAL: do not sell)
+                  https://sketchfab.com/3d-models/awp-csgo-gzhel-96c4efea0c07443dbe10536831a054a6
+m4_eyes.glb     - "Standoff2_M4_Eyes" by NAKS - CC-BY-NC-4.0 (NON-COMMERCIAL: do not sell)
+                  https://sketchfab.com/3d-models/standoff2-m4-eyes-d4cfeb7f66f74e70a98bcc81c990f73f
+m4_gucci.glb    - "Standoff2_M4_GUCCI" by NAKS - CC-BY-NC-4.0 (NON-COMMERCIAL: do not sell)
+                  https://sketchfab.com/3d-models/standoff2-m4-gucci-43e0a0eea869451eacc93ccfb32a6b17
+m4_asiimov.glb  - M4A4 Asiimov (source/licence not included in the download - verify before release)
