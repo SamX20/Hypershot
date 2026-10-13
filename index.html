@@ -1206,7 +1206,7 @@ class Server{
         break;
       case 'load':{ // pick primary + secondary (+ skins); applies now during warmup (or while dead), otherwise at next respawn
         if(!p) return; const pr=m.p|0, se=m.s|0; if(!PRIMS.includes(pr)||!SECS.includes(se)) return;
-        if(Array.isArray(m.sk)){ p.skins=p.skins||{}; [pr,se,KNIFE].forEach((w,i)=>{ p.skins[w]=clamp(m.sk[i]|0,0,SKINS.length-1); }); }
+        if(Array.isArray(m.sk)){ p.skins=p.skins||{}; [pr,se,KNIFE].forEach((w,i)=>{ p.skins[w]=clamp(m.sk[i]|0,0,(typeof SKINS!=='undefined'?SKINS.length:64)-1); }); }
         if(this.warm>0||!p.alive||this.lobby){ p.load={p:pr,s:se}; p.loadNext=null; if(!this.held(p).includes(p.w)) p.w=pr; } else p.loadNext={p:pr,s:se};
         break;}
       case 'pk':{ // swap primary with a weapon lying on the ground
