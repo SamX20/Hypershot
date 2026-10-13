@@ -2837,11 +2837,11 @@ const SKINS=[
   {id:'angel',   name:'ملائكي',      sw:'#f3e2b0', anim:4, a:0xf3f0ea, b:0xe0b24a, c:0x4fc8ff, accent:0xe8bf55, aura:0xffd56a, fx:'leaf',  rarity:4},
   {id:'corrupt', name:'مُفسَد',      sw:'#ff3fd0', anim:6, a:0x0d0a12, b:0xff2fd0, c:0xffd6f6, accent:0xff4fe0, aura:0xff3fd8, fx:'spark', rarity:4, ribbons:0xff3fd8},
   // model skins: a different 3D model for one weapon (assets/skins, credits in assets/skins/CREDITS.txt)
-  {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4},
-  {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3},
-  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', tex:'m4_asiimov.webp', rarity:4},
-  {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3},
-  {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3},
+  {id:'m_awp_psycho', name:'سايكو',   sw:'#ff4fa8', only:'sniper', model:'awp_psycho', ry:Math.PI, rarity:4, aura:0xff4fd0, fx:'star'},
+  {id:'m_awp_gzhel',  name:'جزيل',    sw:'#2f6bd6', only:'sniper', model:'awp_gzhel',  ry:Math.PI, rarity:3, aura:0x3f8cff, fx:'spark'},
+  {id:'m_m4_asiimov', name:'أزيموف',  sw:'#ff7a1a', only:'rifle',  model:'m4_asiimov', tex:'m4_asiimov.webp', rarity:4, aura:0xff7a1a, fx:'ember'},
+  {id:'m_m4_eyes',    name:'عيون',    sw:'#7ad3ff', only:'rifle',  model:'m4_eyes', mag:'Magazine1', rarity:3, aura:0x5ff4ff, fx:'spark'},
+  {id:'m_m4_gucci',   name:'فاخر',    sw:'#c8a86a', only:'rifle',  model:'m4_gucci', mag:'Magazine1', rarity:3, aura:0xffd65a, fx:'star'},
 ];
 const RARITY=[{n:'عادي',c:'#9aa3ad'},{n:'مميّز',c:'#3fd36b'},{n:'نادر',c:'#3fa0ff'},{n:'ملحمي',c:'#b24cff'},{n:'أسطوري',c:'#ffb000'}];
 [0,1,1,1,2,2,2,2,3].forEach((r,i)=>{ SKINS[i].rarity??=r; });
@@ -2926,7 +2926,9 @@ function auraPointsMat(col,kind){ const key=col+kind; if(AURA_PT_MAT.has(key)) r
 // one merged geometry of the whole gun (in wrap space) — used for the glow shell and for cheap third-person copies
 function mergedGun(wrap){
   wrap.updateMatrixWorld(true); const inv=wrap.matrixWorld.clone().invert(), list=[];
-  wrap.traverse(o=>{ if(!o.isMesh||o.userData.aura) return; const g=o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));
+  const fl=(g,k)=>{ const a=g.attributes[k]; if(!a||(a.array instanceof Float32Array&&!a.normalized&&!a.isInterleavedBufferAttribute)) return; const b=new THREE.Float32BufferAttribute(a.count*3,3);
+    for(let i=0;i<a.count;i++) b.setXYZ(i,a.getX(i),a.getY(i),a.getZ(i)); g.setAttribute(k,b); }; // quantized skin models: back to floats before transforming
+  wrap.traverse(o=>{ if(!o.isMesh||o.userData.aura||o.isPoints) return; const g0=o.geometry.clone(); fl(g0,'position'); fl(g0,'normal'); if(!g0.attributes.normal) g0.computeVertexNormals(); const g=g0.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));
     for(const k of Object.keys(g.attributes)) if(!['position','normal'].includes(k)) g.deleteAttribute(k); list.push(g.index?g.toNonIndexed():g); });
   return list.length?mergeGeometries(list):null;
 }
@@ -2999,7 +3001,7 @@ function addRibbons(wrap,b,col,count){
 }
 // copy for other players / the ground: same skin, merged per material to keep draw calls low
 function worldGun(k,si,fx){
-  const msk=SKINS[si]; if(msk&&msk.model&&msk.only===k){ const sw=SKIN_AV[msk.model]; if(sw){ const w=sw.clone(); w.userData.sc=sw.userData.sc; w.userData.keepMats=true; if(fx!=='full') mergeByMaterial(w); return w; } loadSkinModel(si); si=0; }
+  const msk=SKINS[si]; if(msk&&msk.model&&msk.only===k){ const sw=SKIN_AV[msk.model]; if(sw){ const w=sw.clone(); w.userData.sc=sw.userData.sc; w.userData.keepMats=true; applySkin(w,si,fx); if(fx!=='full') mergeByMaterial(w); return w; } loadSkinModel(si); si=0; }
   const src=AVATAR_MODELS[k]; if(!src) return null; const w=src.clone(); w.userData.sc=src.userData.sc;
   w.userData.keepMats=src.userData.keepMats;
   applySkin(w,si,fx); if(fx!=='full') mergeByMaterial(w); return w;
@@ -3035,7 +3037,7 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
     const mag=wrap.getObjectByName('Mag'); g.userData.mag=mag||null; if(mag) g.userData.magBase=mag.position.clone();
     g.userData.pump=cfg.pump?wrap.getObjectByName(cfg.pump):null; g.userData.bolt=cfg.bolt?wrap.getObjectByName(cfg.bolt):null;
     placeHands(g,k,len);
-    applySkin(wrap,ov?0:mySkin(k),'full');
+    applySkin(wrap,ov?ov.si:mySkin(k),'full');
     if(k==='rifle'&&!ov){ AVATAR_GUN.clear(); AVATAR_GUN.add(AVATAR_MODELS.rifle.clone()); }
     if(!ov) refreshVmSkin(k);
   };
@@ -3047,7 +3049,7 @@ const skinColor=si=>(SKINS[si]&&SKINS[si].aura)||null;
 }
 function mySkin(k){ const i=(SET.skins&&SET.skins[k])|0, sk=SKINS[i]; return sk&&(!sk.only||sk.only===k)?i:0; }
 // ---- model skins: load once, keep the raw scene + a fitted copy for third-person / previews
-function skinOv(sk){ return {len:GUN_MODELS[sk.only].len*(sk.scale||1.1),glb:true,fbx:undefined,proc:undefined,flip:false,ry:sk.ry,mag:sk.mag,keepMats:true,model:sk.model}; }
+function skinOv(sk){ return {len:GUN_MODELS[sk.only].len*(sk.scale||1.1),glb:true,fbx:undefined,proc:undefined,flip:false,ry:sk.ry,mag:sk.mag,keepMats:true,model:sk.model,si:SKINS.indexOf(sk)}; }
 function loadSkinModel(si){ const sk=SKINS[si]; if(!sk||!sk.model) return Promise.resolve(null); if(SKIN_RAW[sk.model]) return Promise.resolve(SKIN_RAW[sk.model]);
   return SKIN_WAIT[sk.model]||(SKIN_WAIT[sk.model]=new Promise(res=>{ const go=()=>{ if(!SKIN_LOADER) return setTimeout(go,200);
     SKIN_LOADER.load('assets/skins/'+sk.model+'.glb',g=>{ const root=g.scene;
